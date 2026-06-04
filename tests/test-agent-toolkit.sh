@@ -584,7 +584,11 @@ for expected_backend_skill in \
   "backend/go/golang-patterns" \
   "backend/go/golang-testing" \
   "backend/java/java-coding-standards" \
-  "backend/java/java-junit"; do
+  "backend/java/java-junit" \
+  "backend/kotlin/kotlin-patterns" \
+  "backend/kotlin/kotlin-testing" \
+  "backend/python/python-patterns" \
+  "backend/python/python-testing"; do
   if ! grep -Fq -- "$expected_backend_skill" <<<"$REPO_BACKEND_SKILLS_OUTPUT"; then
     echo "Expected repository backend package to include: $expected_backend_skill" >&2
     echo "$REPO_BACKEND_SKILLS_OUTPUT" >&2
@@ -617,6 +621,34 @@ if ! grep -Fq -- "backend/go/golang-patterns" <<<"$REPO_GO_SKILLS_OUTPUT" || \
   grep -Fq -- "backend/java/java-junit" <<<"$REPO_GO_SKILLS_OUTPUT"; then
   echo "Expected backend/go scope to list only Go skills" >&2
   echo "$REPO_GO_SKILLS_OUTPUT" >&2
+  exit 1
+fi
+
+REPO_KOTLIN_SKILLS_OUTPUT="$(
+  HOME="$TECH_SKILLS_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-list --skills-package backend --skills-scope backend/kotlin
+)"
+
+if ! grep -Fq -- "backend/kotlin/kotlin-patterns" <<<"$REPO_KOTLIN_SKILLS_OUTPUT" || \
+  ! grep -Fq -- "backend/kotlin/kotlin-testing" <<<"$REPO_KOTLIN_SKILLS_OUTPUT" || \
+  grep -Fq -- "backend/java/java-junit" <<<"$REPO_KOTLIN_SKILLS_OUTPUT"; then
+  echo "Expected backend/kotlin scope to list only Kotlin skills" >&2
+  echo "$REPO_KOTLIN_SKILLS_OUTPUT" >&2
+  exit 1
+fi
+
+REPO_PYTHON_SKILLS_OUTPUT="$(
+  HOME="$TECH_SKILLS_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-list --skills-package backend --skills-scope backend/python
+)"
+
+if ! grep -Fq -- "backend/python/python-patterns" <<<"$REPO_PYTHON_SKILLS_OUTPUT" || \
+  ! grep -Fq -- "backend/python/python-testing" <<<"$REPO_PYTHON_SKILLS_OUTPUT" || \
+  grep -Fq -- "backend/java/java-junit" <<<"$REPO_PYTHON_SKILLS_OUTPUT"; then
+  echo "Expected backend/python scope to list only Python skills" >&2
+  echo "$REPO_PYTHON_SKILLS_OUTPUT" >&2
   exit 1
 fi
 

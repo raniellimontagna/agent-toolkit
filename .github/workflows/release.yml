@@ -45,4 +45,30 @@ jobs:
           fi
 
       - name: Publish to npm
-        run: npm publish --access public
+        run: |
+          package_name="$(node -p "require('./package.json').name")"
+          package_version="$(node -p "require('./package.json').version")"
+
+          for attempt in 1 2 3; do
+            if npm view "${package_name}@${package_version}" version >/dev/null 2>&1; then
+              echo "${package_name}@${package_version} is already published."
+              exit 0
+            fi
+
+            echo "Publishing ${package_name}@${package_version} (attempt ${attempt}/3)."
+            if npm publish --access public; then
+              exit 0
+            fi
+
+            status="$?"
+            if npm view "${package_name}@${package_version}" version >/dev/null 2>&1; then
+              echo "${package_name}@${package_version} was published despite a failed response."
+              exit 0
+            fi
+
+            if [ "$attempt" -eq 3 ]; then
+              exit "$status"
+            fi
+
+            sleep "$((attempt * 30))"
+          done

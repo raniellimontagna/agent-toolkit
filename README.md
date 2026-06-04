@@ -145,6 +145,16 @@ skills/
         SKILL.md
       java-junit/
         SKILL.md
+    kotlin/
+      kotlin-patterns/
+        SKILL.md
+      kotlin-testing/
+        SKILL.md
+    python/
+      python-patterns/
+        SKILL.md
+      python-testing/
+        SKILL.md
   frontend/
     accessibility/
       SKILL.md
@@ -202,6 +212,18 @@ Use `--skills-scope` to select a narrower path:
 npx -y @ranimontagna/agent-toolkit --skills-only --codex --skills-scope backend/java
 ```
 
+Install only Python skills:
+
+```bash
+npx -y @ranimontagna/agent-toolkit --skills-only --codex --skills-scope backend/python
+```
+
+Install only Kotlin skills:
+
+```bash
+npx -y @ranimontagna/agent-toolkit --skills-only --codex --skills-scope backend/kotlin
+```
+
 Install only React Native skills:
 
 ```bash
@@ -243,6 +265,10 @@ Follow these steps...
 | `backend` | `golang-testing` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/.kiro/skills/golang-testing) under the MIT license |
 | `backend` | `java-coding-standards` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/skills/java-coding-standards) under the MIT license |
 | `backend` | `java-junit` | Copied from GitHub's [`awesome-copilot`](https://github.com/github/awesome-copilot/tree/main/skills/java-junit) under the MIT license |
+| `backend` | `kotlin-patterns` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/skills/kotlin-patterns) under the MIT license |
+| `backend` | `kotlin-testing` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/skills/kotlin-testing) under the MIT license |
+| `backend` | `python-patterns` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/.kiro/skills/python-patterns) under the MIT license |
+| `backend` | `python-testing` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/.kiro/skills/python-testing) under the MIT license |
 | `devops` | `docker-patterns` | Adapted from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/.kiro/skills/docker-patterns) and [`sickn33/antigravity-awesome-skills`](https://github.com/sickn33/antigravity-awesome-skills/tree/main/skills/docker-expert), both under the MIT license |
 | `frontend` | `accessibility` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/skills/accessibility) under the MIT license |
 | `frontend` | `ui-ux-pro-max` | Copied from Next Level Builder's [`ui-ux-pro-max-skill`](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/tree/main/.claude/skills/ui-ux-pro-max) under the MIT license |
@@ -392,6 +418,10 @@ Bundled third-party skills preserve upstream attribution and license files:
 | `react-patterns` | `affaan-m/ECC@0f84c0e2796703fbda87d577b2636351418c7442` | MIT |
 | `react-performance` | `affaan-m/ECC@0f84c0e2796703fbda87d577b2636351418c7442` | MIT |
 | `react-testing` | `affaan-m/ECC@0f84c0e2796703fbda87d577b2636351418c7442` | MIT |
+| `python-patterns` | `affaan-m/ECC@0f84c0e2796703fbda87d577b2636351418c7442` | MIT |
+| `python-testing` | `affaan-m/ECC@0f84c0e2796703fbda87d577b2636351418c7442` | MIT |
+| `kotlin-patterns` | `affaan-m/ECC@0f84c0e2796703fbda87d577b2636351418c7442` | MIT |
+| `kotlin-testing` | `affaan-m/ECC@0f84c0e2796703fbda87d577b2636351418c7442` | MIT |
 
 Releases use npm trusted publishing through GitHub Actions OIDC. The npm
 package is published without a long-lived npm token, and npm automatically
@@ -506,8 +536,8 @@ Release a new npm version by updating `package.json`, pushing the change to
 `main`, then pushing a matching tag:
 
 ```bash
-git tag v0.1.8
-git push origin v0.1.8
+git tag v0.1.9
+git push origin v0.1.9
 ```
 
 The `Release` workflow runs the full check and publishes the scoped package to
