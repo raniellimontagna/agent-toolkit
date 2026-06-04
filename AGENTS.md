@@ -47,5 +47,8 @@ Rules:
 - For codebase questions, first run `graphify query "<question>"` when `graphify-out/graph.json` exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than `GRAPH_REPORT.md` or raw grep output.
 - Dirty `graphify-out/` files are expected after hooks or incremental updates; dirty graph files are not a reason to skip Graphify. Only skip Graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
 - If `graphify-out/wiki/index.md` exists, use it for broad navigation instead of raw source browsing.
+- For visual navigation in this repo, prefer `graphify-out/GRAPH_TREE.html` over `graphify-out/graph.html`. The force-directed graph can be too dense because bundled skills dominate the corpus. Generate or refresh the tree with `rtk graphify tree --label agent-toolkit`.
 - Read `graphify-out/GRAPH_REPORT.md` only for broad architecture review or when query/path/explain do not surface enough context.
+- Graphify is pinned through `tools.lock.json`. If the CLI version, installed Graphify skill version, or command warnings do not match the pinned version, update the local Graphify install and reinstall the Graphify skill for the active runtime before trusting fresh graph output.
+- If queries or the HTML graph surface stale project names, deleted paths, or legacy files, treat `graphify-out/` as stale cache. Move the old `graphify-out/` aside, run `rtk graphify update . --force`, then regenerate `GRAPH_TREE.html`.
 - After modifying code, run `graphify update .` to keep the graph current.
