@@ -602,6 +602,7 @@ REPO_BACKEND_SKILLS_OUTPUT="$(
 )"
 
 for expected_backend_skill in \
+  "backend/api/api-design" \
   "backend/database/postgres-patterns" \
   "backend/fastify-best-practices" \
   "backend/go/golang-patterns" \
@@ -618,6 +619,19 @@ for expected_backend_skill in \
     exit 1
   fi
 done
+
+REPO_API_SKILLS_OUTPUT="$(
+  HOME="$TECH_SKILLS_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-list --skills-package backend --skills-scope backend/api
+)"
+
+if ! grep -Fq -- "backend/api/api-design" <<<"$REPO_API_SKILLS_OUTPUT" || \
+  grep -Fq -- "backend/python/python-patterns" <<<"$REPO_API_SKILLS_OUTPUT"; then
+  echo "Expected backend/api scope to list only API skills" >&2
+  echo "$REPO_API_SKILLS_OUTPUT" >&2
+  exit 1
+fi
 
 REPO_JAVA_SKILLS_OUTPUT="$(
   HOME="$TECH_SKILLS_HOME" \
@@ -697,6 +711,7 @@ REPO_FRONTEND_SKILLS_OUTPUT="$(
 
 for expected_frontend_skill in \
   "frontend/accessibility" \
+  "frontend/astro/astro-developer" \
   "frontend/design/ui-ux-pro-max" \
   "frontend/react-native/react-native-expert" \
   "frontend/react-native/react-native-unistyles-v3" \
@@ -709,6 +724,19 @@ for expected_frontend_skill in \
     exit 1
   fi
 done
+
+REPO_ASTRO_SKILLS_OUTPUT="$(
+  HOME="$TECH_SKILLS_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-list --skills-package frontend --skills-scope frontend/astro
+)"
+
+if ! grep -Fq -- "frontend/astro/astro-developer" <<<"$REPO_ASTRO_SKILLS_OUTPUT" || \
+  grep -Fq -- "frontend/react/react-patterns" <<<"$REPO_ASTRO_SKILLS_OUTPUT"; then
+  echo "Expected frontend/astro scope to list only Astro skills" >&2
+  echo "$REPO_ASTRO_SKILLS_OUTPUT" >&2
+  exit 1
+fi
 
 REPO_REACT_NATIVE_SKILLS_OUTPUT="$(
   HOME="$TECH_SKILLS_HOME" \

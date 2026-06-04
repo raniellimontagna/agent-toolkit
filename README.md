@@ -129,6 +129,9 @@ skills/
     agent-toolkit-maintainer/
       SKILL.md
   backend/
+    api/
+      api-design/
+        SKILL.md
     database/
       postgres-patterns/
         SKILL.md
@@ -158,6 +161,13 @@ skills/
   frontend/
     accessibility/
       SKILL.md
+    astro/
+      astro-developer/
+        SKILL.md
+        architecture.md
+        constraints.md
+        debugging.md
+        testing.md
     design/
       ui-ux-pro-max/
         SKILL.md
@@ -272,6 +282,7 @@ Follow these steps...
 | Package | Skill | Source |
 |---|---|---|
 | `core` | `agent-toolkit-maintainer` | Maintained in this repository |
+| `backend` | `api-design` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/skills/api-design) under the MIT license |
 | `backend` | `postgres-patterns` | Adapted from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/.kiro/skills/postgres-patterns) and [`sickn33/antigravity-awesome-skills`](https://github.com/sickn33/antigravity-awesome-skills/tree/main/skills/postgresql), both under the MIT license |
 | `backend` | `fastify-best-practices` | Copied from Matteo Collina's [`mcollina/skills`](https://github.com/mcollina/skills/tree/main/skills/fastify) under the MIT license |
 | `backend` | `golang-patterns` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/skills/golang-patterns) under the MIT license |
@@ -284,6 +295,7 @@ Follow these steps...
 | `backend` | `python-testing` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/.kiro/skills/python-testing) under the MIT license |
 | `devops` | `docker-patterns` | Adapted from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/.kiro/skills/docker-patterns) and [`sickn33/antigravity-awesome-skills`](https://github.com/sickn33/antigravity-awesome-skills/tree/main/skills/docker-expert), both under the MIT license |
 | `frontend` | `accessibility` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/skills/accessibility) under the MIT license |
+| `frontend` | `astro-developer` | Copied from the official [`withastro/astro`](https://github.com/withastro/astro/tree/main/.agents/skills/astro-developer) repository under the MIT license |
 | `frontend` | `ui-ux-pro-max` | Copied from Next Level Builder's [`ui-ux-pro-max-skill`](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/tree/main/.claude/skills/ui-ux-pro-max) under the MIT license |
 | `frontend` | `react-native-expert` | Copied from Jeffallan's [`claude-skills`](https://github.com/Jeffallan/claude-skills/tree/main/skills/react-native-expert) under the MIT license |
 | `frontend` | `react-native-unistyles-v3` | Copied from Jacek Pudysz's [`react-native-unistyles`](https://github.com/jpudysz/react-native-unistyles/tree/main/skills/react-native-unistyles-v3), declared MIT upstream |
@@ -428,7 +440,9 @@ Bundled third-party skills preserve upstream attribution and license files:
 
 | Skill | Source commit | License |
 |---|---|---|
+| `api-design` | `affaan-m/ECC@0f84c0e2796703fbda87d577b2636351418c7442` | MIT |
 | `fastify-best-practices` | `mcollina/skills@5b2a81354b6d10325da0db9decc9ce5ecc714138` | MIT |
+| `astro-developer` | `withastro/astro@c90ce9751c7862a7280e752549ef74298669693d` | MIT |
 | `react-native-expert` | `Jeffallan/claude-skills@e8be415bc94d8d6ebddc2fb50e5d03c6e27d4319` | MIT |
 | `react-native-unistyles-v3` | `jpudysz/react-native-unistyles@8b5e9fd281a81bdfd87d4fe9e6a0b042c84c5c83` | MIT |
 | `react-patterns` | `affaan-m/ECC@0f84c0e2796703fbda87d577b2636351418c7442` | MIT |
@@ -552,8 +566,8 @@ Release a new npm version by updating `package.json`, pushing the change to
 `main`, then pushing a matching tag:
 
 ```bash
-git tag v0.1.10
-git push origin v0.1.10
+git tag v0.1.11
+git push origin v0.1.11
 ```
 
 The `Release` workflow runs the full check and publishes the scoped package to
