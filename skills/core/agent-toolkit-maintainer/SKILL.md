@@ -15,6 +15,7 @@ Use this skill when working in the Agent Toolkit repository.
 - Install skills flat into runtime skill directories using the skill directory name.
 - Prefer configurable sources over hard-coded local paths.
 - Use `rtk` for shell commands when the local project instructions require it.
+- Use Conventional Commits for repository commits.
 
 ## Installer Changes
 
@@ -31,6 +32,7 @@ When changing `bin/agent-toolkit.ts`, `src/**/*.ts` or `setup-agent-toolkit.sh`:
 9. Keep interactive runs explicit: the user should select tools, runtimes and skill scopes.
 10. Do not make runtime support claims unless the install path is implemented.
 11. Run TypeScript build/typecheck, Biome, Vitest and the integration test before claiming completion.
+12. Run lint and tests before every commit.
 
 ## Skill Changes
 
