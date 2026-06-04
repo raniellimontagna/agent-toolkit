@@ -3,7 +3,7 @@ export function usage(): string {
 
 Usage:
   bash setup-agent-toolkit.sh [options]
-  npx -y @raniellimontagna/agent-toolkit [options]
+  npx -y @ranimontagna/agent-toolkit [options]
 
 Tools:
   --all                 Install every tool without the menu

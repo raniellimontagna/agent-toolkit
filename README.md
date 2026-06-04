@@ -99,7 +99,7 @@ npm run build
 Run the published package directly:
 
 ```bash
-npx -y @raniellimontagna/agent-toolkit
+npx -y @ranimontagna/agent-toolkit
 ```
 
 Interactive runs ask which tools, runtimes and skill scopes to install. Pressing
@@ -109,13 +109,13 @@ is what you want.
 Run the full kit for Codex in one command:
 
 ```bash
-npx -y @raniellimontagna/agent-toolkit --all --codex
+npx -y @ranimontagna/agent-toolkit --all --codex
 ```
 
 Run the full kit for every supported runtime:
 
 ```bash
-npx -y @raniellimontagna/agent-toolkit --all --all-runtimes
+npx -y @ranimontagna/agent-toolkit --all --all-runtimes
 ```
 
 From a local clone, install development dependencies and build the CLI first:
@@ -135,49 +135,49 @@ node dist/bin/agent-toolkit.js
 Target one runtime:
 
 ```bash
-npx -y @raniellimontagna/agent-toolkit --all --codex
+npx -y @ranimontagna/agent-toolkit --all --codex
 ```
 
 Install a single tool:
 
 ```bash
-npx -y @raniellimontagna/agent-toolkit --gsd-only --all-runtimes
+npx -y @ranimontagna/agent-toolkit --gsd-only --all-runtimes
 ```
 
 Install Graphify for Codex only:
 
 ```bash
-npx -y @raniellimontagna/agent-toolkit --graphify-only --codex
+npx -y @ranimontagna/agent-toolkit --graphify-only --codex
 ```
 
 Install only third-party frontend design skills for Codex:
 
 ```bash
-npx -y @raniellimontagna/agent-toolkit --frontend-skills-only --codex
+npx -y @ranimontagna/agent-toolkit --frontend-skills-only --codex
 ```
 
 Install only bundled skills into the current project:
 
 ```bash
-npx -y @raniellimontagna/agent-toolkit --skills-only --all-runtimes --local
+npx -y @ranimontagna/agent-toolkit --skills-only --all-runtimes --local
 ```
 
 Install only React-scoped skills:
 
 ```bash
-npx -y @raniellimontagna/agent-toolkit --skills-only --codex --skills-scope frontend/react
+npx -y @ranimontagna/agent-toolkit --skills-only --codex --skills-scope frontend/react
 ```
 
 List available skills and their scope paths:
 
 ```bash
-npx -y @raniellimontagna/agent-toolkit --skills-list
+npx -y @ranimontagna/agent-toolkit --skills-list
 ```
 
 Install missing selected CLIs before configuring them:
 
 ```bash
-npx -y @raniellimontagna/agent-toolkit --all --gemini --install-missing-clis
+npx -y @ranimontagna/agent-toolkit --all --gemini --install-missing-clis
 ```
 
 ## Flags
@@ -418,8 +418,8 @@ Release a new npm version by updating `package.json`, pushing the change to
 `main`, then pushing a matching tag:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.1
+git push origin v0.1.1
 ```
 
 The `Release` workflow runs the full check and publishes the scoped package to

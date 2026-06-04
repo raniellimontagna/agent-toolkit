@@ -42,7 +42,7 @@ fi
 
 PACKAGE_JSON_CONTENT="$(cat "$ROOT_DIR/package.json")"
 
-if ! grep -Fq -- '"name": "@raniellimontagna/agent-toolkit"' <<<"$PACKAGE_JSON_CONTENT"; then
+if ! grep -Fq -- '"name": "@ranimontagna/agent-toolkit"' <<<"$PACKAGE_JSON_CONTENT"; then
   echo "Expected package name to use the public scoped package" >&2
   exit 1
 fi
@@ -263,7 +263,7 @@ fi
 
 for expected in \
   "Agent Toolkit" \
-  "npx -y @raniellimontagna/agent-toolkit" \
+  "npx -y @ranimontagna/agent-toolkit" \
   "--caveman-only" \
   "--gsd-only" \
   "--frontend-skills-only" \
@@ -291,7 +291,7 @@ for expected in \
   fi
 done
 
-if ! grep -Fq -- "npx -y @raniellimontagna/agent-toolkit --all --codex" "$ROOT_DIR/README.md"; then
+if ! grep -Fq -- "npx -y @ranimontagna/agent-toolkit --all --codex" "$ROOT_DIR/README.md"; then
   echo "Expected README to document one-command install through npm" >&2
   exit 1
 fi

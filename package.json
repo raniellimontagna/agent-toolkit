@@ -1,6 +1,6 @@
 {
-  "name": "@raniellimontagna/agent-toolkit",
-  "version": "0.1.0",
+  "name": "@ranimontagna/agent-toolkit",
+  "version": "0.1.1",
   "description": "Personal AI agent toolkit installer for Claude Code, Codex CLI, OpenCode, Gemini CLI and graph-aware workflows.",
   "type": "module",
   "bin": {

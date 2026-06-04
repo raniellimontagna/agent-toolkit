@@ -22,7 +22,7 @@ Add shell assertions after the existing `package.json` presence check:
 ```bash
 PACKAGE_JSON_CONTENT="$(cat "$ROOT_DIR/package.json")"
 
-if ! grep -Fq -- '"name": "@raniellimontagna/agent-toolkit"' <<<"$PACKAGE_JSON_CONTENT"; then
+if ! grep -Fq -- '"name": "@ranimontagna/agent-toolkit"' <<<"$PACKAGE_JSON_CONTENT"; then
   echo "Expected package name to use the public scoped package" >&2
   exit 1
 fi
@@ -36,13 +36,13 @@ fi
 Add help and README assertions:
 
 ```bash
-if ! grep -Fq -- "npx -y @raniellimontagna/agent-toolkit" <<<"$HELP_OUTPUT"; then
+if ! grep -Fq -- "npx -y @ranimontagna/agent-toolkit" <<<"$HELP_OUTPUT"; then
   echo "Expected help output to document the scoped npx command" >&2
   echo "$HELP_OUTPUT" >&2
   exit 1
 fi
 
-if ! grep -Fq -- "npx -y @raniellimontagna/agent-toolkit --all --codex" "$ROOT_DIR/README.md"; then
+if ! grep -Fq -- "npx -y @ranimontagna/agent-toolkit --all --codex" "$ROOT_DIR/README.md"; then
   echo "Expected README to document one-command install through npm" >&2
   exit 1
 fi
@@ -72,7 +72,7 @@ Set the package name and publish access:
 
 ```json
 {
-  "name": "@raniellimontagna/agent-toolkit",
+  "name": "@ranimontagna/agent-toolkit",
   "publishConfig": {
     "access": "public"
   }
@@ -86,7 +86,7 @@ Preserve the `agent-toolkit` and `setup-agent-toolkit` bin names.
 Change the help usage line from `npx agent-toolkit [options]` to:
 
 ```text
-npx -y @raniellimontagna/agent-toolkit [options]
+npx -y @ranimontagna/agent-toolkit [options]
 ```
 
 - [x] **Step 3: Update lockfile**
@@ -165,7 +165,7 @@ jobs:
 Document the published package command first:
 
 ```bash
-npx -y @raniellimontagna/agent-toolkit --all --codex
+npx -y @ranimontagna/agent-toolkit --all --codex
 ```
 
 Keep clone-based commands under local development.
@@ -195,7 +195,7 @@ Run:
 rtk npm pack --dry-run --json
 ```
 
-Expected: output package id is `@raniellimontagna/agent-toolkit@0.1.0`, includes `dist/`, `skills/`, `tools.lock.json`, `setup-agent-toolkit.sh`, `README.md`.
+Expected: output package id is `@ranimontagna/agent-toolkit@0.1.1`, includes `dist/`, `skills/`, `tools.lock.json`, `setup-agent-toolkit.sh`, `README.md`.
 
 - [x] **Step 2: Run full check**
 

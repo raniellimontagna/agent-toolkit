@@ -6,12 +6,12 @@ Make Agent Toolkit installable from a published artifact with one command, witho
 
 ## Decision
 
-Publish the toolkit as the scoped npm package `@raniellimontagna/agent-toolkit`. The public npm name `agent-toolkit` is already reserved by another maintainer, so the scoped package avoids a naming conflict while preserving the executable names `agent-toolkit` and `setup-agent-toolkit`.
+Publish the toolkit as the scoped npm package `@ranimontagna/agent-toolkit`. The public npm name `agent-toolkit` is already reserved by another maintainer, so the scoped package avoids a naming conflict while preserving the executable names `agent-toolkit` and `setup-agent-toolkit`.
 
 The supported command becomes:
 
 ```bash
-npx -y @raniellimontagna/agent-toolkit --all --codex
+npx -y @ranimontagna/agent-toolkit --all --codex
 ```
 
 The existing local wrapper remains available for clone-based development:
