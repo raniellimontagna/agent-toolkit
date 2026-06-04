@@ -72,6 +72,7 @@ afterEach(() => {
 describe("clack menu", () => {
   it("applies visual prompt selections to installer state", async () => {
     writeSkill("backend/node/fastify-patterns");
+    writeSkill("backend/node/express-patterns");
     writeSkill("frontend/react/react-patterns");
     const clack: ClackFake = {
       intro: vi.fn(),
@@ -149,5 +150,71 @@ describe("clack menu", () => {
       initialValue: true,
     });
     expect(clack.confirm).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not ask for scopes or individual skills after all skill packages are selected", async () => {
+    writeSkill("backend/node/fastify-patterns");
+    writeSkill("frontend/react/react-patterns");
+    const clack: ClackFake = {
+      intro: vi.fn(),
+      outro: vi.fn(),
+      cancel: vi.fn(),
+      isCancel: vi.fn(() => false),
+      multiselect: vi
+        .fn()
+        .mockResolvedValueOnce(["skills"])
+        .mockResolvedValueOnce(["codex"])
+        .mockResolvedValueOnce(["all"]),
+      select: vi.fn().mockResolvedValue("local"),
+      confirm: vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true),
+    };
+
+    await runClackMenu(clack);
+
+    expect(state.skillPackages).toEqual([]);
+    expect(state.skillScopes).toEqual([]);
+    expect(state.skillPaths).toEqual([]);
+    expect(clack.multiselect).toHaveBeenCalledTimes(3);
+    expect(clack.multiselect).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "Select Custom Skill scopes",
+      }),
+    );
+    expect(clack.multiselect).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "Select individual Custom Skills",
+      }),
+    );
+  });
+
+  it("does not ask for individual skills after all selected scopes are selected", async () => {
+    writeSkill("backend/node/fastify-patterns");
+    writeSkill("backend/python/python-patterns");
+    const clack: ClackFake = {
+      intro: vi.fn(),
+      outro: vi.fn(),
+      cancel: vi.fn(),
+      isCancel: vi.fn(() => false),
+      multiselect: vi
+        .fn()
+        .mockResolvedValueOnce(["skills"])
+        .mockResolvedValueOnce(["codex"])
+        .mockResolvedValueOnce(["backend"])
+        .mockResolvedValueOnce(["all"]),
+      select: vi.fn().mockResolvedValue("local"),
+      confirm: vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true),
+    };
+
+    await runClackMenu(clack);
+
+    expect(state.skillPackages).toEqual(["backend"]);
+    expect(state.skillScopes).toEqual([]);
+    expect(state.skillPaths).toEqual([]);
+    expect(clack.multiselect).toHaveBeenCalledTimes(4);
+    expect(clack.multiselect).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "Select individual Custom Skills",
+      }),
+    );
   });
 });
