@@ -1,0 +1,35 @@
+{
+  "name": "agent-toolkit",
+  "version": "0.1.0",
+  "description": "Personal AI agent toolkit installer for Claude Code, Codex CLI, OpenCode, Gemini CLI and graph-aware workflows.",
+  "type": "module",
+  "bin": {
+    "agent-toolkit": "dist/bin/agent-toolkit.js",
+    "setup-agent-toolkit": "dist/bin/agent-toolkit.js"
+  },
+  "files": [
+    "dist",
+    "skills",
+    "setup-agent-toolkit.sh",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "npm run lint && npm run typecheck && npm run test:unit && npm run build && find dist/bin dist/src -name '*.js' -print0 | xargs -0 -n1 node --check && bash -n setup-agent-toolkit.sh && npm run test:integration",
+    "format": "biome format --write .",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "prepare": "npm run build",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:integration": "npm run build && bash tests/test-agent-toolkit.sh",
+    "test:unit": "vitest run",
+    "typecheck": "tsc -p tsconfig.test.json --noEmit"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.16",
+    "@types/node": "^25.9.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  }
+}
