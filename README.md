@@ -131,6 +131,19 @@ skills/
     fastify-best-practices/
       SKILL.md
       rules/
+  frontend/
+    react-native/
+      react-native-expert/
+        SKILL.md
+      react-native-unistyles-v3/
+        SKILL.md
+    react/
+      react-patterns/
+        SKILL.md
+      react-performance/
+        SKILL.md
+      react-testing/
+        SKILL.md
 ```
 
 The first path segment is a selectable package:
@@ -156,6 +169,12 @@ Use `--skills-scope` to select a narrower path:
 
 ```bash
 npx -y @ranimontagna/agent-toolkit --skills-only --codex --skills-scope backend/node
+```
+
+Install only React Native skills:
+
+```bash
+npx -y @ranimontagna/agent-toolkit --skills-only --codex --skills-scope frontend/react-native
 ```
 
 Both filters can be combined. The selected package filter runs first, then the
@@ -188,6 +207,11 @@ Follow these steps...
 |---|---|---|
 | `core` | `agent-toolkit-maintainer` | Maintained in this repository |
 | `backend` | `fastify-best-practices` | Copied from Matteo Collina's [`mcollina/skills`](https://github.com/mcollina/skills/tree/main/skills/fastify) under the MIT license |
+| `frontend` | `react-native-expert` | Copied from Jeffallan's [`claude-skills`](https://github.com/Jeffallan/claude-skills/tree/main/skills/react-native-expert) under the MIT license |
+| `frontend` | `react-native-unistyles-v3` | Copied from Jacek Pudysz's [`react-native-unistyles`](https://github.com/jpudysz/react-native-unistyles/tree/main/skills/react-native-unistyles-v3), declared MIT upstream |
+| `frontend` | `react-patterns` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/skills/react-patterns) under the MIT license |
+| `frontend` | `react-performance` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/skills/react-performance) under the MIT license |
+| `frontend` | `react-testing` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/skills/react-testing) under the MIT license |
 
 The installer validates:
 
@@ -197,9 +221,9 @@ The installer validates:
 - `name` uses lowercase letters, numbers and hyphens;
 - `description` is non-empty and under 1024 characters.
 
-Third-party frontend design skills are not vendored as bundled Custom Skills.
-The `frontend-skills` tool installs them externally through the Agent Skills CLI
-from pinned public sources.
+Third-party frontend design skills such as Impeccable and Taste Skill are not
+vendored as bundled Custom Skills. The `frontend-skills` tool installs them
+externally through the Agent Skills CLI from pinned public sources.
 
 ## CLI Reference
 
@@ -315,9 +339,16 @@ Current external sources:
 | Frontend Skills | `skills@1.5.10`, `pbakaus/impeccable` and `Leonxlnx/taste-skill` at pinned commits | Clones pinned refs before install |
 | Runtime CLIs | Exact npm versions for Claude, Codex, OpenCode and Gemini | Used only when `--install-missing-clis` is enabled |
 
-Bundled third-party skills preserve upstream attribution and license files. The
-Fastify skill is copied from `mcollina/skills` at commit
-`5b2a81354b6d10325da0db9decc9ce5ecc714138` under the MIT license.
+Bundled third-party skills preserve upstream attribution and license files:
+
+| Skill | Source commit | License |
+|---|---|---|
+| `fastify-best-practices` | `mcollina/skills@5b2a81354b6d10325da0db9decc9ce5ecc714138` | MIT |
+| `react-native-expert` | `Jeffallan/claude-skills@e8be415bc94d8d6ebddc2fb50e5d03c6e27d4319` | MIT |
+| `react-native-unistyles-v3` | `jpudysz/react-native-unistyles@8b5e9fd281a81bdfd87d4fe9e6a0b042c84c5c83` | MIT |
+| `react-patterns` | `affaan-m/ECC@0f84c0e2796703fbda87d577b2636351418c7442` | MIT |
+| `react-performance` | `affaan-m/ECC@0f84c0e2796703fbda87d577b2636351418c7442` | MIT |
+| `react-testing` | `affaan-m/ECC@0f84c0e2796703fbda87d577b2636351418c7442` | MIT |
 
 Releases use npm trusted publishing through GitHub Actions OIDC. The npm
 package is published without a long-lived npm token, and npm automatically
@@ -353,6 +384,9 @@ skills/
     fastify-best-practices/
       SKILL.md
       rules/
+  frontend/
+    react-native/
+    react/
 tests/
   unit/
   test-agent-toolkit.sh
@@ -429,8 +463,8 @@ Release a new npm version by updating `package.json`, pushing the change to
 `main`, then pushing a matching tag:
 
 ```bash
-git tag v0.1.5
-git push origin v0.1.5
+git tag v0.1.6
+git push origin v0.1.6
 ```
 
 The `Release` workflow runs the full check and publishes the scoped package to

@@ -531,6 +531,39 @@ if ! grep -Fq -- "backend/fastify-best-practices - Guides development of Fastify
   exit 1
 fi
 
+REPO_FRONTEND_SKILLS_OUTPUT="$(
+  HOME="$TECH_SKILLS_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-list --skills-package frontend
+)"
+
+for expected_frontend_skill in \
+  "frontend/react-native/react-native-expert" \
+  "frontend/react-native/react-native-unistyles-v3" \
+  "frontend/react/react-patterns" \
+  "frontend/react/react-performance" \
+  "frontend/react/react-testing"; do
+  if ! grep -Fq -- "$expected_frontend_skill" <<<"$REPO_FRONTEND_SKILLS_OUTPUT"; then
+    echo "Expected repository frontend package to include: $expected_frontend_skill" >&2
+    echo "$REPO_FRONTEND_SKILLS_OUTPUT" >&2
+    exit 1
+  fi
+done
+
+REPO_REACT_NATIVE_SKILLS_OUTPUT="$(
+  HOME="$TECH_SKILLS_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-list --skills-package frontend --skills-scope frontend/react-native
+)"
+
+if ! grep -Fq -- "frontend/react-native/react-native-expert" <<<"$REPO_REACT_NATIVE_SKILLS_OUTPUT" || \
+  ! grep -Fq -- "frontend/react-native/react-native-unistyles-v3" <<<"$REPO_REACT_NATIVE_SKILLS_OUTPUT" || \
+  grep -Fq -- "frontend/react/react-patterns" <<<"$REPO_REACT_NATIVE_SKILLS_OUTPUT"; then
+  echo "Expected frontend/react-native scope to list only React Native skills" >&2
+  echo "$REPO_REACT_NATIVE_SKILLS_OUTPUT" >&2
+  exit 1
+fi
+
 INTERACTIVE_HOME="$TMP_DIR/interactive-home"
 INTERACTIVE_PROJECT="$TMP_DIR/interactive-project"
 INTERACTIVE_LOG="$TMP_DIR/interactive.log"
