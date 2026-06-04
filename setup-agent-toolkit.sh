@@ -13,7 +13,7 @@ CLI_ENTRYPOINT="$SCRIPT_DIR/dist/bin/agent-toolkit.js"
 
 if [[ ! -f "$CLI_ENTRYPOINT" ]]; then
   echo "Agent Toolkit build not found: dist/bin/agent-toolkit.js" >&2
-  echo "Run npm install && npm run build, then run this command again." >&2
+  echo "Run pnpm install && pnpm run build, then run this command again." >&2
   exit 1
 fi
 

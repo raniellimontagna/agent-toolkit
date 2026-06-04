@@ -4,7 +4,7 @@
 
 ## Shell Commands
 
-- Prefer `rtk` as the command prefix when it is available, for example `rtk npm run check`.
+- Prefer `rtk` as the command prefix when it is available, for example `rtk pnpm run check`.
 - If `rtk` is not installed yet, run the equivalent command without the prefix or install RTK through this toolkit.
 - Keep these project rules portable; do not reference machine-local instruction files.
 
@@ -24,14 +24,14 @@
 - Prefer the full check whenever the change touches code, scripts, package metadata, installer behavior, tests, or project rules:
 
 ```bash
-rtk npm run check
+rtk pnpm run check
 ```
 
 - For very small documentation-only changes, at minimum run:
 
 ```bash
-rtk npm run lint
-rtk npm test
+rtk pnpm run lint
+rtk pnpm test
 ```
 
 - If any verification command fails, fix the issue or report the exact blocker before saying the task is done.

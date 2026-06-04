@@ -282,10 +282,16 @@ sources without a full commit SHA are blocked unless you pass
 
 This project has two supply-chain boundaries:
 
-- repository dependencies, controlled by `package-lock.json`, CI, `npm audit`,
-  registry signatures and provenance attestation checks;
+- repository dependencies, controlled by `pnpm-lock.yaml`, CI, `pnpm audit`,
+  pnpm supply-chain policies and npm release provenance;
 - external tools installed by the runtime installer, controlled by
   `tools.lock.json` and runtime provenance validation.
+
+Repository installs are configured in `pnpm-workspace.yaml` to delay newly
+published package versions for 24 hours, enforce that delay strictly, reject
+missing registry publish timestamps, block transitive exotic package sources and
+fail trust downgrades for packages that previously had stronger publish
+evidence.
 
 Current external sources:
 
@@ -333,6 +339,8 @@ tests/
   test-agent-toolkit.sh
 AGENTS.md                Shared project rules for coding agents
 CLAUDE.md                Pointer to AGENTS.md for Claude Code
+pnpm-lock.yaml           Repository dependency lockfile
+pnpm-workspace.yaml      pnpm workspace and supply-chain policy settings
 setup-agent-toolkit.sh   Bash compatibility wrapper
 tools.lock.json          Pinned external tool sources and RTK checksums
 ```
@@ -344,7 +352,9 @@ Prerequisites:
 - Node.js 22+ for the full toolkit;
 - `npx` for Caveman, GSD and third-party frontend skills;
 - `git` for pinned third-party frontend skill sources;
-- `npm` when using `--install-missing-clis`;
+- `pnpm` 11.x for repository development;
+- `npm` when using `--install-missing-clis` or publishing through npm trusted
+  publishing;
 - `uv` for Graphify, or `pipx` when `GRAPHIFY_INSTALLER=pipx`;
 - `tar` or `unzip` only when RTK needs to be downloaded;
 - runtime CLIs you want to target: `claude`, `codex`, `opencode`, `gemini`.
@@ -352,8 +362,8 @@ Prerequisites:
 Install dependencies and build from a clone:
 
 ```bash
-npm install
-npm run build
+pnpm install
+pnpm run build
 bash setup-agent-toolkit.sh
 ```
 
@@ -366,19 +376,19 @@ node dist/bin/agent-toolkit.js
 Quality scripts:
 
 ```bash
-npm run build
-npm run typecheck
-npm run lint
-npm run lint:fix
-npm run format
-npm run security
-npm run test:unit
-npm run test:integration
-npm test
-npm run check
+pnpm run build
+pnpm run typecheck
+pnpm run lint
+pnpm run lint:fix
+pnpm run format
+pnpm run security
+pnpm run test:unit
+pnpm run test:integration
+pnpm test
+pnpm run check
 ```
 
-`npm run check` is the release gate. It runs lint, typecheck, unit tests, build,
+`pnpm run check` is the release gate. It runs lint, typecheck, unit tests, build,
 compiled JavaScript syntax checks, Bash syntax checks and the shell integration
 test.
 
@@ -391,7 +401,8 @@ GitHub Actions runs:
 
 - `Check`: lint, typecheck, unit tests, build and integration tests;
 - `Secret scan`: Gitleaks over full Git history;
-- `Dependency audit`: `npm audit` and `npm audit signatures`;
+- `Dependency audit`: `pnpm install --frozen-lockfile --ignore-scripts` and
+  `pnpm audit`;
 - `Dependency review`: blocks PRs that add moderate-or-higher vulnerable
   dependencies.
 
@@ -404,9 +415,11 @@ git push origin v0.1.4
 ```
 
 The `Release` workflow runs the full check and publishes the scoped package to
-npm through trusted publishing. Configure the npm package trusted publisher for
-GitHub Actions with workflow filename `release.yml` before pushing a release
-tag.
+npm through trusted publishing. Dependency install and checks use pnpm, but the
+final publish step intentionally stays on `npm publish` because npm trusted
+publishing OIDC is handled by the npm CLI. Configure the npm package trusted
+publisher for GitHub Actions with workflow filename `release.yml` before
+pushing a release tag.
 
 ## Maintenance Rules
 
