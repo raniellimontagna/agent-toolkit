@@ -12,12 +12,14 @@ Tools:
   --superpowers-only    Install only Superpowers
   --graphify-only       Install only Graphify
   --gsd-only            Install only GSD
+  --frontend-skills-only Install only third-party frontend skills
   --skills-only         Install only Custom Skills
   --no-rtk              Skip RTK
   --no-caveman          Skip Caveman
   --no-superpowers      Skip Superpowers
   --no-graphify         Skip Graphify
   --no-gsd              Skip GSD
+  --no-frontend-skills  Skip third-party frontend skills
   --no-skills           Skip Custom Skills
 
 Runtimes:
@@ -50,6 +52,7 @@ Environment:
   GRAPHIFY_PACKAGE      Python package used to install Graphify
   GRAPHIFY_INSTALLER    uv or pipx
   GSD_PACKAGE           GSD package source
+  SKILLS_CLI_PACKAGE    npm package used for third-party skill installs
   GSD_SCOPE             global or local
   TOOLS_LOCK_PATH       External tool provenance lock path
   ALLOW_MUTABLE_SOURCES Set to 1 to allow mutable source overrides

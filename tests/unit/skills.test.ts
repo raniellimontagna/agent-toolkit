@@ -55,6 +55,19 @@ afterEach(() => {
 });
 
 describe("skill discovery", () => {
+  it("keeps third-party frontend skills out of bundled personal skills", () => {
+    const repoSkillsRoot = path.join(process.cwd(), "skills");
+    state.customSkillsDir = repoSkillsRoot;
+
+    const skillDirs = discoverSkillDirs();
+    const repoRelativeSkillPaths = skillDirs.map((skillDir) =>
+      path.relative(repoSkillsRoot, skillDir).replace(/\\/g, "/"),
+    );
+
+    expect(repoRelativeSkillPaths).not.toContain("frontend/design/impeccable");
+    expect(repoRelativeSkillPaths).not.toContain("frontend/design/taste-skill");
+  });
+
   it("discovers skills recursively and returns them sorted by repository path", () => {
     writeSkill("frontend/react/react-patterns");
     writeSkill("backend/node/fastify-patterns");

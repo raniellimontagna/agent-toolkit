@@ -37,6 +37,13 @@ describe("external tool lock", () => {
     );
     expect(lock.tools.gsd.version).toBe("1.42.3");
     expect(lock.tools.graphify.version).toBe("0.8.31");
+    expect(lock.tools.frontendSkills.skillsCli.version).toBe("1.5.10");
+    expect(lock.tools.frontendSkills.impeccable.ref).toBe(
+      "1d5d745823aae7019044e8b0a621af4366dae224",
+    );
+    expect(lock.tools.frontendSkills.tasteSkill.ref).toBe(
+      "3c7017d636c3a4aad378433ea6d0cfa6c921da4a",
+    );
     expect(lock.runtimeClis.gemini.version).toBe("0.45.0");
   });
 

@@ -94,7 +94,7 @@ export async function showMenu(): Promise<void> {
     console.log("");
 
     const toolsAnswer = await rl.question(
-      "Tools to install [comma list: rtk,caveman,superpowers,graphify,gsd,skills, or all]: ",
+      "Tools to install [comma list: rtk,caveman,superpowers,graphify,gsd,frontend-skills,skills, or all]: ",
     );
     selectToolsFromAnswer(toolsAnswer);
 

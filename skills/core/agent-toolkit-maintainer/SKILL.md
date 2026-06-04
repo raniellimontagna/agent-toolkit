@@ -12,6 +12,7 @@ Use this skill when working in the Agent Toolkit repository.
 - Keep the repository public-safe: no internal company names, private URLs, tokens, or credentials.
 - Keep the installer focused on Claude Code, Codex CLI, OpenCode and Gemini CLI.
 - Keep bundled skills organized by scope under `skills/<scope>/<skill-name>/SKILL.md`.
+- Keep third-party skills out of `skills/`; install them through CLI-backed tool installers.
 - Install skills flat into runtime skill directories using the skill directory name.
 - Prefer configurable sources over hard-coded local paths.
 - Keep external tool defaults pinned in `tools.lock.json`; do not reintroduce mutable defaults like `@latest`.
@@ -45,6 +46,10 @@ When adding a personal skill:
 3. Keep `SKILL.md` procedural and short.
 4. Move large examples or detailed references into `references/`.
 5. Do not add README or changelog files inside a skill directory.
+
+When adding third-party skills, add a dedicated installer or extend an existing
+external-skill installer, pin sources in `tools.lock.json`, and document the
+license/source in README.
 
 ## Verification
 

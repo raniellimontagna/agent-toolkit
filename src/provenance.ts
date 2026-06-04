@@ -35,6 +35,9 @@ export function checkExternalToolProvenance(): void {
   if (state.tools.caveman) checkSource("Caveman", state.cavemanPackage);
   if (state.tools.graphify) checkSource("Graphify", state.graphifyPackage);
   if (state.tools.gsd) checkSource("GSD", state.gsdPackage);
+  if (state.tools["frontend-skills"]) {
+    checkSource("Agent Skills CLI", state.frontendSkillsCliPackage);
+  }
 
   if (!state.installMissingClis) return;
 

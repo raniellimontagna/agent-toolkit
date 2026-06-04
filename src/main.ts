@@ -1,6 +1,7 @@
 import process from "node:process";
 import { parseArgs } from "./args.js";
 import { installCaveman } from "./installers/caveman.js";
+import { installFrontendSkills } from "./installers/frontend-skills.js";
 import { installGraphify } from "./installers/graphify.js";
 import { installGsd } from "./installers/gsd.js";
 import { installRtk } from "./installers/rtk.js";
@@ -78,6 +79,15 @@ export async function runInstaller(
     }
   } else {
     skip("GSD");
+  }
+
+  if (state.tools["frontend-skills"]) {
+    if (!installFrontendSkills()) {
+      err("Frontend Skills install failed.");
+      hadError = true;
+    }
+  } else {
+    skip("Frontend Skills");
   }
 
   if (state.tools.skills) {

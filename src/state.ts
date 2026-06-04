@@ -14,6 +14,7 @@ export const toolNames = [
   "superpowers",
   "graphify",
   "gsd",
+  "frontend-skills",
   "skills",
 ] as const;
 
@@ -39,6 +40,13 @@ type State = {
   graphifyPackage: string;
   graphifyInstaller: string;
   gsdPackage: string;
+  frontendSkillsCliPackage: string;
+  frontendSkillSources: Array<{
+    label: string;
+    repository: string;
+    ref: string;
+    skill: string;
+  }>;
   gsdScope: InstallScope;
   customSkillsDir: string;
   skillScopes: string[];
@@ -112,6 +120,26 @@ export const state: State = {
       toolLock.tools.gsd.package,
       toolLock.tools.gsd.version,
     ),
+  frontendSkillsCliPackage:
+    process.env.SKILLS_CLI_PACKAGE ||
+    formatNpmPackageSpec(
+      toolLock.tools.frontendSkills.skillsCli.package,
+      toolLock.tools.frontendSkills.skillsCli.version,
+    ),
+  frontendSkillSources: [
+    {
+      label: "Impeccable",
+      repository: toolLock.tools.frontendSkills.impeccable.repository,
+      ref: toolLock.tools.frontendSkills.impeccable.ref,
+      skill: toolLock.tools.frontendSkills.impeccable.skill,
+    },
+    {
+      label: "Taste Skill",
+      repository: toolLock.tools.frontendSkills.tasteSkill.repository,
+      ref: toolLock.tools.frontendSkills.tasteSkill.ref,
+      skill: toolLock.tools.frontendSkills.tasteSkill.skill,
+    },
+  ],
   gsdScope: envInstallScope(process.env.GSD_SCOPE),
   customSkillsDir:
     process.env.CUSTOM_SKILLS_DIR || path.join(REPO_ROOT, "skills"),
@@ -149,6 +177,7 @@ export const state: State = {
     superpowers: true,
     graphify: true,
     gsd: true,
+    "frontend-skills": true,
     skills: true,
   },
   runtimes: {

@@ -28,6 +28,22 @@ export function selectedGsdArgs(): string[] {
   return args;
 }
 
+const skillsAgentNames: Record<RuntimeName, string> = {
+  claude: "claude-code",
+  codex: "codex",
+  opencode: "opencode",
+  gemini: "gemini-cli",
+};
+
+export function selectedSkillsAgentArgs(): string[] {
+  const args: string[] = [];
+  for (const runtime of runtimeNames) {
+    if (state.runtimes[runtime])
+      args.push("--agent", skillsAgentNames[runtime]);
+  }
+  return args;
+}
+
 function installRuntimeCli(runtime: RuntimeName): boolean {
   const label = runtimeLabel(runtime);
   const command = runtimeCommand(runtime);
@@ -87,6 +103,15 @@ export function checkPrerequisites(): void {
     requireNode(22);
     requireCommand("npx");
     ok(`node found: ${process.version}`);
+    ok("npx found");
+  }
+
+  if (state.tools["frontend-skills"]) {
+    requireNode(18);
+    requireCommand("git");
+    requireCommand("npx");
+    ok(`node found: ${process.version}`);
+    ok("git found");
     ok("npx found");
   }
 

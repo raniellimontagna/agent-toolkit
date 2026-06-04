@@ -37,6 +37,26 @@
       "source": "npm",
       "package": "get-shit-done-cc",
       "version": "1.42.3"
+    },
+    "frontendSkills": {
+      "source": "skills-cli",
+      "skillsCli": {
+        "source": "npm",
+        "package": "skills",
+        "version": "1.5.10"
+      },
+      "impeccable": {
+        "source": "github",
+        "repository": "pbakaus/impeccable",
+        "ref": "1d5d745823aae7019044e8b0a621af4366dae224",
+        "skill": "impeccable"
+      },
+      "tasteSkill": {
+        "source": "github",
+        "repository": "Leonxlnx/taste-skill",
+        "ref": "3c7017d636c3a4aad378433ea6d0cfa6c921da4a",
+        "skill": "design-taste-frontend"
+      }
     }
   },
   "runtimeClis": {

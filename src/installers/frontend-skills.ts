@@ -1,0 +1,106 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { err, info, ok, step } from "../logger.js";
+import { selectedSkillsAgentArgs } from "../runtimes.js";
+import { state } from "../state.js";
+import { requireCommand, requireNode, run } from "../system.js";
+
+type FrontendSkillSource = (typeof state.frontendSkillSources)[number];
+
+function cloneLockedSource(
+  source: FrontendSkillSource,
+  parentDir: string,
+): string {
+  const repoUrl = `https://github.com/${source.repository}.git`;
+  const sourceDir = path.join(parentDir, source.skill);
+
+  info(`Cloning ${source.label} at ${source.ref}...`);
+  if (
+    !run("git", [
+      "clone",
+      "--filter=blob:none",
+      "--no-checkout",
+      repoUrl,
+      sourceDir,
+    ]).ok
+  ) {
+    throw new Error(`Failed to clone ${source.repository}.`);
+  }
+
+  if (
+    !run("git", [
+      "-C",
+      sourceDir,
+      "fetch",
+      "--depth",
+      "1",
+      "origin",
+      source.ref,
+    ]).ok
+  ) {
+    throw new Error(`Failed to fetch ${source.repository}@${source.ref}.`);
+  }
+
+  if (!run("git", ["-C", sourceDir, "checkout", "--detach", "FETCH_HEAD"]).ok) {
+    throw new Error(`Failed to checkout ${source.repository}@${source.ref}.`);
+  }
+
+  return sourceDir;
+}
+
+function installSource(
+  source: FrontendSkillSource,
+  sourceDir: string,
+): boolean {
+  const args = [
+    "-y",
+    state.frontendSkillsCliPackage,
+    "add",
+    sourceDir,
+    "--skill",
+    source.skill,
+    ...selectedSkillsAgentArgs(),
+    ...(state.gsdScope === "global" ? ["--global"] : []),
+    "-y",
+    "--copy",
+  ];
+
+  info(`Installing ${source.label} through Agent Skills CLI...`);
+  const result = run("npx", args);
+  if (result.ok) {
+    ok(`${source.label} skill installed`);
+    return true;
+  }
+
+  err(`${source.label} skill install failed`);
+  return false;
+}
+
+export function installFrontendSkills(): boolean {
+  step("Frontend Skills");
+  console.log(
+    "   Third-party frontend design skills installed via Agent Skills CLI",
+  );
+
+  requireNode(18);
+  requireCommand("git");
+  requireCommand("npx");
+
+  const tempDir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "agent-toolkit-skills-"),
+  );
+  try {
+    for (const source of state.frontendSkillSources) {
+      const sourceDir = cloneLockedSource(source, tempDir);
+      if (!installSource(source, sourceDir)) return false;
+    }
+  } catch (error) {
+    err(error instanceof Error ? error.message : String(error));
+    return false;
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+
+  return true;
+}

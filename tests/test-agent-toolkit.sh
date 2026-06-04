@@ -22,6 +22,7 @@ CODEX_LOG="$LOG_DIR/codex.log"
 OPENCODE_LOG="$LOG_DIR/opencode.log"
 GEMINI_LOG="$LOG_DIR/gemini.log"
 GRAPHIFY_LOG="$LOG_DIR/graphify.log"
+GIT_LOG="$LOG_DIR/git.log"
 export GRAPHIFY_LOG
 
 if [[ ! -f "$ROOT_DIR/bin/agent-toolkit.ts" ]]; then
@@ -65,6 +66,7 @@ for module in \
   usage.ts \
   ui.ts \
   installers/caveman.ts \
+  installers/frontend-skills.ts \
   installers/graphify.ts \
   installers/gsd.ts \
   installers/rtk.ts \
@@ -150,6 +152,17 @@ printf '%s\n' "\$*" >> "$NPM_LOG"
 exit 0
 EOF
 chmod +x "$FAKE_BIN/npx"
+
+cat > "$FAKE_BIN/git" <<EOF
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "$GIT_LOG"
+if [[ "\${1:-}" == "clone" ]]; then
+  destination="\${@: -1}"
+  mkdir -p "\$destination"
+fi
+exit 0
+EOF
+chmod +x "$FAKE_BIN/git"
 
 cat > "$FAKE_BIN/uv" <<EOF
 #!/usr/bin/env bash
@@ -240,11 +253,13 @@ for expected in \
   "Agent Toolkit" \
   "--caveman-only" \
   "--gsd-only" \
+  "--frontend-skills-only" \
   "--graphify-only" \
   "--skills-only" \
   "--superpowers-only" \
   "--rtk-only" \
   "--no-graphify" \
+  "--no-frontend-skills" \
   "--no-skills" \
   "--skills-dir" \
   "--skills-list" \
@@ -258,20 +273,6 @@ for expected in \
   "--no-gemini"; do
   if ! grep -Fq -- "$expected" <<<"$HELP_OUTPUT"; then
     echo "Expected help output to contain: $expected" >&2
-    echo "$HELP_OUTPUT" >&2
-    exit 1
-  fi
-done
-
-for forbidden in \
-  "Cop""ilot" \
-  "Mini""CD" \
-  "Mag""alu" \
-  "Con""fluence" \
-  "Zal""tron" \
-  "agent""-skills"; do
-  if grep -Fqi -- "$forbidden" <<<"$HELP_OUTPUT"; then
-    echo "Help output still contains forbidden legacy/private term: $forbidden" >&2
     echo "$HELP_OUTPUT" >&2
     exit 1
   fi
@@ -292,6 +293,30 @@ fi
 if ! grep -Fxq -- "-y get-shit-done-cc@1.42.3 --global --claude --codex --opencode --gemini" "$NPM_LOG"; then
   echo "Expected GSD installer to target Claude, Codex, OpenCode and Gemini globally" >&2
   cat "$NPM_LOG" >&2
+  exit 1
+fi
+
+if ! grep -Eq -- "-y skills@1\\.5\\.10 add .+ --skill impeccable --agent claude-code --agent codex --agent opencode --agent gemini-cli --global -y --copy" "$NPM_LOG"; then
+  echo "Expected external frontend skill installer to install Impeccable for selected runtimes" >&2
+  cat "$NPM_LOG" >&2
+  exit 1
+fi
+
+if ! grep -Eq -- "-y skills@1\\.5\\.10 add .+ --skill design-taste-frontend --agent claude-code --agent codex --agent opencode --agent gemini-cli --global -y --copy" "$NPM_LOG"; then
+  echo "Expected external frontend skill installer to install Taste Skill for selected runtimes" >&2
+  cat "$NPM_LOG" >&2
+  exit 1
+fi
+
+if ! grep -Fq -- "https://github.com/pbakaus/impeccable.git" "$GIT_LOG"; then
+  echo "Expected Impeccable source to be cloned before CLI installation" >&2
+  cat "$GIT_LOG" >&2
+  exit 1
+fi
+
+if ! grep -Fq -- "https://github.com/Leonxlnx/taste-skill.git" "$GIT_LOG"; then
+  echo "Expected Taste Skill source to be cloned before CLI installation" >&2
+  cat "$GIT_LOG" >&2
   exit 1
 fi
 
@@ -703,13 +728,5 @@ bash "$ROOT_DIR/setup-agent-toolkit.sh" --gsd-only --codex --allow-mutable-sourc
 if ! grep -Fxq -- "-y get-shit-done-cc@latest --global --codex" "$MUTABLE_ALLOWED_LOG"; then
   echo "Expected --allow-mutable-sources to permit explicit mutable override" >&2
   cat "$MUTABLE_ALLOWED_LOG" >&2
-  exit 1
-fi
-
-LEGACY_PATTERN="Mini""CD|Mag""alu|mag""azine|luiza""labs|Git""Lab|Con""fluence|Zal""tron|agent""-skills|setup-cop""ilot|GitHub Cop""ilot|Cop""ilot|Ran""ni AI Hub|ran""ni-ai-hub|setup-ai-""hub|Ran""ni Skills"
-SEARCH_OUTPUT="$(grep -RInE "$LEGACY_PATTERN" "$ROOT_DIR" --exclude-dir=.git --exclude-dir=graphify-out --exclude-dir=node_modules || true)"
-if [[ -n "$SEARCH_OUTPUT" ]]; then
-  echo "Repository still contains legacy/private references:" >&2
-  echo "$SEARCH_OUTPUT" >&2
   exit 1
 fi

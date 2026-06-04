@@ -1,7 +1,8 @@
 # Agent Toolkit
 
 Personal toolkit for setting up AI coding agents with the tools I use most:
-RTK, Caveman, Superpowers, Graphify, GSD and bundled personal skills.
+RTK, Caveman, Superpowers, Graphify, GSD, third-party frontend skills and
+bundled personal skills.
 
 The installer source is written in TypeScript and compiled to a dependency-free
 Node CLI in `dist/`. The Bash file is kept only as a compatibility wrapper, so
@@ -28,14 +29,15 @@ instructions and tests for the installer flows.
 | Superpowers | Planning, TDD, debugging, review and delivery workflows |
 | Graphify | Queryable knowledge graphs for codebases, docs and project context |
 | GSD | Phase-based planning, execution, verification and project control |
+| Frontend Skills | Third-party design skills installed through Agent Skills CLI |
 | Custom Skills | Personal skills bundled in this repository |
 
 Superpowers is installed automatically for Claude Code, Codex CLI and Gemini CLI.
 OpenCode support is intentionally not automated yet for Superpowers because the
-upstream install flow is not a stable single command. Caveman, GSD and Custom
-Skills can target Claude Code, Codex CLI, OpenCode and Gemini CLI. Graphify is
-installed through the official `graphifyy` package and registers itself for the
-selected runtimes.
+upstream install flow is not a stable single command. Caveman, GSD, Frontend
+Skills and Custom Skills can target Claude Code, Codex CLI, OpenCode and Gemini
+CLI. Graphify is installed through the official `graphifyy` package and
+registers itself for the selected runtimes.
 
 ## Repository Layout
 
@@ -65,7 +67,6 @@ skills/
   core/
     agent-toolkit-maintainer/
       SKILL.md
-  frontend/
   backend/
 tests/
   unit/
@@ -76,7 +77,8 @@ tests/
 ## Prerequisites
 
 - Node.js 22+ for the full toolkit
-- `npx` for Caveman and GSD
+- `npx` for Caveman, GSD and third-party frontend skills
+- `git` for pinned third-party frontend skill sources
 - `npm` when using `--install-missing-clis`
 - `uv` for Graphify, or `pipx` when `GRAPHIFY_INSTALLER=pipx`
 - `tar` or `unzip` only when RTK needs to be downloaded
@@ -136,6 +138,12 @@ Install Graphify for Codex only:
 bash setup-agent-toolkit.sh --graphify-only --codex
 ```
 
+Install only third-party frontend design skills for Codex:
+
+```bash
+bash setup-agent-toolkit.sh --frontend-skills-only --codex
+```
+
 Install only bundled skills into the current project:
 
 ```bash
@@ -169,12 +177,14 @@ bash setup-agent-toolkit.sh --all --gemini --install-missing-clis
 --superpowers-only     Install only Superpowers
 --graphify-only        Install only Graphify
 --gsd-only             Install only GSD
+--frontend-skills-only Install only third-party frontend skills
 --skills-only          Install only Custom Skills
 --no-rtk               Skip RTK
 --no-caveman           Skip Caveman
 --no-superpowers       Skip Superpowers
 --no-graphify          Skip Graphify
 --no-gsd               Skip GSD
+--no-frontend-skills   Skip third-party frontend skills
 --no-skills            Skip Custom Skills
 
 --all-runtimes         Target Claude Code, Codex CLI, OpenCode and Gemini CLI
@@ -208,6 +218,7 @@ CAVEMAN_MODE          minimal or all
 GRAPHIFY_PACKAGE      Python package used to install Graphify
 GRAPHIFY_INSTALLER    uv or pipx
 GSD_PACKAGE           GSD package source
+SKILLS_CLI_PACKAGE    npm package used for third-party skill installs
 GSD_SCOPE             global or local
 TOOLS_LOCK_PATH       External tool provenance lock path
 ALLOW_MUTABLE_SOURCES Set to 1 to allow mutable source overrides
@@ -226,6 +237,7 @@ CAVEMAN_PACKAGE=github:JuliusBrussee/caveman#655b7d9c5431f822264b7732e9901c5578a
 GRAPHIFY_PACKAGE=graphifyy==0.8.31
 GRAPHIFY_INSTALLER=uv
 GSD_PACKAGE=get-shit-done-cc@1.42.3
+SKILLS_CLI_PACKAGE=skills@1.5.10
 CLAUDE_CLI_PACKAGE=@anthropic-ai/claude-code@2.1.162
 CODEX_CLI_PACKAGE=@openai/codex@0.137.0
 OPENCODE_CLI_PACKAGE=opencode-ai@1.15.13
@@ -252,6 +264,7 @@ Current external sources:
 | Caveman | `JuliusBrussee/caveman` at commit `655b7d9c5431f822264b7732e9901c5578ac84cf` | Installs through an immutable GitHub npm spec |
 | Graphify | `graphifyy==0.8.31` | Blocks unpinned package overrides |
 | GSD | `get-shit-done-cc@1.42.3` | Blocks `@latest` unless explicitly allowed |
+| Frontend Skills | `skills@1.5.10`, `pbakaus/impeccable` and `Leonxlnx/taste-skill` at pinned commits | Clones pinned refs, then installs selected skills through Agent Skills CLI |
 | Runtime CLIs | Exact npm versions for Claude, Codex, OpenCode and Gemini | Used when `--install-missing-clis` is enabled |
 
 Use `TOOLS_LOCK_PATH=/path/to/tools.lock.json` to test another lock file. Keep
@@ -293,6 +306,14 @@ used only for organization; runtime installs remain flat:
 ~/.codex/skills/fastify-api-patterns/
 ~/.codex/skills/go-service-patterns/
 ```
+
+Third-party frontend design skills are not bundled as personal skills. The
+`frontend-skills` tool installs them externally:
+
+| Runtime folder | Skill name | Source |
+|---|---|---|
+| `impeccable` | `impeccable` | `pbakaus/impeccable`, Apache-2.0 |
+| `design-taste-frontend` | `design-taste-frontend` | `Leonxlnx/taste-skill`, MIT |
 
 Each skill should be concise and self-contained:
 

@@ -28,6 +28,26 @@ export type ToolLock = {
       package: string;
       version: string;
     };
+    frontendSkills: {
+      source: "skills-cli";
+      skillsCli: {
+        source: "npm";
+        package: string;
+        version: string;
+      };
+      impeccable: {
+        source: "github";
+        repository: string;
+        ref: string;
+        skill: string;
+      };
+      tasteSkill: {
+        source: "github";
+        repository: string;
+        ref: string;
+        skill: string;
+      };
+    };
   };
   runtimeClis: Record<
     RuntimeCliLockName,
@@ -160,6 +180,28 @@ function validateToolLock(lock: ToolLock): ToolLock {
   assertExactVersion(lock.tools.graphify.version, "tools.graphify.version");
   assertString(lock.tools.gsd.package, "tools.gsd.package");
   assertExactVersion(lock.tools.gsd.version, "tools.gsd.version");
+  assertString(
+    lock.tools.frontendSkills.skillsCli.package,
+    "tools.frontendSkills.skillsCli.package",
+  );
+  assertExactVersion(
+    lock.tools.frontendSkills.skillsCli.version,
+    "tools.frontendSkills.skillsCli.version",
+  );
+  for (const skillName of ["impeccable", "tasteSkill"] as const) {
+    assertString(
+      lock.tools.frontendSkills[skillName].repository,
+      `tools.frontendSkills.${skillName}.repository`,
+    );
+    assertGitSha(
+      lock.tools.frontendSkills[skillName].ref,
+      `tools.frontendSkills.${skillName}.ref`,
+    );
+    assertString(
+      lock.tools.frontendSkills[skillName].skill,
+      `tools.frontendSkills.${skillName}.skill`,
+    );
+  }
 
   for (const runtime of ["claude", "codex", "opencode", "gemini"] as const) {
     assertString(

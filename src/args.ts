@@ -39,6 +39,10 @@ export function parseArgs(argv: string[]): boolean {
         selectOnlyTool("gsd");
         state.nonInteractive = true;
         break;
+      case "--frontend-skills-only":
+        selectOnlyTool("frontend-skills");
+        state.nonInteractive = true;
+        break;
       case "--skills-only":
         selectOnlyTool("skills");
         state.nonInteractive = true;
@@ -61,6 +65,10 @@ export function parseArgs(argv: string[]): boolean {
         break;
       case "--no-gsd":
         state.tools.gsd = false;
+        state.nonInteractive = true;
+        break;
+      case "--no-frontend-skills":
+        state.tools["frontend-skills"] = false;
         state.nonInteractive = true;
         break;
       case "--no-skills":
