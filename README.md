@@ -444,4 +444,6 @@ git push origin v0.1.4
 ```
 
 The `Release` workflow runs the full check and publishes the scoped package to
-npm. Configure the repository secret `NPM_TOKEN` before pushing a release tag.
+npm through trusted publishing. Configure the npm package trusted publisher for
+GitHub Actions with workflow filename `release.yml` before pushing a release
+tag.
