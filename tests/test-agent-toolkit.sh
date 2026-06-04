@@ -519,6 +519,18 @@ for expected_skill_list_item in \
   fi
 done
 
+REPO_BACKEND_SKILLS_OUTPUT="$(
+  HOME="$TECH_SKILLS_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-list --skills-package backend
+)"
+
+if ! grep -Fq -- "backend/fastify-best-practices - Guides development of Fastify" <<<"$REPO_BACKEND_SKILLS_OUTPUT"; then
+  echo "Expected repository backend package to include Fastify best practices skill" >&2
+  echo "$REPO_BACKEND_SKILLS_OUTPUT" >&2
+  exit 1
+fi
+
 INTERACTIVE_HOME="$TMP_DIR/interactive-home"
 INTERACTIVE_PROJECT="$TMP_DIR/interactive-project"
 INTERACTIVE_LOG="$TMP_DIR/interactive.log"

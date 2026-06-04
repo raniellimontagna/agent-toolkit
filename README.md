@@ -127,6 +127,10 @@ skills/
   core/
     agent-toolkit-maintainer/
       SKILL.md
+  backend/
+    fastify-best-practices/
+      SKILL.md
+      rules/
 ```
 
 The first path segment is a selectable package:
@@ -177,6 +181,13 @@ description: Use when doing a specific kind of task.
 
 Follow these steps...
 ```
+
+### Included Skill Packages
+
+| Package | Skill | Source |
+|---|---|---|
+| `core` | `agent-toolkit-maintainer` | Maintained in this repository |
+| `backend` | `fastify-best-practices` | Copied from Matteo Collina's [`mcollina/skills`](https://github.com/mcollina/skills/tree/main/skills/fastify) under the MIT license |
 
 The installer validates:
 
@@ -304,6 +315,10 @@ Current external sources:
 | Frontend Skills | `skills@1.5.10`, `pbakaus/impeccable` and `Leonxlnx/taste-skill` at pinned commits | Clones pinned refs before install |
 | Runtime CLIs | Exact npm versions for Claude, Codex, OpenCode and Gemini | Used only when `--install-missing-clis` is enabled |
 
+Bundled third-party skills preserve upstream attribution and license files. The
+Fastify skill is copied from `mcollina/skills` at commit
+`5b2a81354b6d10325da0db9decc9ce5ecc714138` under the MIT license.
+
 Releases use npm trusted publishing through GitHub Actions OIDC. The npm
 package is published without a long-lived npm token, and npm automatically
 generates provenance for public packages published through trusted publishing.
@@ -334,6 +349,10 @@ skills/
   core/
     agent-toolkit-maintainer/
       SKILL.md
+  backend/
+    fastify-best-practices/
+      SKILL.md
+      rules/
 tests/
   unit/
   test-agent-toolkit.sh
@@ -410,8 +429,8 @@ Release a new npm version by updating `package.json`, pushing the change to
 `main`, then pushing a matching tag:
 
 ```bash
-git tag v0.1.4
-git push origin v0.1.4
+git tag v0.1.5
+git push origin v0.1.5
 ```
 
 The `Release` workflow runs the full check and publishes the scoped package to
@@ -426,8 +445,8 @@ pushing a release tag.
 Keep this repository public-safe:
 
 - do not add company-specific URLs, tokens, secrets or internal project names;
-- keep third-party skills installed from pinned public sources instead of
-  vendoring them as bundled Custom Skills;
+- keep third-party skills on pinned public sources, and only vendor them when
+  the license permits copying and the repository preserves attribution;
 - keep the installer idempotent;
 - keep `tools.lock.json` as the source of truth for external tool versions;
 - cover pure module behavior with Vitest;
