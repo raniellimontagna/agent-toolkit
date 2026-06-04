@@ -22,15 +22,15 @@ any work.
 
 ![Detected status terminal screen](docs/assets/install-status.svg)
 
-Custom Skills are grouped by first-level package. Today this repository ships
-`core`, `backend`, `frontend`, `general` and `devops`; future packages can be
-added under `skills/<package>/...` and they will appear automatically in the
-menu.
+Custom Skills are selected in three levels: package, optional scope and exact
+individual skills. Today this repository ships `core`, `backend`, `frontend`,
+`general` and `devops`; future packages can be added under
+`skills/<package>/...` and they will appear automatically in the menu.
 
-![Custom Skill package selection terminal screen](docs/assets/install-skill-packages.svg)
+![Custom Skill granular selection terminal screen](docs/assets/install-skill-packages.svg)
 
-The final plan shows selected tools, runtimes, skill packages, scope and already
-present skills before installation starts.
+The final plan shows selected tools, runtimes, skill packages, scopes, exact
+skills and already present destinations before installation starts.
 
 ![Install plan terminal screen](docs/assets/install-plan.svg)
 
@@ -44,7 +44,7 @@ present skills before installation starts.
 | Graphify | Queryable knowledge graphs for codebases, docs and project context |
 | GSD | Phase-based planning, execution, verification and project control |
 | Frontend Skills | Third-party design skills installed through Agent Skills CLI |
-| Custom Skills | Bundled skills from this repository, selected by package and scope |
+| Custom Skills | Bundled skills from this repository, selected by package, scope and exact skill |
 
 ## Supported Runtimes
 
@@ -212,6 +212,17 @@ Use `--skills-scope` to select a narrower path:
 npx -y @ranimontagna/agent-toolkit --skills-only --codex --skills-scope backend/java
 ```
 
+Use `--skills-path` to select exact individual skills:
+
+```bash
+npx -y @ranimontagna/agent-toolkit \
+  --skills-only \
+  --codex \
+  --skills-package backend \
+  --skills-scope backend/python \
+  --skills-path backend/python/python-testing
+```
+
 Install only Python skills:
 
 ```bash
@@ -230,15 +241,17 @@ Install only React Native skills:
 npx -y @ranimontagna/agent-toolkit --skills-only --codex --skills-scope frontend/react-native
 ```
 
-Both filters can be combined. The selected package filter runs first, then the
-scope filter narrows the result.
+All filters can be combined. The selected package filter runs first, the scope
+filter narrows the result, and the path filter selects exact skills from that
+final list.
 
 ```bash
 npx -y @ranimontagna/agent-toolkit \
   --skills-only \
   --codex \
   --skills-package backend \
-  --skills-scope backend/java
+  --skills-scope backend/java \
+  --skills-path backend/java/java-junit
 ```
 
 Each skill must be a directory containing `SKILL.md` with frontmatter:
@@ -331,6 +344,7 @@ Install scope:
   --skills-dir DIR       Use another source directory for Custom Skills
   --skills-package NAME  Install Custom Skills from a first-level package
   --skills-scope SCOPE   Install skills under a relative scope path
+  --skills-path PATH     Install an exact Custom Skill path
   --skills-list          List discovered Custom Skills and exit
 
 Other:
@@ -339,7 +353,8 @@ Other:
   --help, -h             Show help
 ```
 
-Repeat `--skills-package` or `--skills-scope` to select more than one filter.
+Repeat `--skills-package`, `--skills-scope` or `--skills-path` to select more
+than one filter.
 
 ## Configuration
 
@@ -358,6 +373,7 @@ AGENT_TOOLKIT_MENU    Set to plain to force the line-based interactive menu
 CUSTOM_SKILLS_DIR     Source directory for Custom Skills
 SKILLS_PACKAGE        Comma-separated first-level skill package filters
 SKILLS_SCOPE          Comma-separated skill scope filters
+SKILLS_PATH           Comma-separated exact skill path filters
 CLAUDE_CLI_PACKAGE    npm package used to install Claude Code CLI
 CODEX_CLI_PACKAGE     npm package used to install Codex CLI
 OPENCODE_CLI_PACKAGE  npm package used to install OpenCode CLI
@@ -536,8 +552,8 @@ Release a new npm version by updating `package.json`, pushing the change to
 `main`, then pushing a matching tag:
 
 ```bash
-git tag v0.1.9
-git push origin v0.1.9
+git tag v0.1.10
+git push origin v0.1.10
 ```
 
 The `Release` workflow runs the full check and publishes the scoped package to

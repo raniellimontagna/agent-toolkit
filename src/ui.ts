@@ -1,5 +1,6 @@
 import { color, step } from "./logger.js";
 import {
+  normalizedSkillPaths,
   normalizedSkillScopes,
   runtimeMeta,
   runtimeNames,
@@ -42,6 +43,8 @@ export function printSummary(): void {
   console.log(`   Skills source: ${state.customSkillsDir}`);
   const scopes = normalizedSkillScopes();
   if (scopes.length > 0) console.log(`   Skills scope: ${scopes.join(", ")}`);
+  const paths = normalizedSkillPaths();
+  if (paths.length > 0) console.log(`   Skills path: ${paths.join(", ")}`);
   console.log("");
   console.log(
     "   Restart open agent sessions after installing plugins or skills.",

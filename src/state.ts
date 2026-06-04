@@ -51,6 +51,7 @@ type State = {
   customSkillsDir: string;
   skillPackages: string[];
   skillScopes: string[];
+  skillPaths: string[];
   listSkills: boolean;
   cliPackages: Record<RuntimeName, string>;
   tools: Record<ToolName, boolean>;
@@ -148,6 +149,9 @@ export const state: State = {
     process.env.SKILLS_PACKAGE || process.env.SKILLS_PACKAGES || "",
   ),
   skillScopes: splitList(process.env.SKILLS_SCOPE || ""),
+  skillPaths: splitList(
+    process.env.SKILLS_PATH || process.env.SKILLS_PATHS || "",
+  ),
   listSkills: false,
   cliPackages: {
     claude:
@@ -234,6 +238,13 @@ export function anyRuntimeSelected(): boolean {
 
 export function normalizedSkillScopes(): string[] {
   return state.skillScopes.map(normalizeScope).filter(Boolean);
+}
+
+export function normalizedSkillPaths(): string[] {
+  const paths = state.skillPaths
+    .map(normalizeScope)
+    .filter((value) => value && value !== "all");
+  return [...new Set(paths)];
 }
 
 export function normalizedSkillPackages(): string[] {

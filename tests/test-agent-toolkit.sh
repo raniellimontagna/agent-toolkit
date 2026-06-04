@@ -331,6 +331,7 @@ for expected in \
   "--skills-list" \
   "--skills-package" \
   "--skills-scope" \
+  "--skills-path" \
   "--install-missing-clis" \
   "--allow-mutable-sources" \
   "--claude" \
@@ -552,6 +553,28 @@ fi
 if [[ -f "$PACKAGE_SKILLS_PROJECT/.codex/skills/react-patterns/SKILL.md" ]]; then
   echo "Expected --skills-package backend to exclude frontend skills" >&2
   find "$PACKAGE_SKILLS_PROJECT" -maxdepth 6 -type f -print >&2 || true
+  exit 1
+fi
+
+PATH_SKILLS_PROJECT="$TMP_DIR/path-skills-project"
+mkdir -p "$PATH_SKILLS_PROJECT"
+
+(
+  cd "$PATH_SKILLS_PROJECT"
+  HOME="$TECH_SKILLS_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-only --codex --local --skills-dir "$TECH_SOURCE" --skills-package backend --skills-scope backend/go --skills-path backend/go/go-patterns >/dev/null
+)
+
+if [[ ! -f "$PATH_SKILLS_PROJECT/.codex/skills/go-patterns/SKILL.md" ]]; then
+  echo "Expected --skills-path to install exact selected skill" >&2
+  find "$PATH_SKILLS_PROJECT" -maxdepth 6 -type f -print >&2 || true
+  exit 1
+fi
+
+if [[ -f "$PATH_SKILLS_PROJECT/.codex/skills/fastify-patterns/SKILL.md" ]]; then
+  echo "Expected --skills-path to exclude unselected backend skills" >&2
+  find "$PATH_SKILLS_PROJECT" -maxdepth 6 -type f -print >&2 || true
   exit 1
 fi
 
@@ -810,6 +833,31 @@ fi
 if grep -Fq -- "Caveman installer completed" "$INTERACTIVE_LOG"; then
   echo "Expected interactive selection to avoid installing unselected tools" >&2
   cat "$INTERACTIVE_LOG" >&2
+  exit 1
+fi
+
+INTERACTIVE_GRANULAR_PROJECT="$TMP_DIR/interactive-granular-project"
+INTERACTIVE_GRANULAR_LOG="$TMP_DIR/interactive-granular.log"
+mkdir -p "$INTERACTIVE_GRANULAR_PROJECT"
+
+(
+  cd "$INTERACTIVE_GRANULAR_PROJECT"
+  printf 'skills\ncodex\nlocal\nn\nbackend\nbackend/python\nbackend/python/python-testing\n' | HOME="$INTERACTIVE_HOME" \
+    PATH="$FAKE_BIN:/usr/bin:/bin" \
+    bash "$ROOT_DIR/setup-agent-toolkit.sh" >"$INTERACTIVE_GRANULAR_LOG" 2>&1
+)
+
+if [[ ! -f "$INTERACTIVE_GRANULAR_PROJECT/.codex/skills/python-testing/SKILL.md" ]]; then
+  echo "Expected interactive granular skill selection to install python-testing" >&2
+  cat "$INTERACTIVE_GRANULAR_LOG" >&2
+  find "$INTERACTIVE_GRANULAR_PROJECT" -maxdepth 6 -type f -print >&2 || true
+  exit 1
+fi
+
+if [[ -f "$INTERACTIVE_GRANULAR_PROJECT/.codex/skills/python-patterns/SKILL.md" ]]; then
+  echo "Expected interactive granular skill selection to exclude python-patterns" >&2
+  cat "$INTERACTIVE_GRANULAR_LOG" >&2
+  find "$INTERACTIVE_GRANULAR_PROJECT" -maxdepth 6 -type f -print >&2 || true
   exit 1
 fi
 

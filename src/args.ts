@@ -134,6 +134,15 @@ export function parseArgs(argv: string[]): boolean {
         }
         state.nonInteractive = true;
         break;
+      case "--skills-path":
+        i += 1;
+        {
+          const skillsPath = argv[i];
+          if (!skillsPath) die("--skills-path requires a skill path.");
+          state.skillPaths.push(...splitList(skillsPath));
+        }
+        state.nonInteractive = true;
+        break;
       case "--skills-package":
         i += 1;
         {

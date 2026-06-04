@@ -21,8 +21,8 @@
 
   <text x="74" y="392" fill="#cbd5e1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">Custom Skills:</text>
   <text x="96" y="422" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">- Selected packages: core</text>
-  <text x="96" y="450" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">- Selected source skills: core/agent-toolkit-maintainer</text>
-  <text x="96" y="478" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">- Codex CLI: 0/1 already present at ~/.codex/skills; 1 will be copied</text>
+  <text x="96" y="450" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">- Selected individual skills: core/agent-toolkit-maintainer</text>
+  <text x="96" y="478" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">- Selected source skills: core/agent-toolkit-maintainer</text>
 
   <rect x="52" y="506" width="876" height="36" rx="8" fill="#111827" stroke="#334155"/>
   <text x="70" y="530" fill="#86efac" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">Continue with installation? Yes</text>

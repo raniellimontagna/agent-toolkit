@@ -4,6 +4,7 @@ import { HOME } from "./context.js";
 import { err, ok, step, warn } from "./logger.js";
 import {
   normalizedSkillPackages,
+  normalizedSkillPaths,
   normalizedSkillScopes,
   type RuntimeName,
   runtimeNames,
@@ -183,8 +184,19 @@ function filterSkillDirsByScope(skillDirs: string[]): string[] {
   );
 }
 
+function filterSkillDirsByPath(skillDirs: string[]): string[] {
+  const paths = normalizedSkillPaths();
+  if (paths.length === 0) return skillDirs;
+  const selected = new Set(paths);
+  return skillDirs.filter((skillDir) =>
+    selected.has(skillRelativePath(skillDir).toLowerCase()),
+  );
+}
+
 export function selectedSkillDirs(): string[] {
-  return filterSkillDirsByScope(filterSkillDirsByPackage(discoverSkillDirs()));
+  return filterSkillDirsByPath(
+    filterSkillDirsByScope(filterSkillDirsByPackage(discoverSkillDirs())),
+  );
 }
 
 export function availableSkillPackages(skillDirs: string[]): string[] {

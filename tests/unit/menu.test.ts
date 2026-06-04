@@ -14,6 +14,7 @@ let tempDir: string;
 let originalCustomSkillsDir: string;
 let originalSkillScopes: string[];
 let originalSkillPackages: string[];
+let originalSkillPaths: string[];
 let originalInstallMissingClis: boolean;
 let originalGsdScope: typeof state.gsdScope;
 let originalTools: typeof state.tools;
@@ -39,6 +40,7 @@ beforeEach(() => {
   originalCustomSkillsDir = state.customSkillsDir;
   originalSkillScopes = [...state.skillScopes];
   originalSkillPackages = [...state.skillPackages];
+  originalSkillPaths = [...state.skillPaths];
   originalInstallMissingClis = state.installMissingClis;
   originalGsdScope = state.gsdScope;
   originalTools = { ...state.tools };
@@ -47,6 +49,7 @@ beforeEach(() => {
   state.customSkillsDir = tempDir;
   state.skillScopes = [];
   state.skillPackages = [];
+  state.skillPaths = [];
   state.installMissingClis = false;
   state.gsdScope = "global";
   for (const tool of toolNames) state.tools[tool] = true;
@@ -57,6 +60,7 @@ afterEach(() => {
   state.customSkillsDir = originalCustomSkillsDir;
   state.skillScopes = originalSkillScopes;
   state.skillPackages = originalSkillPackages;
+  state.skillPaths = originalSkillPaths;
   state.installMissingClis = originalInstallMissingClis;
   state.gsdScope = originalGsdScope;
   state.tools = originalTools;
@@ -79,7 +83,8 @@ describe("clack menu", () => {
         .mockResolvedValueOnce(["rtk", "skills"])
         .mockResolvedValueOnce(["codex"])
         .mockResolvedValueOnce(["backend"])
-        .mockResolvedValueOnce(["backend/node"]),
+        .mockResolvedValueOnce(["backend/node"])
+        .mockResolvedValueOnce(["backend/node/fastify-patterns"]),
       select: vi.fn().mockResolvedValue("local"),
       confirm: vi.fn().mockResolvedValue(true),
     };
@@ -105,6 +110,7 @@ describe("clack menu", () => {
     expect(state.installMissingClis).toBe(true);
     expect(state.skillPackages).toEqual(["backend"]);
     expect(state.skillScopes).toEqual(["backend/node"]);
+    expect(state.skillPaths).toEqual(["backend/node/fastify-patterns"]);
     expect(clack.outro).toHaveBeenCalledWith("Ready to install.");
   });
 
@@ -121,6 +127,7 @@ describe("clack menu", () => {
         .fn()
         .mockResolvedValueOnce(["rtk", "skills"])
         .mockResolvedValueOnce(["codex"])
+        .mockResolvedValueOnce(["all"])
         .mockResolvedValueOnce(["all"])
         .mockResolvedValueOnce(["all"]),
       select: vi.fn().mockResolvedValue("global"),

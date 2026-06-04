@@ -39,6 +39,7 @@ Install scope:
   --skills-dir DIR      Use another source directory for Custom Skills
   --skills-package NAME Install Custom Skills from a first-level package, repeatable
   --skills-scope SCOPE  Install skills under a relative scope path, repeatable
+  --skills-path PATH    Install exact Custom Skill path, repeatable
   --skills-list         List discovered Custom Skills and exit
 
 Other:
@@ -61,6 +62,7 @@ Environment:
   CUSTOM_SKILLS_DIR     Source directory for custom skills
   SKILLS_PACKAGE        Comma-separated first-level skill package filters
   SKILLS_SCOPE          Comma-separated skill scope filters
+  SKILLS_PATH           Comma-separated exact skill path filters
   CLAUDE_CLI_PACKAGE    npm package used to install Claude Code CLI
   CODEX_CLI_PACKAGE     npm package used to install Codex CLI
   OPENCODE_CLI_PACKAGE  npm package used to install OpenCode CLI

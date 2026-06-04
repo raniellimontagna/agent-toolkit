@@ -16,6 +16,7 @@ let tempDir: string;
 let originalCustomSkillsDir: string;
 let originalSkillScopes: string[];
 let originalSkillPackages: string[];
+let originalSkillPaths: string[];
 
 function writeSkill(
   relativeDir: string,
@@ -47,15 +48,18 @@ beforeEach(() => {
   originalCustomSkillsDir = state.customSkillsDir;
   originalSkillScopes = [...state.skillScopes];
   originalSkillPackages = [...state.skillPackages];
+  originalSkillPaths = [...state.skillPaths];
   state.customSkillsDir = tempDir;
   state.skillScopes = [];
   state.skillPackages = [];
+  state.skillPaths = [];
 });
 
 afterEach(() => {
   state.customSkillsDir = originalCustomSkillsDir;
   state.skillScopes = originalSkillScopes;
   state.skillPackages = originalSkillPackages;
+  state.skillPaths = originalSkillPaths;
   fs.rmSync(tempDir, { recursive: true, force: true });
   vi.restoreAllMocks();
 });
@@ -126,6 +130,19 @@ describe("skill discovery", () => {
 
     expect(relativeSkillPaths(selectedSkillDirs())).toEqual([
       "backend/node/fastify-patterns",
+    ]);
+  });
+
+  it("filters selected skills by exact repository path after package and scope filters", () => {
+    writeSkill("backend/python/python-patterns");
+    writeSkill("backend/python/python-testing");
+    writeSkill("backend/kotlin/kotlin-patterns");
+    state.skillPackages = ["backend"];
+    state.skillScopes = ["backend/python"];
+    state.skillPaths = ["backend/python/python-testing"];
+
+    expect(relativeSkillPaths(selectedSkillDirs())).toEqual([
+      "backend/python/python-testing",
     ]);
   });
 

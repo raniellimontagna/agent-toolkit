@@ -8,6 +8,7 @@ import {
 } from "./skills.js";
 import {
   normalizedSkillPackages,
+  normalizedSkillPaths,
   type RuntimeName,
   runtimeMeta,
   runtimeNames,
@@ -179,8 +180,10 @@ function selectedSkillPlanLines(): string[] {
 
   const skillList = skillDirs.map(skillRelativePath).join(", ");
   const packages = normalizedSkillPackages();
+  const paths = normalizedSkillPaths();
   const lines = [
     `- Selected packages: ${packages.length > 0 ? packages.join(", ") : "all"}`,
+    `- Selected individual skills: ${paths.length > 0 ? paths.join(", ") : "all"}`,
     `- Selected source skills: ${skillList}`,
   ];
 
