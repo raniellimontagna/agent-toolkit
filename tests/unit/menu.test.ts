@@ -6,6 +6,9 @@ import { runClackMenu } from "../../src/menu.js";
 import { runtimeNames, state, toolNames } from "../../src/state.js";
 
 type ClackFake = Parameters<typeof runClackMenu>[0];
+type StatusClackFake = ClackFake & {
+  note: (message: string, title?: string) => void;
+};
 
 let tempDir: string;
 let originalCustomSkillsDir: string;
@@ -96,5 +99,40 @@ describe("clack menu", () => {
     expect(state.installMissingClis).toBe(true);
     expect(state.skillScopes).toEqual(["backend/node"]);
     expect(clack.outro).toHaveBeenCalledWith("Ready to install.");
+  });
+
+  it("shows detected status and asks for confirmation before installing", async () => {
+    writeSkill("core/agent-toolkit-maintainer");
+    const note = vi.fn<(message: string, title?: string) => void>();
+    const clack: StatusClackFake = {
+      intro: vi.fn(),
+      outro: vi.fn(),
+      cancel: vi.fn(),
+      isCancel: vi.fn(() => false),
+      note,
+      multiselect: vi
+        .fn()
+        .mockResolvedValueOnce(["rtk", "skills"])
+        .mockResolvedValueOnce(["codex"])
+        .mockResolvedValueOnce(["all"]),
+      select: vi.fn().mockResolvedValue("global"),
+      confirm: vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true),
+    };
+
+    await runClackMenu(clack);
+
+    expect(note).toHaveBeenCalledWith(
+      expect.stringContaining("Codex CLI"),
+      "Detected status",
+    );
+    expect(note).toHaveBeenCalledWith(
+      expect.stringContaining("Custom Skills"),
+      "Install plan",
+    );
+    expect(clack.confirm).toHaveBeenLastCalledWith({
+      message: "Continue with installation?",
+      initialValue: true,
+    });
+    expect(clack.confirm).toHaveBeenCalledTimes(2);
   });
 });

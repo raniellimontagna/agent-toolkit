@@ -102,10 +102,13 @@ Run the published package directly:
 npx -y @ranimontagna/agent-toolkit
 ```
 
-Interactive runs ask which tools, runtimes and skill scopes to install. Pressing
-Enter does not silently install the full kit; choose `all` explicitly when that
-is what you want. Interactive terminals use a visual Clack menu. Pipe answers
-or set `AGENT_TOOLKIT_MENU=plain` to use the line-based fallback.
+Interactive runs show detected local status before installation, including
+runtime CLIs on `PATH` and already-copied Custom Skills when those can be
+verified. They ask which tools, runtimes and skill scopes to install, then show
+an install plan and ask for confirmation. Pressing Enter does not silently
+install the full kit; choose `all` explicitly when that is what you want.
+Interactive terminals use a visual Clack menu. Pipe answers or set
+`AGENT_TOOLKIT_MENU=plain` to use the line-based fallback.
 
 Run the full kit for Codex in one command:
 
@@ -420,8 +423,8 @@ Release a new npm version by updating `package.json`, pushing the change to
 `main`, then pushing a matching tag:
 
 ```bash
-git tag v0.1.2
-git push origin v0.1.2
+git tag v0.1.3
+git push origin v0.1.3
 ```
 
 The `Release` workflow runs the full check and publishes the scoped package to

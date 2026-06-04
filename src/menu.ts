@@ -11,6 +11,13 @@ import {
   splitList,
   state,
 } from "./state.js";
+import {
+  detectInstallerStatus,
+  detectionHint,
+  formatDetectedStatus,
+  formatInstallPlan,
+  type InstallerStatus,
+} from "./status.js";
 import { usage } from "./usage.js";
 
 type ClackOption = {
@@ -23,6 +30,7 @@ export type ClackMenuApi = {
   intro(message: string): void;
   outro(message: string): void;
   cancel(message: string): void;
+  note?(message: string, title?: string): void;
   isCancel(value: unknown): boolean;
   multiselect(options: {
     message: string;
@@ -128,38 +136,76 @@ function applyMenuAnswers(answers: string[]): void {
   }
 }
 
-function toolOptions(): ClackOption[] {
+function toolOptions(status: InstallerStatus): ClackOption[] {
   return [
     { value: "all", label: "All tools", hint: "full toolkit" },
-    { value: "rtk", label: "RTK", hint: "token-aware shell proxy" },
-    { value: "caveman", label: "Caveman", hint: "terse response modes" },
+    {
+      value: "rtk",
+      label: "RTK",
+      hint: detectionHint(status.tools.rtk, "token-aware shell proxy"),
+    },
+    {
+      value: "caveman",
+      label: "Caveman",
+      hint: detectionHint(status.tools.caveman, "terse response modes"),
+    },
     {
       value: "superpowers",
       label: "Superpowers",
-      hint: "planning and delivery workflows",
+      hint: detectionHint(
+        status.tools.superpowers,
+        "planning and delivery workflows",
+      ),
     },
-    { value: "graphify", label: "Graphify", hint: "knowledge graph workflow" },
-    { value: "gsd", label: "GSD", hint: "phase-based project control" },
+    {
+      value: "graphify",
+      label: "Graphify",
+      hint: detectionHint(status.tools.graphify, "knowledge graph workflow"),
+    },
+    {
+      value: "gsd",
+      label: "GSD",
+      hint: detectionHint(status.tools.gsd, "phase-based project control"),
+    },
     {
       value: "frontend-skills",
       label: "Frontend Skills",
-      hint: "third-party design skills",
+      hint: detectionHint(
+        status.tools["frontend-skills"],
+        "third-party design skills",
+      ),
     },
     {
       value: "skills",
       label: "Custom Skills",
-      hint: "bundled personal skills",
+      hint: detectionHint(status.tools.skills, "bundled personal skills"),
     },
   ];
 }
 
-function runtimeOptions(): ClackOption[] {
+function runtimeOptions(status: InstallerStatus): ClackOption[] {
   return [
     { value: "all", label: "All runtimes" },
-    { value: "claude", label: "Claude Code" },
-    { value: "codex", label: "Codex CLI" },
-    { value: "opencode", label: "OpenCode" },
-    { value: "gemini", label: "Gemini CLI" },
+    {
+      value: "claude",
+      label: "Claude Code",
+      hint: detectionHint(status.runtimes.claude, "runtime CLI"),
+    },
+    {
+      value: "codex",
+      label: "Codex CLI",
+      hint: detectionHint(status.runtimes.codex, "runtime CLI"),
+    },
+    {
+      value: "opencode",
+      label: "OpenCode",
+      hint: detectionHint(status.runtimes.opencode, "runtime CLI"),
+    },
+    {
+      value: "gemini",
+      label: "Gemini CLI",
+      hint: detectionHint(status.runtimes.gemini, "runtime CLI"),
+    },
   ];
 }
 
@@ -182,12 +228,14 @@ function skillScopeOptions(): ClackOption[] {
 
 export async function runClackMenu(api: ClackMenuApi): Promise<void> {
   api.intro("Agent Toolkit");
+  const status = detectInstallerStatus();
+  api.note?.(formatDetectedStatus(status), "Detected status");
 
   const tools = valueOrCancel<string[]>(
     api,
     await api.multiselect({
       message: "Select tools to install",
-      options: toolOptions(),
+      options: toolOptions(status),
       required: true,
     }),
   );
@@ -197,7 +245,7 @@ export async function runClackMenu(api: ClackMenuApi): Promise<void> {
     api,
     await api.multiselect({
       message: "Select runtimes to target",
-      options: runtimeOptions(),
+      options: runtimeOptions(status),
       required: true,
     }),
   );
@@ -233,13 +281,30 @@ export async function runClackMenu(api: ClackMenuApi): Promise<void> {
     selectSkillScopes(scopes);
   }
 
+  api.note?.(formatInstallPlan(status), "Install plan");
+  const shouldContinue = valueOrCancel<boolean>(
+    api,
+    await api.confirm({
+      message: "Continue with installation?",
+      initialValue: true,
+    }),
+  );
+  if (!shouldContinue) {
+    api.cancel("Installation cancelled.");
+    die("Installation cancelled.");
+  }
+
   api.outro("Ready to install.");
 }
 
 async function showReadlineMenu(): Promise<void> {
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   try {
+    const status = detectInstallerStatus();
     console.log(usage());
+    console.log("");
+    console.log("Detected status");
+    console.log(formatDetectedStatus(status));
     console.log("");
 
     const toolsAnswer = await rl.question(
@@ -268,6 +333,16 @@ async function showReadlineMenu(): Promise<void> {
         "Skill scopes to install [comma list, all, default all]: ",
       );
       selectSkillScopesFromAnswer(scopeAnswer);
+    }
+
+    console.log("");
+    console.log("Install plan");
+    console.log(formatInstallPlan(status));
+    const continueAnswer = await rl.question(
+      "Continue with installation? [Y/n]: ",
+    );
+    if (/^n(o)?$/i.test(continueAnswer.trim())) {
+      die("Installation cancelled.");
     }
   } finally {
     rl.close();
