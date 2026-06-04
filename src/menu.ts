@@ -12,6 +12,7 @@ import {
 import {
   isRuntimeName,
   isToolName,
+  normalizedSkillPackages,
   setAllRuntimes,
   setAllTools,
   splitList,
@@ -149,6 +150,56 @@ function selectSkillPathsFromAnswer(answer: string): void {
   selectSkillPaths(splitList(answer));
 }
 
+function skillRefinementScopes(): string[] {
+  const selectedPackages = new Set(normalizedSkillPackages());
+  return availableSkillScopes(selectedSkillDirs()).filter(
+    (scope) => !selectedPackages.has(scope),
+  );
+}
+
+function selectedSkillPathSet(): Set<string> {
+  return new Set(selectedSkillDirs().map(skillRelativePath));
+}
+
+function skillPathsInScope(scope: string): string[] {
+  return selectedSkillDirs()
+    .map(skillRelativePath)
+    .filter(
+      (skillPath) => skillPath === scope || skillPath.startsWith(`${scope}/`),
+    );
+}
+
+function selectSkillRefinements(refinements: string[]): void {
+  if (selectsAllSkills(refinements)) return;
+
+  const scopes = new Set(skillRefinementScopes());
+  const paths = selectedSkillPathSet();
+  const selectedPaths = new Set<string>();
+
+  for (const refinement of refinements) {
+    if (scopes.has(refinement)) {
+      for (const skillPath of skillPathsInScope(refinement)) {
+        selectedPaths.add(skillPath);
+      }
+      continue;
+    }
+
+    if (paths.has(refinement)) {
+      selectedPaths.add(refinement);
+      continue;
+    }
+
+    die(`Unknown Custom Skill selection: ${refinement}`);
+  }
+
+  selectSkillPaths([...selectedPaths]);
+}
+
+function selectSkillRefinementsFromAnswer(answer: string): void {
+  if (!answer.trim()) return;
+  selectSkillRefinements(splitList(answer));
+}
+
 function printAvailableSkillPackages(): void {
   const packages = availableSkillPackages(discoverSkillDirs());
   if (packages.length === 0) return;
@@ -158,23 +209,18 @@ function printAvailableSkillPackages(): void {
   for (const packageName of packages) console.log(`  - ${packageName}`);
 }
 
-function printAvailableSkillScopes(): void {
-  const skillDirs = selectedSkillDirs();
-  const scopes = availableSkillScopes(skillDirs);
-  if (scopes.length === 0) return;
+function printAvailableSkillRefinements(): void {
+  const refinements = skillRefinementOptions().filter(
+    (option) => option.value !== "all",
+  );
+  if (refinements.length === 0) return;
 
   console.log("");
-  console.log("Available skill scopes:");
-  for (const scope of scopes) console.log(`  - ${scope}`);
-}
-
-function printAvailableSkillPaths(): void {
-  const skillPaths = selectedSkillDirs().map(skillRelativePath);
-  if (skillPaths.length === 0) return;
-
-  console.log("");
-  console.log("Available individual skills:");
-  for (const skillPath of skillPaths) console.log(`  - ${skillPath}`);
+  console.log("Available skill groups and individual skills:");
+  for (const refinement of refinements) {
+    const hint = refinement.hint ? ` (${refinement.hint})` : "";
+    console.log(`  - ${refinement.value}${hint}`);
+  }
 }
 
 function applyMenuAnswers(answers: string[]): void {
@@ -187,6 +233,10 @@ function applyMenuAnswers(answers: string[]): void {
     if ((answers[5] ?? "").trim() || (answers[6] ?? "").trim()) {
       selectSkillPackagesFromAnswer(answers[4] ?? "");
       if (answerSelectsAllSkills(answers[4] ?? "")) return;
+      if (!(answers[6] ?? "").trim()) {
+        selectSkillRefinementsFromAnswer(answers[5] ?? "");
+        return;
+      }
       selectSkillScopesFromAnswer(answers[5] ?? "");
       if (answerSelectsAllSkills(answers[5] ?? "")) return;
       selectSkillPathsFromAnswer(answers[6] ?? "");
@@ -276,20 +326,6 @@ function scopeOptions(): ClackOption[] {
   ];
 }
 
-function skillScopeOptions(): ClackOption[] {
-  return [
-    {
-      value: "all",
-      label: "All selected skill scopes",
-      hint: "skip individual skill selection",
-    },
-    ...availableSkillScopes(selectedSkillDirs()).map((scope) => ({
-      value: scope,
-      label: scope,
-    })),
-  ];
-}
-
 function skillPackageOptions(): ClackOption[] {
   return [
     {
@@ -304,14 +340,24 @@ function skillPackageOptions(): ClackOption[] {
   ];
 }
 
-function skillPathOptions(): ClackOption[] {
+function skillRefinementOptions(): ClackOption[] {
   return [
-    { value: "all", label: "All remaining skills" },
+    {
+      value: "all",
+      label: "All selected package skills",
+      hint: "skip finer selection",
+    },
+    ...skillRefinementScopes().map((scope) => ({
+      value: scope,
+      label: scope,
+      hint: "group",
+    })),
     ...selectedSkillDirs().map((skillDir) => {
       const skillPath = skillRelativePath(skillDir);
       return {
         value: skillPath,
         label: skillPath,
+        hint: "individual",
       };
     }),
   ];
@@ -372,38 +418,21 @@ export async function runClackMenu(api: ClackMenuApi): Promise<void> {
     selectSkillPackages(packages);
 
     if (!selectsAllSkills(packages)) {
-      const scopeOptions = skillScopeOptions();
-      if (scopeOptions.length > 1) {
-        const scopes = valueOrCancel<string[]>(
+      if (selectedSkillDirs().length > 1) {
+        const refinements = valueOrCancel<string[]>(
           api,
           await api.multiselect({
-            message: "Select Custom Skill scopes",
-            options: scopeOptions,
+            message: "Select Custom Skills",
+            options: skillRefinementOptions(),
             required: true,
           }),
         );
-        selectSkillScopes(scopes);
-        if (selectsAllSkills(scopes)) {
-          api.note?.(
-            `${selectedSkillDirs().length} Custom Skill(s) selected from chosen packages.`,
-            "Custom Skills",
-          );
-        }
-      }
-
-      if (
-        selectedSkillDirs().length > 1 &&
-        !selectsAllSkills(state.skillScopes)
-      ) {
-        const skillPaths = valueOrCancel<string[]>(
-          api,
-          await api.multiselect({
-            message: "Select individual Custom Skills",
-            options: skillPathOptions(),
-            required: true,
-          }),
+        selectSkillRefinements(refinements);
+      } else {
+        api.note?.(
+          `${selectedSkillDirs().length} Custom Skill selected from chosen packages.`,
+          "Custom Skills",
         );
-        selectSkillPaths(skillPaths);
       }
     } else {
       api.note?.(
@@ -466,23 +495,15 @@ async function showReadlineMenu(): Promise<void> {
       );
       selectSkillPackagesFromAnswer(packageAnswer);
 
-      if (!answerSelectsAllSkills(packageAnswer)) {
-        printAvailableSkillScopes();
-        const scopeAnswer = await rl.question(
-          "Skill scopes to install [comma list, all, default all]: ",
+      if (
+        !answerSelectsAllSkills(packageAnswer) &&
+        selectedSkillDirs().length > 1
+      ) {
+        printAvailableSkillRefinements();
+        const skillAnswer = await rl.question(
+          "Skill groups or individual skills to install [comma list, all, default all]: ",
         );
-        selectSkillScopesFromAnswer(scopeAnswer);
-
-        if (
-          !answerSelectsAllSkills(scopeAnswer) &&
-          selectedSkillDirs().length > 1
-        ) {
-          printAvailableSkillPaths();
-          const skillAnswer = await rl.question(
-            "Individual skills to install [comma list, all, default all]: ",
-          );
-          selectSkillPathsFromAnswer(skillAnswer);
-        }
+        selectSkillRefinementsFromAnswer(skillAnswer);
       }
     }
 

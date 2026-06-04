@@ -84,7 +84,6 @@ describe("clack menu", () => {
         .mockResolvedValueOnce(["rtk", "skills"])
         .mockResolvedValueOnce(["codex"])
         .mockResolvedValueOnce(["backend"])
-        .mockResolvedValueOnce(["backend/node"])
         .mockResolvedValueOnce(["backend/node/fastify-patterns"]),
       select: vi.fn().mockResolvedValue("local"),
       confirm: vi.fn().mockResolvedValue(true),
@@ -110,7 +109,7 @@ describe("clack menu", () => {
     expect(state.gsdScope).toBe("local");
     expect(state.installMissingClis).toBe(true);
     expect(state.skillPackages).toEqual(["backend"]);
-    expect(state.skillScopes).toEqual(["backend/node"]);
+    expect(state.skillScopes).toEqual([]);
     expect(state.skillPaths).toEqual(["backend/node/fastify-patterns"]);
     expect(clack.outro).toHaveBeenCalledWith("Ready to install.");
   });
@@ -187,9 +186,10 @@ describe("clack menu", () => {
     );
   });
 
-  it("does not ask for individual skills after all selected scopes are selected", async () => {
+  it("uses one integrated Custom Skills refinement prompt after package selection", async () => {
     writeSkill("backend/node/fastify-patterns");
     writeSkill("backend/python/python-patterns");
+    writeSkill("backend/python/python-testing");
     const clack: ClackFake = {
       intro: vi.fn(),
       outro: vi.fn(),
@@ -200,7 +200,7 @@ describe("clack menu", () => {
         .mockResolvedValueOnce(["skills"])
         .mockResolvedValueOnce(["codex"])
         .mockResolvedValueOnce(["backend"])
-        .mockResolvedValueOnce(["all"]),
+        .mockResolvedValueOnce(["backend/python"]),
       select: vi.fn().mockResolvedValue("local"),
       confirm: vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true),
     };
@@ -209,11 +209,58 @@ describe("clack menu", () => {
 
     expect(state.skillPackages).toEqual(["backend"]);
     expect(state.skillScopes).toEqual([]);
-    expect(state.skillPaths).toEqual([]);
+    expect(state.skillPaths).toEqual([
+      "backend/python/python-patterns",
+      "backend/python/python-testing",
+    ]);
     expect(clack.multiselect).toHaveBeenCalledTimes(4);
+    expect(clack.multiselect).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "Select Custom Skills",
+        options: expect.arrayContaining([
+          expect.objectContaining({
+            value: "backend/python",
+            hint: "group",
+          }),
+          expect.objectContaining({
+            value: "backend/python/python-testing",
+            hint: "individual",
+          }),
+        ]),
+      }),
+    );
     expect(clack.multiselect).not.toHaveBeenCalledWith(
       expect.objectContaining({
         message: "Select individual Custom Skills",
+      }),
+    );
+  });
+
+  it("does not ask for Custom Skills refinements when a selected package has one skill", async () => {
+    writeSkill("devops/docker-patterns");
+    const clack: ClackFake = {
+      intro: vi.fn(),
+      outro: vi.fn(),
+      cancel: vi.fn(),
+      isCancel: vi.fn(() => false),
+      multiselect: vi
+        .fn()
+        .mockResolvedValueOnce(["skills"])
+        .mockResolvedValueOnce(["codex"])
+        .mockResolvedValueOnce(["devops"]),
+      select: vi.fn().mockResolvedValue("local"),
+      confirm: vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true),
+    };
+
+    await runClackMenu(clack);
+
+    expect(state.skillPackages).toEqual(["devops"]);
+    expect(state.skillScopes).toEqual([]);
+    expect(state.skillPaths).toEqual([]);
+    expect(clack.multiselect).toHaveBeenCalledTimes(3);
+    expect(clack.multiselect).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "Select Custom Skills",
       }),
     );
   });
