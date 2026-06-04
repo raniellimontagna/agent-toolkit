@@ -360,7 +360,7 @@ Install scope:
   --skills-list          List discovered Custom Skills and exit
 
 Other:
-  --install-missing-clis Install selected runtime CLIs if missing
+  --install-missing-clis Install or update selected runtime CLIs
   --allow-mutable-sources Allow explicit mutable package sources like @latest
   --help, -h             Show help
 ```
@@ -434,7 +434,7 @@ Current external sources:
 | Graphify | `graphifyy==0.8.31` | Blocks unpinned package overrides |
 | GSD | `get-shit-done-cc@1.42.3` | Blocks `@latest` unless explicitly allowed |
 | Frontend Skills | `skills@1.5.10`, `pbakaus/impeccable` and `Leonxlnx/taste-skill` at pinned commits | Clones pinned refs before install |
-| Runtime CLIs | Exact npm versions for Claude, Codex, OpenCode and Gemini | Used only when `--install-missing-clis` is enabled |
+| Runtime CLIs | Exact npm versions for Claude, Codex, OpenCode and Gemini | Installed or updated only when `--install-missing-clis` is enabled |
 
 Bundled third-party skills preserve upstream attribution and license files:
 

@@ -1,6 +1,13 @@
 import { die, err, info, ok, step, warn } from "./logger.js";
 import { type RuntimeName, runtimeMeta, runtimeNames, state } from "./state.js";
-import { commandExists, requireCommand, requireNode, run } from "./system.js";
+import {
+  capture,
+  commandExists,
+  findCommand,
+  requireCommand,
+  requireNode,
+  run,
+} from "./system.js";
 
 export function runtimeCommand(runtime: RuntimeName): string {
   return runtimeMeta[runtime].command;
@@ -68,12 +75,46 @@ function installRuntimeCli(runtime: RuntimeName): boolean {
   return false;
 }
 
+function npmPackageVersion(packageSpec: string): string | null {
+  if (packageSpec.startsWith("@")) {
+    const slashIndex = packageSpec.indexOf("/");
+    if (slashIndex === -1) return null;
+    const versionIndex = packageSpec.indexOf("@", slashIndex);
+    return versionIndex === -1 ? null : packageSpec.slice(versionIndex + 1);
+  }
+
+  const versionIndex = packageSpec.lastIndexOf("@");
+  return versionIndex <= 0 ? null : packageSpec.slice(versionIndex + 1);
+}
+
+function runtimeVersionOutput(commandPath: string): string {
+  const version = capture(commandPath, ["--version"]);
+  return [version.stdout, version.stderr].join("\n").trim();
+}
+
 function ensureRuntimeCli(runtime: RuntimeName): boolean {
   const command = runtimeCommand(runtime);
   const label = runtimeLabel(runtime);
+  const commandPath = findCommand(command);
 
-  if (commandExists(command)) {
-    ok(`${label} found`);
+  if (commandPath) {
+    const expectedVersion = npmPackageVersion(state.cliPackages[runtime]);
+    const versionOutput = runtimeVersionOutput(commandPath);
+    if (!expectedVersion || versionOutput.includes(expectedVersion)) {
+      ok(`${label} found`);
+      return true;
+    }
+
+    if (state.installMissingClis) {
+      warn(
+        `${label} version does not match pinned ${expectedVersion}; updating via npm package ${state.cliPackages[runtime]}...`,
+      );
+      return installRuntimeCli(runtime);
+    }
+
+    warn(
+      `${label} found but does not match pinned ${expectedVersion}; use --install-missing-clis to update it before plugin installs.`,
+    );
     return true;
   }
 

@@ -1001,6 +1001,46 @@ if ! grep -Fxq -- "install --platform gemini" "$PIPX_LOG"; then
   exit 1
 fi
 
+UV_FALLBACK_BIN="$TMP_DIR/uv-fallback-bin"
+UV_FALLBACK_HOME="$TMP_DIR/uv-fallback-home"
+UV_FALLBACK_LOG="$TMP_DIR/uv-fallback-graphify.log"
+mkdir -p "$UV_FALLBACK_BIN" "$UV_FALLBACK_HOME"
+cp "$FAKE_BIN/node" "$UV_FALLBACK_BIN/node"
+cat > "$UV_FALLBACK_BIN/uv" <<EOF
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "$UV_FALLBACK_LOG"
+case " \$* " in
+  *" tool install graphifyy==0.8.31 "*) mkdir -p "$UV_FALLBACK_HOME/.local/bin"; cat > "$UV_FALLBACK_HOME/.local/bin/graphify" <<'GRAPHIFY'
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "UV_FALLBACK_LOG_PLACEHOLDER"
+case "\${1:-}" in
+  --version) echo "graphify 0.0.0-test" ;;
+esac
+exit 0
+GRAPHIFY
+sed -i "s|UV_FALLBACK_LOG_PLACEHOLDER|$UV_FALLBACK_LOG|" "$UV_FALLBACK_HOME/.local/bin/graphify"
+chmod +x "$UV_FALLBACK_HOME/.local/bin/graphify" ;;
+esac
+exit 0
+EOF
+chmod +x "$UV_FALLBACK_BIN/uv"
+
+HOME="$UV_FALLBACK_HOME" \
+PATH="$UV_FALLBACK_BIN:/usr/bin:/bin" \
+bash "$ROOT_DIR/setup-agent-toolkit.sh" --graphify-only --codex >/dev/null
+
+if ! grep -Fxq -- "tool install graphifyy==0.8.31" "$UV_FALLBACK_LOG"; then
+  echo "Expected Graphify uv install when graphify is absent from PATH" >&2
+  cat "$UV_FALLBACK_LOG" >&2
+  exit 1
+fi
+
+if ! grep -Fxq -- "install --platform codex" "$UV_FALLBACK_LOG"; then
+  echo "Expected Graphify installed outside PATH to still install Codex platform" >&2
+  cat "$UV_FALLBACK_LOG" >&2
+  exit 1
+fi
+
 BAD_SOURCE="$TMP_DIR/bad-source"
 mkdir -p "$BAD_SOURCE/bad_skill"
 cat > "$BAD_SOURCE/bad_skill/SKILL.md" <<'EOF'
@@ -1073,6 +1113,57 @@ bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-only --gemini --install-missing
 if ! grep -Fxq -- "install -g @google/gemini-cli@0.45.0" "$INSTALL_LOG"; then
   echo "Expected --install-missing-clis to install Gemini CLI package" >&2
   cat "$INSTALL_LOG" >&2
+  exit 1
+fi
+
+OUTDATED_BIN="$TMP_DIR/outdated-bin"
+OUTDATED_HOME="$TMP_DIR/outdated-home"
+OUTDATED_NPM_LOG="$TMP_DIR/outdated-npm.log"
+OUTDATED_CODEX_LOG="$TMP_DIR/outdated-codex.log"
+mkdir -p "$OUTDATED_BIN" "$OUTDATED_HOME"
+cp "$FAKE_BIN/node" "$OUTDATED_BIN/node"
+cat > "$OUTDATED_BIN/npm" <<EOF
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "$OUTDATED_NPM_LOG"
+case " \$* " in
+  *" @openai/codex@0.137.0 "*) cat > "$OUTDATED_BIN/codex" <<'CODEX'
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "OUTDATED_CODEX_LOG_PLACEHOLDER"
+case "\${1:-}" in
+  --version) echo "codex-cli 0.137.0" ;;
+esac
+exit 0
+CODEX
+sed -i "s|OUTDATED_CODEX_LOG_PLACEHOLDER|$OUTDATED_CODEX_LOG|" "$OUTDATED_BIN/codex"
+chmod +x "$OUTDATED_BIN/codex" ;;
+esac
+exit 0
+EOF
+chmod +x "$OUTDATED_BIN/npm"
+cat > "$OUTDATED_BIN/codex" <<EOF
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "$OUTDATED_CODEX_LOG"
+case "\${1:-}" in
+  --version) echo "codex-cli 0.125.0" ;;
+  plugin) echo "error: unrecognized subcommand 'add'" >&2; exit 2 ;;
+esac
+exit 0
+EOF
+chmod +x "$OUTDATED_BIN/codex"
+
+HOME="$OUTDATED_HOME" \
+PATH="$OUTDATED_BIN:/usr/bin:/bin" \
+bash "$ROOT_DIR/setup-agent-toolkit.sh" --superpowers-only --codex --install-missing-clis >/dev/null
+
+if ! grep -Fxq -- "install -g @openai/codex@0.137.0" "$OUTDATED_NPM_LOG"; then
+  echo "Expected --install-missing-clis to update outdated Codex CLI package" >&2
+  cat "$OUTDATED_NPM_LOG" >&2
+  exit 1
+fi
+
+if ! grep -Fxq -- "plugin add superpowers@openai-curated" "$OUTDATED_CODEX_LOG"; then
+  echo "Expected Superpowers install to run after Codex CLI update" >&2
+  cat "$OUTDATED_CODEX_LOG" >&2
   exit 1
 fi
 

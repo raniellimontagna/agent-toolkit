@@ -43,7 +43,7 @@ Install scope:
   --skills-list         List discovered Custom Skills and exit
 
 Other:
-  --install-missing-clis Install selected runtime CLIs if missing
+  --install-missing-clis Install or update selected runtime CLIs
   --allow-mutable-sources Allow explicit mutable package sources like @latest
   --help, -h            Show this help
 

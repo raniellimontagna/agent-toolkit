@@ -401,7 +401,7 @@ export async function runClackMenu(api: ClackMenuApi): Promise<void> {
   state.installMissingClis = valueOrCancel<boolean>(
     api,
     await api.confirm({
-      message: "Install missing selected CLIs via npm?",
+      message: "Install or update selected CLIs via npm?",
       initialValue: false,
     }),
   );
@@ -484,7 +484,7 @@ async function showReadlineMenu(): Promise<void> {
     selectScopeFromAnswer(scopeAnswer);
 
     const cliAnswer = await rl.question(
-      "Install missing selected CLIs via npm? [y/N]: ",
+      "Install or update selected CLIs via npm? [y/N]: ",
     );
     state.installMissingClis = /^y(es)?$/i.test(cliAnswer.trim());
 

@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import path from "node:path";
+import { HOME } from "../context.js";
 import { err, info, ok, step, warn } from "../logger.js";
 import {
   type RuntimeName,
@@ -7,13 +10,40 @@ import {
 } from "../state.js";
 import { capture, findCommand, run } from "../system.js";
 
+function findExecutable(candidate: string): string | null {
+  try {
+    fs.accessSync(candidate, fs.constants.X_OK);
+    return candidate;
+  } catch {
+    return null;
+  }
+}
+
+function findGraphifyCommand(): string | null {
+  const onPath = findCommand("graphify");
+  if (onPath) return onPath;
+
+  const candidateDirs = [
+    process.env.UV_TOOL_BIN_DIR,
+    process.env.PIPX_BIN_DIR,
+    path.join(HOME, ".local", "bin"),
+  ].filter((dir): dir is string => Boolean(dir));
+
+  for (const dir of candidateDirs) {
+    const graphify = findExecutable(path.join(dir, "graphify"));
+    if (graphify) return graphify;
+  }
+
+  return null;
+}
+
 function graphifyPlatformArgs(runtime: RuntimeName): string[] {
   if (runtime === "claude") return ["install"];
   return ["install", "--platform", runtime];
 }
 
 function installGraphifyPackage(): boolean {
-  const graphify = findCommand("graphify");
+  const graphify = findGraphifyCommand();
   if (graphify) {
     const version =
       capture(graphify, ["--version"]).stdout.trim().split("\n")[0] ||
@@ -47,10 +77,17 @@ export function installGraphify(): boolean {
     return false;
   }
 
-  const graphify = findCommand("graphify");
+  const graphify = findGraphifyCommand();
   if (!graphify) {
-    err("Graphify package installed, but 'graphify' is still not on PATH.");
+    err(
+      "Graphify package installed, but 'graphify' was not found in PATH or ~/.local/bin.",
+    );
     return false;
+  }
+  if (!findCommand("graphify")) {
+    warn(
+      `Graphify is installed at ${graphify}, but its directory is not on PATH. Add ${path.dirname(graphify)} to PATH to run graphify directly.`,
+    );
   }
 
   let hadError = false;
