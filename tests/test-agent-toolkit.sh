@@ -276,6 +276,7 @@ for expected in \
   "--no-skills" \
   "--skills-dir" \
   "--skills-list" \
+  "--skills-package" \
   "--skills-scope" \
   "--install-missing-clis" \
   "--allow-mutable-sources" \
@@ -476,6 +477,28 @@ fi
 if [[ -f "$TECH_SKILLS_PROJECT/.codex/skills/fastify-patterns/SKILL.md" || -f "$TECH_SKILLS_PROJECT/.codex/skills/go-patterns/SKILL.md" ]]; then
   echo "Expected --skills-scope frontend/react to exclude backend skills" >&2
   find "$TECH_SKILLS_PROJECT" -maxdepth 6 -type f -print >&2 || true
+  exit 1
+fi
+
+PACKAGE_SKILLS_PROJECT="$TMP_DIR/package-skills-project"
+mkdir -p "$PACKAGE_SKILLS_PROJECT"
+
+(
+  cd "$PACKAGE_SKILLS_PROJECT"
+  HOME="$TECH_SKILLS_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-only --codex --local --skills-dir "$TECH_SOURCE" --skills-package backend >/dev/null
+)
+
+if [[ ! -f "$PACKAGE_SKILLS_PROJECT/.codex/skills/fastify-patterns/SKILL.md" || ! -f "$PACKAGE_SKILLS_PROJECT/.codex/skills/go-patterns/SKILL.md" ]]; then
+  echo "Expected --skills-package backend to install backend skills" >&2
+  find "$PACKAGE_SKILLS_PROJECT" -maxdepth 6 -type f -print >&2 || true
+  exit 1
+fi
+
+if [[ -f "$PACKAGE_SKILLS_PROJECT/.codex/skills/react-patterns/SKILL.md" ]]; then
+  echo "Expected --skills-package backend to exclude frontend skills" >&2
+  find "$PACKAGE_SKILLS_PROJECT" -maxdepth 6 -type f -print >&2 || true
   exit 1
 fi
 

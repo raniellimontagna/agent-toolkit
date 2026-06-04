@@ -3,16 +3,19 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  availableSkillPackages,
   availableSkillScopes,
   discoverSkillDirs,
   listCustomSkills,
   parseSkillMetadata,
+  selectedSkillDirs,
 } from "../../src/skills.js";
 import { state } from "../../src/state.js";
 
 let tempDir: string;
 let originalCustomSkillsDir: string;
 let originalSkillScopes: string[];
+let originalSkillPackages: string[];
 
 function writeSkill(
   relativeDir: string,
@@ -43,13 +46,16 @@ beforeEach(() => {
   tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "agent-toolkit-skills-"));
   originalCustomSkillsDir = state.customSkillsDir;
   originalSkillScopes = [...state.skillScopes];
+  originalSkillPackages = [...state.skillPackages];
   state.customSkillsDir = tempDir;
   state.skillScopes = [];
+  state.skillPackages = [];
 });
 
 afterEach(() => {
   state.customSkillsDir = originalCustomSkillsDir;
   state.skillScopes = originalSkillScopes;
+  state.skillPackages = originalSkillPackages;
   fs.rmSync(tempDir, { recursive: true, force: true });
   vi.restoreAllMocks();
 });
@@ -91,6 +97,35 @@ describe("skill discovery", () => {
       "backend/node",
       "frontend",
       "frontend/react",
+    ]);
+  });
+
+  it("derives and filters selectable first-level skill packages", () => {
+    writeSkill("core/agent-toolkit-maintainer");
+    writeSkill("frontend/react/react-patterns");
+    writeSkill("backend/node/fastify-patterns");
+    state.skillPackages = ["backend", "core"];
+
+    expect(availableSkillPackages(discoverSkillDirs())).toEqual([
+      "backend",
+      "core",
+      "frontend",
+    ]);
+    expect(relativeSkillPaths(selectedSkillDirs())).toEqual([
+      "backend/node/fastify-patterns",
+      "core/agent-toolkit-maintainer",
+    ]);
+  });
+
+  it("combines package and scope filters when selecting skills", () => {
+    writeSkill("backend/node/fastify-patterns");
+    writeSkill("backend/go/go-patterns");
+    writeSkill("frontend/react/react-patterns");
+    state.skillPackages = ["backend"];
+    state.skillScopes = ["backend/node"];
+
+    expect(relativeSkillPaths(selectedSkillDirs())).toEqual([
+      "backend/node/fastify-patterns",
     ]);
   });
 

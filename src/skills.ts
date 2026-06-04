@@ -3,6 +3,7 @@ import path from "node:path";
 import { HOME } from "./context.js";
 import { err, ok, step, warn } from "./logger.js";
 import {
+  normalizedSkillPackages,
   normalizedSkillScopes,
   type RuntimeName,
   runtimeNames,
@@ -128,6 +129,10 @@ export function skillRelativePath(skillDir: string): string {
   return path.relative(state.customSkillsDir, skillDir).replace(/\\/g, "/");
 }
 
+function skillPackageName(skillDir: string): string {
+  return skillRelativePath(skillDir).split("/").filter(Boolean)[0] || "";
+}
+
 export function discoverSkillDirs(): string[] {
   if (
     !fs.existsSync(state.customSkillsDir) ||
@@ -162,6 +167,14 @@ function skillMatchesScope(skillDir: string, scope: string): boolean {
   return relative === scope || relative.startsWith(`${scope}/`);
 }
 
+function filterSkillDirsByPackage(skillDirs: string[]): string[] {
+  const packages = normalizedSkillPackages();
+  if (packages.length === 0) return skillDirs;
+  return skillDirs.filter((skillDir) =>
+    packages.includes(skillPackageName(skillDir).toLowerCase()),
+  );
+}
+
 function filterSkillDirsByScope(skillDirs: string[]): string[] {
   const scopes = normalizedSkillScopes();
   if (scopes.length === 0) return skillDirs;
@@ -171,7 +184,16 @@ function filterSkillDirsByScope(skillDirs: string[]): string[] {
 }
 
 export function selectedSkillDirs(): string[] {
-  return filterSkillDirsByScope(discoverSkillDirs());
+  return filterSkillDirsByScope(filterSkillDirsByPackage(discoverSkillDirs()));
+}
+
+export function availableSkillPackages(skillDirs: string[]): string[] {
+  const packages = new Set<string>();
+  for (const skillDir of skillDirs) {
+    const packageName = skillPackageName(skillDir);
+    if (packageName) packages.add(packageName);
+  }
+  return [...packages].sort();
 }
 
 export function availableSkillScopes(skillDirs: string[]): string[] {
@@ -194,8 +216,7 @@ export function listCustomSkills(): boolean {
     return true;
   }
 
-  const allSkillDirs = discoverSkillDirs();
-  const skillDirs = filterSkillDirsByScope(allSkillDirs);
+  const skillDirs = selectedSkillDirs();
   if (skillDirs.length === 0) {
     warn(`No Agent Skills found in ${state.customSkillsDir}`);
     return true;
@@ -291,10 +312,15 @@ export function installCustomSkills(): boolean {
   }
 
   if (skillDirs.length === 0) {
+    const packages = normalizedSkillPackages();
     const scopes = normalizedSkillScopes();
-    if (scopes.length > 0) {
+    if (packages.length > 0 || scopes.length > 0) {
+      const filters = [
+        packages.length > 0 ? `package: ${packages.join(", ")}` : "",
+        scopes.length > 0 ? `scope: ${scopes.join(", ")}` : "",
+      ].filter(Boolean);
       warn(
-        `No Agent Skills found in ${state.customSkillsDir} for scope: ${scopes.join(", ")}`,
+        `No Agent Skills found in ${state.customSkillsDir} for ${filters.join("; ")}`,
       );
     } else {
       warn(`No Agent Skills found in ${state.customSkillsDir}`);

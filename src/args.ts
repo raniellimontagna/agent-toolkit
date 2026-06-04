@@ -134,6 +134,15 @@ export function parseArgs(argv: string[]): boolean {
         }
         state.nonInteractive = true;
         break;
+      case "--skills-package":
+        i += 1;
+        {
+          const skillsPackage = argv[i];
+          if (!skillsPackage) die("--skills-package requires a package name.");
+          state.skillPackages.push(...splitList(skillsPackage));
+        }
+        state.nonInteractive = true;
+        break;
       case "--skills-list":
         state.listSkills = true;
         state.nonInteractive = true;

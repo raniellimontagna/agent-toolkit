@@ -13,6 +13,7 @@ type StatusClackFake = ClackFake & {
 let tempDir: string;
 let originalCustomSkillsDir: string;
 let originalSkillScopes: string[];
+let originalSkillPackages: string[];
 let originalInstallMissingClis: boolean;
 let originalGsdScope: typeof state.gsdScope;
 let originalTools: typeof state.tools;
@@ -37,6 +38,7 @@ beforeEach(() => {
   tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "agent-toolkit-menu-"));
   originalCustomSkillsDir = state.customSkillsDir;
   originalSkillScopes = [...state.skillScopes];
+  originalSkillPackages = [...state.skillPackages];
   originalInstallMissingClis = state.installMissingClis;
   originalGsdScope = state.gsdScope;
   originalTools = { ...state.tools };
@@ -44,6 +46,7 @@ beforeEach(() => {
 
   state.customSkillsDir = tempDir;
   state.skillScopes = [];
+  state.skillPackages = [];
   state.installMissingClis = false;
   state.gsdScope = "global";
   for (const tool of toolNames) state.tools[tool] = true;
@@ -53,6 +56,7 @@ beforeEach(() => {
 afterEach(() => {
   state.customSkillsDir = originalCustomSkillsDir;
   state.skillScopes = originalSkillScopes;
+  state.skillPackages = originalSkillPackages;
   state.installMissingClis = originalInstallMissingClis;
   state.gsdScope = originalGsdScope;
   state.tools = originalTools;
@@ -64,6 +68,7 @@ afterEach(() => {
 describe("clack menu", () => {
   it("applies visual prompt selections to installer state", async () => {
     writeSkill("backend/node/fastify-patterns");
+    writeSkill("frontend/react/react-patterns");
     const clack: ClackFake = {
       intro: vi.fn(),
       outro: vi.fn(),
@@ -73,6 +78,7 @@ describe("clack menu", () => {
         .fn()
         .mockResolvedValueOnce(["rtk", "skills"])
         .mockResolvedValueOnce(["codex"])
+        .mockResolvedValueOnce(["backend"])
         .mockResolvedValueOnce(["backend/node"]),
       select: vi.fn().mockResolvedValue("local"),
       confirm: vi.fn().mockResolvedValue(true),
@@ -97,6 +103,7 @@ describe("clack menu", () => {
     });
     expect(state.gsdScope).toBe("local");
     expect(state.installMissingClis).toBe(true);
+    expect(state.skillPackages).toEqual(["backend"]);
     expect(state.skillScopes).toEqual(["backend/node"]);
     expect(clack.outro).toHaveBeenCalledWith("Ready to install.");
   });
@@ -114,6 +121,7 @@ describe("clack menu", () => {
         .fn()
         .mockResolvedValueOnce(["rtk", "skills"])
         .mockResolvedValueOnce(["codex"])
+        .mockResolvedValueOnce(["all"])
         .mockResolvedValueOnce(["all"]),
       select: vi.fn().mockResolvedValue("global"),
       confirm: vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true),

@@ -37,6 +37,7 @@ Install scope:
   --global              Install runtime assets into user config directories
   --local               Install runtime assets into the current project
   --skills-dir DIR      Use another source directory for Custom Skills
+  --skills-package NAME Install Custom Skills from a first-level package, repeatable
   --skills-scope SCOPE  Install skills under a relative scope path, repeatable
   --skills-list         List discovered Custom Skills and exit
 
@@ -58,6 +59,7 @@ Environment:
   ALLOW_MUTABLE_SOURCES Set to 1 to allow mutable source overrides
   AGENT_TOOLKIT_MENU    Set to plain to force the line-based interactive menu
   CUSTOM_SKILLS_DIR     Source directory for custom skills
+  SKILLS_PACKAGE        Comma-separated first-level skill package filters
   SKILLS_SCOPE          Comma-separated skill scope filters
   CLAUDE_CLI_PACKAGE    npm package used to install Claude Code CLI
   CODEX_CLI_PACKAGE     npm package used to install Codex CLI

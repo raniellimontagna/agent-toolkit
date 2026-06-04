@@ -7,6 +7,7 @@ import {
   skillsTargetDir,
 } from "./skills.js";
 import {
+  normalizedSkillPackages,
   type RuntimeName,
   runtimeMeta,
   runtimeNames,
@@ -177,7 +178,11 @@ function selectedSkillPlanLines(): string[] {
   }
 
   const skillList = skillDirs.map(skillRelativePath).join(", ");
-  const lines = [`- Selected source skills: ${skillList}`];
+  const packages = normalizedSkillPackages();
+  const lines = [
+    `- Selected packages: ${packages.length > 0 ? packages.join(", ") : "all"}`,
+    `- Selected source skills: ${skillList}`,
+  ];
 
   for (const runtime of selectedRuntimes()) {
     const targetRoot = skillsTargetDir(runtime);

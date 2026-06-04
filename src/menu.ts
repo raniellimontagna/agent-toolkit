@@ -2,7 +2,12 @@ import fs from "node:fs";
 import { createInterface } from "node:readline/promises";
 import * as clack from "@clack/prompts";
 import { die } from "./logger.js";
-import { availableSkillScopes, discoverSkillDirs } from "./skills.js";
+import {
+  availableSkillPackages,
+  availableSkillScopes,
+  discoverSkillDirs,
+  selectedSkillDirs,
+} from "./skills.js";
 import {
   isRuntimeName,
   isToolName,
@@ -110,13 +115,32 @@ function selectSkillScopes(scopes: string[]): void {
   state.skillScopes.push(...scopes);
 }
 
+function selectSkillPackages(packages: string[]): void {
+  if (packages.length === 0 || packages.includes("all")) return;
+  state.skillPackages.push(...packages);
+}
+
+function selectSkillPackagesFromAnswer(answer: string): void {
+  if (!answer.trim()) return;
+  selectSkillPackages(splitList(answer));
+}
+
 function selectSkillScopesFromAnswer(answer: string): void {
   if (!answer.trim()) return;
   selectSkillScopes(splitList(answer));
 }
 
+function printAvailableSkillPackages(): void {
+  const packages = availableSkillPackages(discoverSkillDirs());
+  if (packages.length === 0) return;
+
+  console.log("");
+  console.log("Available skill packages:");
+  for (const packageName of packages) console.log(`  - ${packageName}`);
+}
+
 function printAvailableSkillScopes(): void {
-  const skillDirs = discoverSkillDirs();
+  const skillDirs = selectedSkillDirs();
   const scopes = availableSkillScopes(skillDirs);
   if (scopes.length === 0) return;
 
@@ -132,7 +156,12 @@ function applyMenuAnswers(answers: string[]): void {
   state.installMissingClis = /^y(es)?$/i.test((answers[3] ?? "").trim());
 
   if (state.tools.skills) {
-    selectSkillScopesFromAnswer(answers[4] ?? "");
+    if ((answers[5] ?? "").trim()) {
+      selectSkillPackagesFromAnswer(answers[4] ?? "");
+      selectSkillScopesFromAnswer(answers[5] ?? "");
+    } else {
+      selectSkillScopesFromAnswer(answers[4] ?? "");
+    }
   }
 }
 
@@ -219,9 +248,19 @@ function scopeOptions(): ClackOption[] {
 function skillScopeOptions(): ClackOption[] {
   return [
     { value: "all", label: "All skill scopes" },
-    ...availableSkillScopes(discoverSkillDirs()).map((scope) => ({
+    ...availableSkillScopes(selectedSkillDirs()).map((scope) => ({
       value: scope,
       label: scope,
+    })),
+  ];
+}
+
+function skillPackageOptions(): ClackOption[] {
+  return [
+    { value: "all", label: "All skill packages" },
+    ...availableSkillPackages(discoverSkillDirs()).map((packageName) => ({
+      value: packageName,
+      label: packageName,
     })),
   ];
 }
@@ -270,6 +309,16 @@ export async function runClackMenu(api: ClackMenuApi): Promise<void> {
   );
 
   if (state.tools.skills) {
+    const packages = valueOrCancel<string[]>(
+      api,
+      await api.multiselect({
+        message: "Select Custom Skill packages",
+        options: skillPackageOptions(),
+        required: true,
+      }),
+    );
+    selectSkillPackages(packages);
+
     const scopes = valueOrCancel<string[]>(
       api,
       await api.multiselect({
@@ -328,6 +377,12 @@ async function showReadlineMenu(): Promise<void> {
     state.installMissingClis = /^y(es)?$/i.test(cliAnswer.trim());
 
     if (state.tools.skills) {
+      printAvailableSkillPackages();
+      const packageAnswer = await rl.question(
+        "Skill packages to install [comma list, all, default all]: ",
+      );
+      selectSkillPackagesFromAnswer(packageAnswer);
+
       printAvailableSkillScopes();
       const scopeAnswer = await rl.question(
         "Skill scopes to install [comma list, all, default all]: ",

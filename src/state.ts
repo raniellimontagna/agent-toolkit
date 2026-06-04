@@ -49,6 +49,7 @@ type State = {
   }>;
   gsdScope: InstallScope;
   customSkillsDir: string;
+  skillPackages: string[];
   skillScopes: string[];
   listSkills: boolean;
   cliPackages: Record<RuntimeName, string>;
@@ -143,6 +144,9 @@ export const state: State = {
   gsdScope: envInstallScope(process.env.GSD_SCOPE),
   customSkillsDir:
     process.env.CUSTOM_SKILLS_DIR || path.join(REPO_ROOT, "skills"),
+  skillPackages: splitList(
+    process.env.SKILLS_PACKAGE || process.env.SKILLS_PACKAGES || "",
+  ),
   skillScopes: splitList(process.env.SKILLS_SCOPE || ""),
   listSkills: false,
   cliPackages: {
@@ -230,4 +234,11 @@ export function anyRuntimeSelected(): boolean {
 
 export function normalizedSkillScopes(): string[] {
   return state.skillScopes.map(normalizeScope).filter(Boolean);
+}
+
+export function normalizedSkillPackages(): string[] {
+  const packages = state.skillPackages
+    .map(normalizeScope)
+    .filter((value) => value && value !== "all");
+  return [...new Set(packages)];
 }

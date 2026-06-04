@@ -104,11 +104,11 @@ npx -y @ranimontagna/agent-toolkit
 
 Interactive runs show detected local status before installation, including
 runtime CLIs on `PATH` and already-copied Custom Skills when those can be
-verified. They ask which tools, runtimes and skill scopes to install, then show
-an install plan and ask for confirmation. Pressing Enter does not silently
-install the full kit; choose `all` explicitly when that is what you want.
-Interactive terminals use a visual Clack menu. Pipe answers or set
-`AGENT_TOOLKIT_MENU=plain` to use the line-based fallback.
+verified. They ask which tools, runtimes, Custom Skill packages and skill scopes
+to install, then show an install plan and ask for confirmation. Pressing Enter
+does not silently install the full kit; choose `all` explicitly when that is
+what you want. Interactive terminals use a visual Clack menu. Pipe answers or
+set `AGENT_TOOLKIT_MENU=plain` to use the line-based fallback.
 
 Run the full kit for Codex in one command:
 
@@ -166,6 +166,12 @@ Install only bundled skills into the current project:
 npx -y @ranimontagna/agent-toolkit --skills-only --all-runtimes --local
 ```
 
+Install only one bundled skill package:
+
+```bash
+npx -y @ranimontagna/agent-toolkit --skills-only --codex --skills-package core
+```
+
 Install only React-scoped skills:
 
 ```bash
@@ -216,6 +222,7 @@ npx -y @ranimontagna/agent-toolkit --all --gemini --install-missing-clis
 --global               Install runtime assets into user config directories
 --local                Install runtime assets into the current project
 --skills-dir DIR       Use another source directory for skills
+--skills-package NAME  Install skills from a first-level package, repeatable
 --skills-scope SCOPE   Install skills under a relative scope path, repeatable
 --skills-list          List discovered skills and exit
 --install-missing-clis Install selected runtime CLIs if missing
@@ -240,6 +247,7 @@ TOOLS_LOCK_PATH       External tool provenance lock path
 ALLOW_MUTABLE_SOURCES Set to 1 to allow mutable source overrides
 AGENT_TOOLKIT_MENU    Set to plain to force the line-based interactive menu
 CUSTOM_SKILLS_DIR     Source directory for custom skills
+SKILLS_PACKAGE        Comma-separated first-level skill package filters
 SKILLS_SCOPE          Comma-separated skill scope filters
 CLAUDE_CLI_PACKAGE    npm package used to install Claude Code CLI
 CODEX_CLI_PACKAGE     npm package used to install Codex CLI
@@ -315,8 +323,10 @@ skills/
         SKILL.md
 ```
 
-The installer discovers `SKILL.md` files recursively. The repository path is
-used only for organization; runtime installs remain flat:
+The installer discovers `SKILL.md` files recursively. The first path segment is
+treated as a selectable skill package, for example `core`, `frontend`, or
+`backend`. The remaining repository path is used only for organization; runtime
+installs remain flat:
 
 ```text
 ~/.codex/skills/react-component-architecture/
@@ -356,7 +366,13 @@ The installer validates the core Agent Skills requirements:
 For larger skills, put detailed supporting material in `references/`, scripts in
 `scripts/`, and reusable assets in `assets/`.
 
-Use `--skills-scope` to install only a subset:
+Use `--skills-package` to install one or more first-level packages:
+
+```bash
+bash setup-agent-toolkit.sh --skills-only --codex --skills-package core
+```
+
+Use `--skills-scope` to install only a narrower subset:
 
 ```bash
 bash setup-agent-toolkit.sh --skills-only --codex --skills-scope backend/node
@@ -423,8 +439,8 @@ Release a new npm version by updating `package.json`, pushing the change to
 `main`, then pushing a matching tag:
 
 ```bash
-git tag v0.1.3
-git push origin v0.1.3
+git tag v0.1.4
+git push origin v0.1.4
 ```
 
 The `Release` workflow runs the full check and publishes the scoped package to
