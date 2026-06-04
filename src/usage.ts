@@ -56,6 +56,7 @@ Environment:
   GSD_SCOPE             global or local
   TOOLS_LOCK_PATH       External tool provenance lock path
   ALLOW_MUTABLE_SOURCES Set to 1 to allow mutable source overrides
+  AGENT_TOOLKIT_MENU    Set to plain to force the line-based interactive menu
   CUSTOM_SKILLS_DIR     Source directory for custom skills
   SKILLS_SCOPE          Comma-separated skill scope filters
   CLAUDE_CLI_PACKAGE    npm package used to install Claude Code CLI

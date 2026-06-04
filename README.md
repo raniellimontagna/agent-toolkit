@@ -104,7 +104,8 @@ npx -y @ranimontagna/agent-toolkit
 
 Interactive runs ask which tools, runtimes and skill scopes to install. Pressing
 Enter does not silently install the full kit; choose `all` explicitly when that
-is what you want.
+is what you want. Interactive terminals use a visual Clack menu. Pipe answers
+or set `AGENT_TOOLKIT_MENU=plain` to use the line-based fallback.
 
 Run the full kit for Codex in one command:
 
@@ -234,6 +235,7 @@ SKILLS_CLI_PACKAGE    npm package used for third-party skill installs
 GSD_SCOPE             global or local
 TOOLS_LOCK_PATH       External tool provenance lock path
 ALLOW_MUTABLE_SOURCES Set to 1 to allow mutable source overrides
+AGENT_TOOLKIT_MENU    Set to plain to force the line-based interactive menu
 CUSTOM_SKILLS_DIR     Source directory for custom skills
 SKILLS_SCOPE          Comma-separated skill scope filters
 CLAUDE_CLI_PACKAGE    npm package used to install Claude Code CLI
@@ -418,8 +420,8 @@ Release a new npm version by updating `package.json`, pushing the change to
 `main`, then pushing a matching tag:
 
 ```bash
-git tag v0.1.1
-git push origin v0.1.1
+git tag v0.1.2
+git push origin v0.1.2
 ```
 
 The `Release` workflow runs the full check and publishes the scoped package to
