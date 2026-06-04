@@ -310,6 +310,9 @@ npm run typecheck         # Type-check source and unit tests
 npm run lint              # Biome lint and format checks
 npm run lint:fix          # Apply safe Biome fixes
 npm run format            # Format with Biome
+npm run security          # npm vulnerability audit and registry signature checks
+npm run security:audit    # Fail on moderate+ vulnerable dependencies
+npm run security:signatures # Verify npm signatures and attestations
 npm run test:unit         # Vitest unit tests
 npm run test:integration  # Shell integration test
 npm test                  # Unit + integration tests
@@ -317,6 +320,13 @@ npm test                  # Unit + integration tests
 
 The shell integration test validates the wrapper, flags, fake runtime CLIs,
 installer command wiring, skill discovery and public-safe reference checks.
+
+The GitHub Actions CI runs four gates:
+
+- `Check`: lint, typecheck, unit tests, build and integration tests;
+- `Secret scan`: Gitleaks over full Git history;
+- `Dependency audit`: `npm audit` and `npm audit signatures`;
+- `Dependency review`: blocks PRs that add moderate-or-higher vulnerable dependencies.
 
 ## Maintenance
 
