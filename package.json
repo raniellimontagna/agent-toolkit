@@ -10,6 +10,7 @@
   "files": [
     "dist",
     "skills",
+    "tools.lock.json",
     "setup-agent-toolkit.sh",
     "README.md"
   ],

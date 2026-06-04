@@ -40,6 +40,7 @@ Install scope:
 
 Other:
   --install-missing-clis Install selected runtime CLIs if missing
+  --allow-mutable-sources Allow explicit mutable package sources like @latest
   --help, -h            Show this help
 
 Environment:
@@ -50,6 +51,8 @@ Environment:
   GRAPHIFY_INSTALLER    uv or pipx
   GSD_PACKAGE           GSD package source
   GSD_SCOPE             global or local
+  TOOLS_LOCK_PATH       External tool provenance lock path
+  ALLOW_MUTABLE_SOURCES Set to 1 to allow mutable source overrides
   CUSTOM_SKILLS_DIR     Source directory for custom skills
   SKILLS_SCOPE          Comma-separated skill scope filters
   CLAUDE_CLI_PACKAGE    npm package used to install Claude Code CLI

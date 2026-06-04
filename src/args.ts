@@ -133,6 +133,9 @@ export function parseArgs(argv: string[]): boolean {
       case "--install-missing-clis":
         state.installMissingClis = true;
         break;
+      case "--allow-mutable-sources":
+        state.allowMutableSources = true;
+        break;
       case "--help":
       case "-h":
         console.log(usage());

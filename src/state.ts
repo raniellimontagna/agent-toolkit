@@ -1,5 +1,12 @@
 import path from "node:path";
 import { HOME, REPO_ROOT } from "./context.js";
+import {
+  formatGithubPackageSpec,
+  formatNpmPackageSpec,
+  formatPythonPackageSpec,
+  githubReleaseApiUrl,
+  loadToolLock,
+} from "./tool-lock.js";
 
 export const toolNames = [
   "rtk",
@@ -26,6 +33,7 @@ type RuntimeMeta = {
 type State = {
   rtkInstallDir: string;
   rtkGithub: string;
+  rtkAssetChecksums: Record<string, string>;
   cavemanPackage: string;
   cavemanMode: string;
   graphifyPackage: string;
@@ -40,6 +48,7 @@ type State = {
   runtimes: Record<RuntimeName, boolean>;
   nonInteractive: boolean;
   installMissingClis: boolean;
+  allowMutableSources: boolean;
 };
 
 function envInstallScope(value: string | undefined): InstallScope {
@@ -69,27 +78,70 @@ export function normalizeScope(scope: string): string {
     .replace(/^\/+|\/+$/g, "");
 }
 
+const toolLock = loadToolLock();
+
 export const state: State = {
   rtkInstallDir:
     process.env.RTK_INSTALL_DIR || path.join(HOME, ".local", "bin"),
   rtkGithub:
     process.env.RTK_GITHUB ||
-    "https://api.github.com/repos/rtk-ai/rtk/releases/latest",
-  cavemanPackage: process.env.CAVEMAN_PACKAGE || "github:JuliusBrussee/caveman",
+    githubReleaseApiUrl(toolLock.tools.rtk.repository, toolLock.tools.rtk.tag),
+  rtkAssetChecksums: Object.fromEntries(
+    Object.entries(toolLock.tools.rtk.assets).map(([assetName, asset]) => [
+      assetName,
+      asset.sha256,
+    ]),
+  ),
+  cavemanPackage:
+    process.env.CAVEMAN_PACKAGE ||
+    formatGithubPackageSpec(
+      toolLock.tools.caveman.repository,
+      toolLock.tools.caveman.ref,
+    ),
   cavemanMode: process.env.CAVEMAN_MODE || "minimal",
-  graphifyPackage: process.env.GRAPHIFY_PACKAGE || "graphifyy",
+  graphifyPackage:
+    process.env.GRAPHIFY_PACKAGE ||
+    formatPythonPackageSpec(
+      toolLock.tools.graphify.package,
+      toolLock.tools.graphify.version,
+    ),
   graphifyInstaller: process.env.GRAPHIFY_INSTALLER || "uv",
-  gsdPackage: process.env.GSD_PACKAGE || "get-shit-done-cc@latest",
+  gsdPackage:
+    process.env.GSD_PACKAGE ||
+    formatNpmPackageSpec(
+      toolLock.tools.gsd.package,
+      toolLock.tools.gsd.version,
+    ),
   gsdScope: envInstallScope(process.env.GSD_SCOPE),
   customSkillsDir:
     process.env.CUSTOM_SKILLS_DIR || path.join(REPO_ROOT, "skills"),
   skillScopes: splitList(process.env.SKILLS_SCOPE || ""),
   listSkills: false,
   cliPackages: {
-    claude: process.env.CLAUDE_CLI_PACKAGE || "@anthropic-ai/claude-code",
-    codex: process.env.CODEX_CLI_PACKAGE || "@openai/codex",
-    opencode: process.env.OPENCODE_CLI_PACKAGE || "opencode-ai",
-    gemini: process.env.GEMINI_CLI_PACKAGE || "@google/gemini-cli",
+    claude:
+      process.env.CLAUDE_CLI_PACKAGE ||
+      formatNpmPackageSpec(
+        toolLock.runtimeClis.claude.package,
+        toolLock.runtimeClis.claude.version,
+      ),
+    codex:
+      process.env.CODEX_CLI_PACKAGE ||
+      formatNpmPackageSpec(
+        toolLock.runtimeClis.codex.package,
+        toolLock.runtimeClis.codex.version,
+      ),
+    opencode:
+      process.env.OPENCODE_CLI_PACKAGE ||
+      formatNpmPackageSpec(
+        toolLock.runtimeClis.opencode.package,
+        toolLock.runtimeClis.opencode.version,
+      ),
+    gemini:
+      process.env.GEMINI_CLI_PACKAGE ||
+      formatNpmPackageSpec(
+        toolLock.runtimeClis.gemini.package,
+        toolLock.runtimeClis.gemini.version,
+      ),
   },
   tools: {
     rtk: true,
@@ -107,6 +159,7 @@ export const state: State = {
   },
   nonInteractive: false,
   installMissingClis: false,
+  allowMutableSources: process.env.ALLOW_MUTABLE_SOURCES === "1",
 };
 
 export const runtimeMeta: Record<RuntimeName, RuntimeMeta> = {

@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { verifySha256File } from "../checksum.js";
 import { color, err, info, ok, step, warn } from "../logger.js";
 import { state } from "../state.js";
 import {
@@ -96,7 +97,7 @@ export async function installRtk(): Promise<boolean> {
     return false;
   }
 
-  info("Querying latest RTK release...");
+  info("Querying pinned RTK release...");
   let release: RtkRelease;
   try {
     release = (await fetchJson(state.rtkGithub)) as RtkRelease;
@@ -121,6 +122,18 @@ export async function installRtk(): Promise<boolean> {
     const archivePath = path.join(tempDir, "rtk-package");
     info(`Downloading ${assetName}...`);
     await downloadFile(downloadUrl, archivePath);
+
+    const expectedSha256 = state.rtkAssetChecksums[assetName];
+    if (!expectedSha256) {
+      err(`Missing RTK checksum in tools.lock.json for asset: ${assetName}`);
+      return false;
+    }
+
+    if (!verifySha256File(archivePath, expectedSha256)) {
+      err(`RTK checksum verification failed for asset: ${assetName}`);
+      return false;
+    }
+    ok(`Verified RTK asset checksum: ${assetName}`);
 
     if (assetName.endsWith(".zip")) {
       requireCommand("unzip");

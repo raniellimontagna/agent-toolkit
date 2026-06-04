@@ -59,6 +59,7 @@ dist/
     agent-toolkit.js     Compiled CLI used by npm and the wrapper
 setup-agent-toolkit.sh         Bash compatibility wrapper
 package.json            CLI metadata and test scripts
+tools.lock.json         Pinned external tool sources and RTK checksums
 LICENSE                 MIT license
 skills/
   core/
@@ -192,6 +193,7 @@ bash setup-agent-toolkit.sh --all --gemini --install-missing-clis
 --skills-scope SCOPE   Install skills under a relative scope path, repeatable
 --skills-list          List discovered skills and exit
 --install-missing-clis Install selected runtime CLIs if missing
+--allow-mutable-sources Allow explicit mutable source overrides like @latest
 --help, -h             Show help
 ```
 
@@ -207,6 +209,8 @@ GRAPHIFY_PACKAGE      Python package used to install Graphify
 GRAPHIFY_INSTALLER    uv or pipx
 GSD_PACKAGE           GSD package source
 GSD_SCOPE             global or local
+TOOLS_LOCK_PATH       External tool provenance lock path
+ALLOW_MUTABLE_SOURCES Set to 1 to allow mutable source overrides
 CUSTOM_SKILLS_DIR     Source directory for custom skills
 SKILLS_SCOPE          Comma-separated skill scope filters
 CLAUDE_CLI_PACKAGE    npm package used to install Claude Code CLI
@@ -218,41 +222,40 @@ GEMINI_CLI_PACKAGE    npm package used to install Gemini CLI
 Defaults:
 
 ```text
-CAVEMAN_PACKAGE=github:JuliusBrussee/caveman
-GRAPHIFY_PACKAGE=graphifyy
+CAVEMAN_PACKAGE=github:JuliusBrussee/caveman#655b7d9c5431f822264b7732e9901c5578ac84cf
+GRAPHIFY_PACKAGE=graphifyy==0.8.31
 GRAPHIFY_INSTALLER=uv
-GSD_PACKAGE=get-shit-done-cc@latest
-CLAUDE_CLI_PACKAGE=@anthropic-ai/claude-code
-CODEX_CLI_PACKAGE=@openai/codex
-OPENCODE_CLI_PACKAGE=opencode-ai
-GEMINI_CLI_PACKAGE=@google/gemini-cli
+GSD_PACKAGE=get-shit-done-cc@1.42.3
+CLAUDE_CLI_PACKAGE=@anthropic-ai/claude-code@2.1.162
+CODEX_CLI_PACKAGE=@openai/codex@0.137.0
+OPENCODE_CLI_PACKAGE=opencode-ai@1.15.13
+GEMINI_CLI_PACKAGE=@google/gemini-cli@0.45.0
 ```
 
-These defaults optimize convenience. For a higher-assurance installation, pin
-each package or release to an immutable version/ref before running the installer.
+These defaults come from `tools.lock.json`. Mutable overrides like `@latest`,
+unpinned npm packages, or GitHub package sources without a full commit SHA are
+blocked unless you pass `--allow-mutable-sources` or set
+`ALLOW_MUTABLE_SOURCES=1`.
 
 ## External Tool Provenance
 
 The CI protects this repository's own dependency graph with `npm audit`,
-registry signature checks, dependency review and Gitleaks. That does not fully
-prove the safety of tools downloaded later by the installer. External tools need
-their own provenance controls.
+registry signature checks, dependency review and Gitleaks. The installer also
+protects tools downloaded later by reading `tools.lock.json` and rejecting
+mutable external sources by default.
 
 Current external sources:
 
-| Tool | Current source | Stronger control |
+| Tool | Locked source | Runtime verification |
 |---|---|---|
-| RTK | Latest GitHub release from `rtk-ai/rtk` | Pin a release tag and verify the asset SHA-256 before extraction |
-| Caveman | GitHub package source | Pin a tag or commit SHA instead of the default branch |
-| Graphify | `graphifyy` through `uv` or `pipx` | Pin an exact package version and prefer hash-verified installs when supported |
-| GSD | `get-shit-done-cc@latest` through `npx` | Pin an exact npm version instead of `@latest` |
-| Runtime CLIs | npm packages for Claude, Codex, OpenCode and Gemini | Pin exact versions when using `--install-missing-clis` |
+| RTK | GitHub release `rtk-ai/rtk@v0.42.1` | Verifies the selected asset SHA-256 before extraction |
+| Caveman | `JuliusBrussee/caveman` at commit `655b7d9c5431f822264b7732e9901c5578ac84cf` | Installs through an immutable GitHub npm spec |
+| Graphify | `graphifyy==0.8.31` | Blocks unpinned package overrides |
+| GSD | `get-shit-done-cc@1.42.3` | Blocks `@latest` unless explicitly allowed |
+| Runtime CLIs | Exact npm versions for Claude, Codex, OpenCode and Gemini | Used when `--install-missing-clis` is enabled |
 
-Recommended next hardening step: add a `tools.lock.json` manifest with the tool
-name, source, version/ref, expected SHA-256 when applicable, and verification
-command. The installer should read that manifest by default, reject mutable
-sources like `@latest`, and allow them only with an explicit override such as
-`--allow-latest`.
+Use `TOOLS_LOCK_PATH=/path/to/tools.lock.json` to test another lock file. Keep
+that file committed if it represents the expected public installer behavior.
 
 ## Adding Skills
 
@@ -364,8 +367,8 @@ The GitHub Actions CI runs four gates:
 - `Dependency review`: blocks PRs that add moderate-or-higher vulnerable dependencies.
 
 These gates cover repository code, npm dependencies and pull-request dependency
-changes. External tool version safety should be handled by the provenance model
-described above.
+changes. External tool version safety is handled by `tools.lock.json` plus
+runtime provenance checks in the installer.
 
 ## Maintenance
 

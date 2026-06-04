@@ -14,6 +14,7 @@ Use this skill when working in the Agent Toolkit repository.
 - Keep bundled skills organized by scope under `skills/<scope>/<skill-name>/SKILL.md`.
 - Install skills flat into runtime skill directories using the skill directory name.
 - Prefer configurable sources over hard-coded local paths.
+- Keep external tool defaults pinned in `tools.lock.json`; do not reintroduce mutable defaults like `@latest`.
 - Use `rtk` for shell commands when the local project instructions require it.
 - Use Conventional Commits for repository commits.
 
@@ -30,9 +31,10 @@ When changing `bin/agent-toolkit.ts`, `src/**/*.ts` or `setup-agent-toolkit.sh`:
 7. Keep `package.json` bin entries pointed at `dist/bin/agent-toolkit.js`.
 8. Preserve non-interactive flags for automation.
 9. Keep interactive runs explicit: the user should select tools, runtimes and skill scopes.
-10. Do not make runtime support claims unless the install path is implemented.
-11. Run TypeScript build/typecheck, Biome, Vitest and the integration test before claiming completion.
-12. Run lint and tests before every commit.
+10. Keep external source provenance checks active unless an explicit override is documented.
+11. Do not make runtime support claims unless the install path is implemented.
+12. Run TypeScript build/typecheck, Biome, Vitest and the integration test before claiming completion.
+13. Run lint and tests before every commit.
 
 ## Skill Changes
 
@@ -50,6 +52,7 @@ Run:
 
 ```bash
 rtk npm run check
+rtk npm run security
 rtk npm run lint
 rtk npm run build
 rtk npm run typecheck

@@ -39,6 +39,11 @@ if [[ ! -f "$ROOT_DIR/package.json" ]]; then
   exit 1
 fi
 
+if [[ ! -f "$ROOT_DIR/tools.lock.json" ]]; then
+  echo "Expected external tool provenance lock to exist: tools.lock.json" >&2
+  exit 1
+fi
+
 if ! grep -Fq -- "dist/bin/agent-toolkit.js" "$ROOT_DIR/setup-agent-toolkit.sh"; then
   echo "Expected setup-agent-toolkit.sh to delegate to the compiled Node CLI" >&2
   exit 1
@@ -46,14 +51,17 @@ fi
 
 for module in \
   args.ts \
+  checksum.ts \
   context.ts \
   logger.ts \
   main.ts \
   menu.ts \
+  provenance.ts \
   runtimes.ts \
   skills.ts \
   state.ts \
   system.ts \
+  tool-lock.ts \
   usage.ts \
   ui.ts \
   installers/caveman.ts \
@@ -147,7 +155,7 @@ cat > "$FAKE_BIN/uv" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$GRAPHIFY_LOG"
 case " \$* " in
-  *" tool install graphifyy "*) cat > "$FAKE_BIN/graphify" <<'GRAPHIFY'
+  *" tool install graphifyy==0.8.31 "*) cat > "$FAKE_BIN/graphify" <<'GRAPHIFY'
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$GRAPHIFY_LOG"
 case "\${1:-}" in
@@ -165,7 +173,7 @@ cat > "$FAKE_BIN/pipx" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$GRAPHIFY_LOG"
 case " \$* " in
-  *" install graphifyy "*) cat > "$FAKE_BIN/graphify" <<'GRAPHIFY'
+  *" install graphifyy==0.8.31 "*) cat > "$FAKE_BIN/graphify" <<'GRAPHIFY'
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$GRAPHIFY_LOG"
 case "\${1:-}" in
@@ -242,6 +250,7 @@ for expected in \
   "--skills-list" \
   "--skills-scope" \
   "--install-missing-clis" \
+  "--allow-mutable-sources" \
   "--claude" \
   "--codex" \
   "--opencode" \
@@ -269,23 +278,24 @@ for forbidden in \
 done
 
 HOME="$HOME_DIR" \
+XDG_CONFIG_HOME="$HOME_DIR/.config" \
 PATH="$FAKE_BIN:/usr/bin:/bin" \
 RTK_INSTALL_DIR="$TMP_DIR/install-bin" \
 bash "$ROOT_DIR/setup-agent-toolkit.sh" --all --all-runtimes >/dev/null
 
-if ! grep -Fxq -- "-y github:JuliusBrussee/caveman --only claude --only codex --only opencode --only gemini --minimal --non-interactive" "$NPM_LOG"; then
+if ! grep -Fxq -- "-y github:JuliusBrussee/caveman#655b7d9c5431f822264b7732e9901c5578ac84cf --only claude --only codex --only opencode --only gemini --minimal --non-interactive" "$NPM_LOG"; then
   echo "Expected Caveman installer to target Claude, Codex, OpenCode and Gemini" >&2
   cat "$NPM_LOG" >&2
   exit 1
 fi
 
-if ! grep -Fxq -- "-y get-shit-done-cc@latest --global --claude --codex --opencode --gemini" "$NPM_LOG"; then
+if ! grep -Fxq -- "-y get-shit-done-cc@1.42.3 --global --claude --codex --opencode --gemini" "$NPM_LOG"; then
   echo "Expected GSD installer to target Claude, Codex, OpenCode and Gemini globally" >&2
   cat "$NPM_LOG" >&2
   exit 1
 fi
 
-if ! grep -Fxq -- "tool install graphifyy" "$GRAPHIFY_LOG"; then
+if ! grep -Fxq -- "tool install graphifyy==0.8.31" "$GRAPHIFY_LOG"; then
   echo "Expected Graphify package install through uv tool" >&2
   cat "$GRAPHIFY_LOG" >&2
   exit 1
@@ -556,7 +566,7 @@ cat > "$PIPX_BIN/pipx" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$PIPX_LOG"
 case " \$* " in
-  *" install graphifyy "*) cat > "$PIPX_BIN/graphify" <<'GRAPHIFY'
+  *" install graphifyy==0.8.31 "*) cat > "$PIPX_BIN/graphify" <<'GRAPHIFY'
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$PIPX_LOG"
 case "\${1:-}" in
@@ -575,7 +585,7 @@ PATH="$PIPX_BIN:/usr/bin:/bin" \
 GRAPHIFY_INSTALLER="pipx" \
 bash "$ROOT_DIR/setup-agent-toolkit.sh" --graphify-only --gemini >/dev/null
 
-if ! grep -Fxq -- "install graphifyy" "$PIPX_LOG"; then
+if ! grep -Fxq -- "install graphifyy==0.8.31" "$PIPX_LOG"; then
   echo "Expected GRAPHIFY_INSTALLER=pipx to install graphifyy through pipx" >&2
   cat "$PIPX_LOG" >&2
   exit 1
@@ -639,7 +649,7 @@ cat > "$INSTALL_BIN/npm" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$INSTALL_LOG"
 case " \$* " in
-  *" @google/gemini-cli "*) cat > "$INSTALL_BIN/gemini" <<'GEMINI'
+  *" @google/gemini-cli@0.45.0 "*) cat > "$INSTALL_BIN/gemini" <<'GEMINI'
 #!/usr/bin/env bash
 case "${1:-}" in
   --version) echo "gemini 0.0.0-installed" ;;
@@ -656,9 +666,43 @@ HOME="$INSTALL_HOME" \
 PATH="$INSTALL_BIN:/usr/bin:/bin" \
 bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-only --gemini --install-missing-clis >/dev/null
 
-if ! grep -Fxq -- "install -g @google/gemini-cli" "$INSTALL_LOG"; then
+if ! grep -Fxq -- "install -g @google/gemini-cli@0.45.0" "$INSTALL_LOG"; then
   echo "Expected --install-missing-clis to install Gemini CLI package" >&2
   cat "$INSTALL_LOG" >&2
+  exit 1
+fi
+
+MUTABLE_OUTPUT="$(
+  set +e
+  HOME="$INSTALL_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  GSD_PACKAGE="get-shit-done-cc@latest" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --gsd-only --codex 2>&1
+  printf 'status:%s\n' "$?"
+)"
+
+if ! grep -Fq -- "Mutable external tool source is not allowed" <<<"$MUTABLE_OUTPUT"; then
+  echo "Expected mutable external tool source to fail without explicit override" >&2
+  echo "$MUTABLE_OUTPUT" >&2
+  exit 1
+fi
+
+MUTABLE_ALLOWED_LOG="$TMP_DIR/mutable-allowed-npm.log"
+cat > "$FAKE_BIN/npx" <<EOF
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "$MUTABLE_ALLOWED_LOG"
+exit 0
+EOF
+chmod +x "$FAKE_BIN/npx"
+
+HOME="$INSTALL_HOME" \
+PATH="$FAKE_BIN:/usr/bin:/bin" \
+GSD_PACKAGE="get-shit-done-cc@latest" \
+bash "$ROOT_DIR/setup-agent-toolkit.sh" --gsd-only --codex --allow-mutable-sources >/dev/null
+
+if ! grep -Fxq -- "-y get-shit-done-cc@latest --global --codex" "$MUTABLE_ALLOWED_LOG"; then
+  echo "Expected --allow-mutable-sources to permit explicit mutable override" >&2
+  cat "$MUTABLE_ALLOWED_LOG" >&2
   exit 1
 fi
 

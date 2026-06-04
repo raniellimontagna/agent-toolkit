@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "tools": {
+    "rtk": {
+      "source": "github-release",
+      "repository": "rtk-ai/rtk",
+      "tag": "v0.42.1",
+      "assets": {
+        "rtk-aarch64-apple-darwin.tar.gz": {
+          "sha256": "401d72a80c0efc597ae9469f053ce51c70334ea427527464ab76f8e298da2447"
+        },
+        "rtk-aarch64-unknown-linux-gnu.tar.gz": {
+          "sha256": "32f4d78766e2f5b43756efce3c699dc4da8beef5296deb02fa7756f3257eb25c"
+        },
+        "rtk-x86_64-apple-darwin.tar.gz": {
+          "sha256": "6165d80f40db0f46f8af2ea15d0132e957e2717aa74507906c7ce5b3c20c655e"
+        },
+        "rtk-x86_64-pc-windows-msvc.zip": {
+          "sha256": "5f292b031595405671b41e29aa5016931e8598949c25d9751f0eebd2eccefe0b"
+        },
+        "rtk-x86_64-unknown-linux-musl.tar.gz": {
+          "sha256": "a37ca300a42510a964453f2bc2e217769ef0872780af802db8a7d698f1da2465"
+        }
+      }
+    },
+    "caveman": {
+      "source": "github",
+      "repository": "JuliusBrussee/caveman",
+      "ref": "655b7d9c5431f822264b7732e9901c5578ac84cf"
+    },
+    "graphify": {
+      "source": "pypi",
+      "package": "graphifyy",
+      "version": "0.8.31"
+    },
+    "gsd": {
+      "source": "npm",
+      "package": "get-shit-done-cc",
+      "version": "1.42.3"
+    }
+  },
+  "runtimeClis": {
+    "claude": {
+      "source": "npm",
+      "package": "@anthropic-ai/claude-code",
+      "version": "2.1.162"
+    },
+    "codex": {
+      "source": "npm",
+      "package": "@openai/codex",
+      "version": "0.137.0"
+    },
+    "opencode": {
+      "source": "npm",
+      "package": "opencode-ai",
+      "version": "1.15.13"
+    },
+    "gemini": {
+      "source": "npm",
+      "package": "@google/gemini-cli",
+      "version": "0.45.0"
+    }
+  }
+}

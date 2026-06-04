@@ -7,6 +7,7 @@ import { installRtk } from "./installers/rtk.js";
 import { installSuperpowers } from "./installers/superpowers.js";
 import { die, err, skip, warn } from "./logger.js";
 import { showMenu } from "./menu.js";
+import { checkExternalToolProvenance } from "./provenance.js";
 import { checkPrerequisites } from "./runtimes.js";
 import { installCustomSkills, listCustomSkills } from "./skills.js";
 import { anyRuntimeSelected, anyToolSelected, state } from "./state.js";
@@ -26,6 +27,8 @@ export async function runInstaller(
 
   if (!anyToolSelected()) die("Select at least one tool.");
   if (!anyRuntimeSelected()) die("Select at least one runtime.");
+
+  checkExternalToolProvenance();
 
   printHeader();
   printSelections();
