@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="520" viewBox="0 0 980 520" role="img" aria-labelledby="title desc">
+  <title id="title">Agent Toolkit detected status screen</title>
+  <desc id="desc">Terminal screenshot showing the installer detecting installed and missing tools before prompting for selections.</desc>
+  <rect width="980" height="520" rx="18" fill="#111827"/>
+  <rect x="24" y="24" width="932" height="472" rx="14" fill="#0b1020" stroke="#263247"/>
+  <circle cx="52" cy="52" r="7" fill="#ff5f57"/>
+  <circle cx="76" cy="52" r="7" fill="#ffbd2e"/>
+  <circle cx="100" cy="52" r="7" fill="#28c840"/>
+  <text x="126" y="57" fill="#9ca3af" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">npx -y @ranimontagna/agent-toolkit</text>
+
+  <text x="52" y="104" fill="#93c5fd" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="19" font-weight="700">Agent Toolkit</text>
+  <text x="52" y="134" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16">Detected status</text>
+
+  <text x="74" y="174" fill="#cbd5e1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">Tools:</text>
+  <text x="96" y="204" fill="#86efac" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">[installed]</text>
+  <text x="205" y="204" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">RTK - rtk 0.42.1 (/home/user/.local/bin/rtk)</text>
+  <text x="96" y="232" fill="#fde68a" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">[external ]</text>
+  <text x="205" y="232" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">Caveman - checked by the Caveman installer</text>
+  <text x="96" y="260" fill="#86efac" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">[installed]</text>
+  <text x="205" y="260" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">Graphify - graphify 0.8.31</text>
+  <text x="96" y="288" fill="#93c5fd" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">[available]</text>
+  <text x="205" y="288" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">Custom Skills - 1 source skill package found</text>
+
+  <text x="74" y="336" fill="#cbd5e1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">Runtimes:</text>
+  <text x="96" y="366" fill="#86efac" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">[installed]</text>
+  <text x="205" y="366" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">Codex CLI - codex 0.137.0</text>
+  <text x="96" y="394" fill="#fca5a5" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">[missing  ]</text>
+  <text x="205" y="394" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">Gemini CLI - missing from PATH</text>
+
+  <rect x="52" y="432" width="876" height="36" rx="8" fill="#111827" stroke="#334155"/>
+  <text x="70" y="456" fill="#c4b5fd" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">Next: select tools and runtimes. Nothing has been installed yet.</text>
+</svg>

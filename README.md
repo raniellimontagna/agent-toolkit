@@ -1,17 +1,51 @@
 # Agent Toolkit
 
-Personal toolkit for setting up AI coding agents with the tools I use most:
-RTK, Caveman, Superpowers, Graphify, GSD, third-party frontend skills and
-bundled personal skills.
+One command to set up an AI coding-agent workspace across Claude Code, Codex
+CLI, OpenCode and Gemini CLI.
 
-The installer source is written in TypeScript and compiled to a dependency-free
-Node CLI in `dist/`. The Bash file is kept only as a compatibility wrapper, so
-existing commands still work after building the project.
+```bash
+npx -y @ranimontagna/agent-toolkit
+```
 
-The repository includes CI, security gates, MIT licensing, portable agent
-instructions and tests for the installer flows.
+Agent Toolkit installs the tools and skills I use to run agentic coding
+workflows: RTK, Caveman, Superpowers, Graphify, GSD, third-party frontend
+skills and bundled Custom Skills.
 
-## Runtimes
+The installer is a TypeScript CLI published to npm. The Bash script is only a
+compatibility wrapper for users who already run `setup-agent-toolkit.sh`.
+
+## Install Flow
+
+Interactive terminals use a Clack menu. The installer first shows what it can
+detect locally, then asks what to install, then shows a final plan before doing
+any work.
+
+![Detected status terminal screen](docs/assets/install-status.svg)
+
+Custom Skills are grouped by first-level package. Today this repository ships
+`core`; future packages can be added under `skills/<package>/...` and they will
+appear automatically in the menu.
+
+![Custom Skill package selection terminal screen](docs/assets/install-skill-packages.svg)
+
+The final plan shows selected tools, runtimes, skill packages, scope and already
+present skills before installation starts.
+
+![Install plan terminal screen](docs/assets/install-plan.svg)
+
+## What It Installs
+
+| Area | What it adds |
+|---|---|
+| RTK | Token-aware shell proxy for coding-agent sessions |
+| Caveman | Terse response mode and optional agent integrations |
+| Superpowers | Planning, TDD, debugging, review and delivery workflows |
+| Graphify | Queryable knowledge graphs for codebases, docs and project context |
+| GSD | Phase-based planning, execution, verification and project control |
+| Frontend Skills | Third-party design skills installed through Agent Skills CLI |
+| Custom Skills | Bundled skills from this repository, selected by package and scope |
+
+## Supported Runtimes
 
 | Runtime | Support |
 |---|---|
@@ -20,219 +54,190 @@ instructions and tests for the installer flows.
 | OpenCode | Skills plus package-driven tools |
 | Gemini CLI | Extensions and native Agent Skills install |
 
-## Tools
+Superpowers is installed automatically for Claude Code, Codex CLI and Gemini
+CLI. OpenCode Superpowers support is not automated yet because the upstream
+install flow is not a stable single command.
 
-| Tool | What it adds |
-|---|---|
-| RTK | Token-aware shell proxy for coding-agent sessions |
-| Caveman | Terse response mode and optional agent integrations |
-| Superpowers | Planning, TDD, debugging, review and delivery workflows |
-| Graphify | Queryable knowledge graphs for codebases, docs and project context |
-| GSD | Phase-based planning, execution, verification and project control |
-| Frontend Skills | Third-party design skills installed through Agent Skills CLI |
-| Custom Skills | Personal skills bundled in this repository |
+Caveman, GSD, Frontend Skills and Custom Skills can target Claude Code, Codex
+CLI, OpenCode and Gemini CLI. Graphify is installed through the official
+`graphifyy` package and registers itself for selected runtimes.
 
-Superpowers is installed automatically for Claude Code, Codex CLI and Gemini CLI.
-OpenCode support is intentionally not automated yet for Superpowers because the
-upstream install flow is not a stable single command. Caveman, GSD, Frontend
-Skills and Custom Skills can target Claude Code, Codex CLI, OpenCode and Gemini
-CLI. Graphify is installed through the official `graphifyy` package and
-registers itself for the selected runtimes.
+## Quick Commands
 
-## Repository Layout
-
-```text
-bin/
-  agent-toolkit.ts             Thin TypeScript entrypoint
-.github/
-  workflows/
-    ci.yml              Quality and security gates
-AGENTS.md              Shared project rules for coding agents
-CLAUDE.md              Pointer to AGENTS.md for Claude Code
-src/
-  main.ts               Installer orchestration
-  args.ts               CLI flag parsing
-  menu.ts               Interactive selection
-  runtimes.ts           Runtime CLI checks
-  skills.ts             Recursive skill discovery and installation
-  installers/           Tool-specific installers
-dist/
-  bin/
-    agent-toolkit.js     Compiled CLI used by npm and the wrapper
-setup-agent-toolkit.sh         Bash compatibility wrapper
-package.json            CLI metadata and test scripts
-tools.lock.json         Pinned external tool sources and RTK checksums
-LICENSE                 MIT license
-skills/
-  core/
-    agent-toolkit-maintainer/
-      SKILL.md
-  backend/
-tests/
-  unit/
-    *.test.ts
-  test-agent-toolkit.sh
-```
-
-## Prerequisites
-
-- Node.js 22+ for the full toolkit
-- `npx` for Caveman, GSD and third-party frontend skills
-- `git` for pinned third-party frontend skill sources
-- `npm` when using `--install-missing-clis`
-- `uv` for Graphify, or `pipx` when `GRAPHIFY_INSTALLER=pipx`
-- `tar` or `unzip` only when RTK needs to be downloaded
-- The runtime CLIs you want to target: `claude`, `codex`, `opencode`, and/or `gemini`
-
-The installer can install missing selected runtime CLIs through npm when run
-with `--install-missing-clis`.
-
-Install development dependencies and build the CLI before running from a clone:
-
-```bash
-npm install
-npm run build
-```
-
-## Install
-
-Run the published package directly:
+Run the interactive installer:
 
 ```bash
 npx -y @ranimontagna/agent-toolkit
 ```
 
-Interactive runs show detected local status before installation, including
-runtime CLIs on `PATH` and already-copied Custom Skills when those can be
-verified. They ask which tools, runtimes, Custom Skill packages and skill scopes
-to install, then show an install plan and ask for confirmation. Pressing Enter
-does not silently install the full kit; choose `all` explicitly when that is
-what you want. Interactive terminals use a visual Clack menu. Pipe answers or
-set `AGENT_TOOLKIT_MENU=plain` to use the line-based fallback.
-
-Run the full kit for Codex in one command:
+Install the full kit for Codex CLI:
 
 ```bash
 npx -y @ranimontagna/agent-toolkit --all --codex
 ```
 
-Run the full kit for every supported runtime:
+Install the full kit for every supported runtime:
 
 ```bash
 npx -y @ranimontagna/agent-toolkit --all --all-runtimes
 ```
 
-From a local clone, install development dependencies and build the CLI first:
-
-```bash
-npm install
-npm run build
-bash setup-agent-toolkit.sh
-```
-
-You can also call the compiled Node CLI directly from a built clone:
-
-```bash
-node dist/bin/agent-toolkit.js
-```
-
-Target one runtime:
-
-```bash
-npx -y @ranimontagna/agent-toolkit --all --codex
-```
-
-Install a single tool:
-
-```bash
-npx -y @ranimontagna/agent-toolkit --gsd-only --all-runtimes
-```
-
-Install Graphify for Codex only:
+Install only Graphify for Codex CLI:
 
 ```bash
 npx -y @ranimontagna/agent-toolkit --graphify-only --codex
 ```
 
-Install only third-party frontend design skills for Codex:
+Install only third-party frontend design skills for Codex CLI:
 
 ```bash
 npx -y @ranimontagna/agent-toolkit --frontend-skills-only --codex
 ```
 
-Install only bundled skills into the current project:
+Install only bundled Custom Skills into the current project:
 
 ```bash
-npx -y @ranimontagna/agent-toolkit --skills-only --all-runtimes --local
+npx -y @ranimontagna/agent-toolkit --skills-only --codex --local
 ```
 
-Install only one bundled skill package:
+Install only the `core` Custom Skills package:
 
 ```bash
 npx -y @ranimontagna/agent-toolkit --skills-only --codex --skills-package core
 ```
 
-Install only React-scoped skills:
-
-```bash
-npx -y @ranimontagna/agent-toolkit --skills-only --codex --skills-scope frontend/react
-```
-
-List available skills and their scope paths:
+List bundled Custom Skills and their repository scope paths:
 
 ```bash
 npx -y @ranimontagna/agent-toolkit --skills-list
 ```
 
-Install missing selected CLIs before configuring them:
+Install missing selected runtime CLIs before configuring them:
 
 ```bash
 npx -y @ranimontagna/agent-toolkit --all --gemini --install-missing-clis
 ```
 
-## Flags
+## Custom Skills
+
+Bundled skills live under `skills/`.
 
 ```text
---all                  Install every tool without the menu
---rtk-only             Install only RTK
---caveman-only         Install only Caveman
---superpowers-only     Install only Superpowers
---graphify-only        Install only Graphify
---gsd-only             Install only GSD
---frontend-skills-only Install only third-party frontend skills
---skills-only          Install only Custom Skills
---no-rtk               Skip RTK
---no-caveman           Skip Caveman
---no-superpowers       Skip Superpowers
---no-graphify          Skip Graphify
---no-gsd               Skip GSD
---no-frontend-skills   Skip third-party frontend skills
---no-skills            Skip Custom Skills
-
---all-runtimes         Target Claude Code, Codex CLI, OpenCode and Gemini CLI
---claude               Target only Claude Code
---codex                Target only Codex CLI
---opencode             Target only OpenCode
---gemini               Target only Gemini CLI
---no-claude            Skip Claude Code
---no-codex             Skip Codex CLI
---no-opencode          Skip OpenCode
---no-gemini            Skip Gemini CLI
-
---global               Install runtime assets into user config directories
---local                Install runtime assets into the current project
---skills-dir DIR       Use another source directory for skills
---skills-package NAME  Install skills from a first-level package, repeatable
---skills-scope SCOPE   Install skills under a relative scope path, repeatable
---skills-list          List discovered skills and exit
---install-missing-clis Install selected runtime CLIs if missing
---allow-mutable-sources Allow explicit mutable source overrides like @latest
---help, -h             Show help
+skills/
+  core/
+    agent-toolkit-maintainer/
+      SKILL.md
 ```
 
-## Configuration
+The first path segment is a selectable package:
 
-The installer can be customized with environment variables:
+```text
+skills/<package>/<optional-scope>/<skill-name>/SKILL.md
+```
+
+Runtime installs are flat even when repository paths are nested. For example,
+`skills/backend/node/fastify-api-patterns/SKILL.md` installs as:
+
+```text
+~/.codex/skills/fastify-api-patterns/
+```
+
+Use `--skills-package` to select first-level packages:
+
+```bash
+npx -y @ranimontagna/agent-toolkit --skills-only --codex --skills-package core
+```
+
+Use `--skills-scope` to select a narrower path:
+
+```bash
+npx -y @ranimontagna/agent-toolkit --skills-only --codex --skills-scope backend/node
+```
+
+Both filters can be combined. The selected package filter runs first, then the
+scope filter narrows the result.
+
+```bash
+npx -y @ranimontagna/agent-toolkit \
+  --skills-only \
+  --codex \
+  --skills-package backend \
+  --skills-scope backend/node
+```
+
+Each skill must be a directory containing `SKILL.md` with frontmatter:
+
+```markdown
+---
+name: my-skill
+description: Use when doing a specific kind of task.
+---
+
+# My Skill
+
+Follow these steps...
+```
+
+The installer validates:
+
+- `SKILL.md` exists;
+- frontmatter starts and closes with `---`;
+- `name` and `description` are present;
+- `name` uses lowercase letters, numbers and hyphens;
+- `description` is non-empty and under 1024 characters.
+
+Third-party frontend design skills are not vendored as bundled Custom Skills.
+The `frontend-skills` tool installs them externally through the Agent Skills CLI
+from pinned public sources.
+
+## CLI Reference
+
+```text
+Tools:
+  --all                  Install every tool without the menu
+  --rtk-only             Install only RTK
+  --caveman-only         Install only Caveman
+  --superpowers-only     Install only Superpowers
+  --graphify-only        Install only Graphify
+  --gsd-only             Install only GSD
+  --frontend-skills-only Install only third-party frontend skills
+  --skills-only          Install only Custom Skills
+  --no-rtk               Skip RTK
+  --no-caveman           Skip Caveman
+  --no-superpowers       Skip Superpowers
+  --no-graphify          Skip Graphify
+  --no-gsd               Skip GSD
+  --no-frontend-skills   Skip third-party frontend skills
+  --no-skills            Skip Custom Skills
+
+Runtimes:
+  --all-runtimes         Target Claude Code, Codex CLI, OpenCode and Gemini CLI
+  --claude               Target only Claude Code
+  --codex                Target only Codex CLI
+  --opencode             Target only OpenCode
+  --gemini               Target only Gemini CLI
+  --no-claude            Skip Claude Code
+  --no-codex             Skip Codex CLI
+  --no-opencode          Skip OpenCode
+  --no-gemini            Skip Gemini CLI
+
+Install scope:
+  --global               Install runtime assets into user config directories
+  --local                Install runtime assets into the current project
+  --skills-dir DIR       Use another source directory for Custom Skills
+  --skills-package NAME  Install Custom Skills from a first-level package
+  --skills-scope SCOPE   Install skills under a relative scope path
+  --skills-list          List discovered Custom Skills and exit
+
+Other:
+  --install-missing-clis Install selected runtime CLIs if missing
+  --allow-mutable-sources Allow explicit mutable package sources like @latest
+  --help, -h             Show help
+```
+
+Repeat `--skills-package` or `--skills-scope` to select more than one filter.
+
+## Configuration
 
 ```text
 RTK_INSTALL_DIR       RTK binary install directory
@@ -246,7 +251,7 @@ GSD_SCOPE             global or local
 TOOLS_LOCK_PATH       External tool provenance lock path
 ALLOW_MUTABLE_SOURCES Set to 1 to allow mutable source overrides
 AGENT_TOOLKIT_MENU    Set to plain to force the line-based interactive menu
-CUSTOM_SKILLS_DIR     Source directory for custom skills
+CUSTOM_SKILLS_DIR     Source directory for Custom Skills
 SKILLS_PACKAGE        Comma-separated first-level skill package filters
 SKILLS_SCOPE          Comma-separated skill scope filters
 CLAUDE_CLI_PACKAGE    npm package used to install Claude Code CLI
@@ -255,7 +260,7 @@ OPENCODE_CLI_PACKAGE  npm package used to install OpenCode CLI
 GEMINI_CLI_PACKAGE    npm package used to install Gemini CLI
 ```
 
-Defaults:
+Defaults come from `tools.lock.json`:
 
 ```text
 CAVEMAN_PACKAGE=github:JuliusBrussee/caveman#655b7d9c5431f822264b7732e9901c5578ac84cf
@@ -269,171 +274,126 @@ OPENCODE_CLI_PACKAGE=opencode-ai@1.15.13
 GEMINI_CLI_PACKAGE=@google/gemini-cli@0.45.0
 ```
 
-These defaults come from `tools.lock.json`. Mutable overrides like `@latest`,
-unpinned npm packages, or GitHub package sources without a full commit SHA are
-blocked unless you pass `--allow-mutable-sources` or set
-`ALLOW_MUTABLE_SOURCES=1`.
+Mutable overrides like `@latest`, unpinned npm packages or GitHub package
+sources without a full commit SHA are blocked unless you pass
+`--allow-mutable-sources` or set `ALLOW_MUTABLE_SOURCES=1`.
 
-## External Tool Provenance
+## Security Model
 
-The CI protects this repository's own dependency graph with `npm audit`,
-registry signature checks, dependency review and Gitleaks. The installer also
-protects tools downloaded later by reading `tools.lock.json` and rejecting
-mutable external sources by default.
+This project has two supply-chain boundaries:
+
+- repository dependencies, controlled by `package-lock.json`, CI, `npm audit`,
+  registry signatures and provenance attestation checks;
+- external tools installed by the runtime installer, controlled by
+  `tools.lock.json` and runtime provenance validation.
 
 Current external sources:
 
 | Tool | Locked source | Runtime verification |
 |---|---|---|
 | RTK | GitHub release `rtk-ai/rtk@v0.42.1` | Verifies the selected asset SHA-256 before extraction |
-| Caveman | `JuliusBrussee/caveman` at commit `655b7d9c5431f822264b7732e9901c5578ac84cf` | Installs through an immutable GitHub npm spec |
+| Caveman | `JuliusBrussee/caveman` at commit `655b7d9c5431f822264b7732e9901c5578ac84cf` | Immutable GitHub npm spec |
 | Graphify | `graphifyy==0.8.31` | Blocks unpinned package overrides |
 | GSD | `get-shit-done-cc@1.42.3` | Blocks `@latest` unless explicitly allowed |
-| Frontend Skills | `skills@1.5.10`, `pbakaus/impeccable` and `Leonxlnx/taste-skill` at pinned commits | Clones pinned refs, then installs selected skills through Agent Skills CLI |
-| Runtime CLIs | Exact npm versions for Claude, Codex, OpenCode and Gemini | Used when `--install-missing-clis` is enabled |
+| Frontend Skills | `skills@1.5.10`, `pbakaus/impeccable` and `Leonxlnx/taste-skill` at pinned commits | Clones pinned refs before install |
+| Runtime CLIs | Exact npm versions for Claude, Codex, OpenCode and Gemini | Used only when `--install-missing-clis` is enabled |
 
-Use `TOOLS_LOCK_PATH=/path/to/tools.lock.json` to test another lock file. Keep
-that file committed if it represents the expected public installer behavior.
+Releases use npm trusted publishing through GitHub Actions OIDC. The npm
+package is published without a long-lived npm token, and npm automatically
+generates provenance for public packages published through trusted publishing.
 
-## Adding Skills
-
-Add personal skills under a scope path:
-
-```text
-skills/<scope>/<skill-name>/SKILL.md
-```
-
-Suggested organization:
+## Repository Layout
 
 ```text
+bin/
+  agent-toolkit.ts       Thin TypeScript entrypoint
+.github/
+  workflows/
+    ci.yml               Quality and security gates
+    release.yml          Trusted publishing release workflow
+src/
+  main.ts                Installer orchestration
+  args.ts                CLI flag parsing
+  menu.ts                Interactive selection
+  status.ts              Local install status detection
+  runtimes.ts            Runtime CLI checks
+  skills.ts              Recursive skill discovery and installation
+  installers/            Tool-specific installers
+dist/
+  bin/
+    agent-toolkit.js     Compiled CLI used by npm and the wrapper
+docs/
+  assets/                README terminal screenshots
 skills/
   core/
     agent-toolkit-maintainer/
       SKILL.md
-  frontend/
-    react/
-      react-component-architecture/
-        SKILL.md
-  backend/
-    node/
-      fastify-api-patterns/
-        SKILL.md
-    go/
-      go-service-patterns/
-        SKILL.md
+tests/
+  unit/
+  test-agent-toolkit.sh
+AGENTS.md                Shared project rules for coding agents
+CLAUDE.md                Pointer to AGENTS.md for Claude Code
+setup-agent-toolkit.sh   Bash compatibility wrapper
+tools.lock.json          Pinned external tool sources and RTK checksums
 ```
 
-The installer discovers `SKILL.md` files recursively. The first path segment is
-treated as a selectable skill package, for example `core`, `frontend`, or
-`backend`. The remaining repository path is used only for organization; runtime
-installs remain flat:
+## Development
 
-```text
-~/.codex/skills/react-component-architecture/
-~/.codex/skills/fastify-api-patterns/
-~/.codex/skills/go-service-patterns/
-```
+Prerequisites:
 
-Third-party frontend design skills are not bundled as personal skills. The
-`frontend-skills` tool installs them externally:
+- Node.js 22+ for the full toolkit;
+- `npx` for Caveman, GSD and third-party frontend skills;
+- `git` for pinned third-party frontend skill sources;
+- `npm` when using `--install-missing-clis`;
+- `uv` for Graphify, or `pipx` when `GRAPHIFY_INSTALLER=pipx`;
+- `tar` or `unzip` only when RTK needs to be downloaded;
+- runtime CLIs you want to target: `claude`, `codex`, `opencode`, `gemini`.
 
-| Runtime folder | Skill name | Source |
-|---|---|---|
-| `impeccable` | `impeccable` | `pbakaus/impeccable`, Apache-2.0 |
-| `design-taste-frontend` | `design-taste-frontend` | `Leonxlnx/taste-skill`, MIT |
-
-Each skill should be concise and self-contained:
-
-```markdown
----
-name: my-skill
-description: Use when doing a specific kind of task.
----
-
-# My Skill
-
-Follow these steps...
-```
-
-The installer validates the core Agent Skills requirements:
-
-- each skill is a directory containing `SKILL.md`;
-- `SKILL.md` starts with YAML frontmatter;
-- `name` and `description` are required;
-- `name` uses lowercase letters, numbers and hyphens only;
-- `description` is non-empty and under 1024 characters.
-
-For larger skills, put detailed supporting material in `references/`, scripts in
-`scripts/`, and reusable assets in `assets/`.
-
-Use `--skills-package` to install one or more first-level packages:
+Install dependencies and build from a clone:
 
 ```bash
-bash setup-agent-toolkit.sh --skills-only --codex --skills-package core
+npm install
+npm run build
+bash setup-agent-toolkit.sh
 ```
 
-Use `--skills-scope` to install only a narrower subset:
+Run the local Node CLI directly:
 
 ```bash
-bash setup-agent-toolkit.sh --skills-only --codex --skills-scope backend/node
+node dist/bin/agent-toolkit.js
 ```
 
-Gemini CLI uses its native command:
+Quality scripts:
 
 ```bash
-gemini skills install skills/<skill-name> --scope user --consent
-```
-
-For local/project installs, the setup uses `--scope workspace`.
-
-## Verification
-
-Run the full local check:
-
-```bash
+npm run build
+npm run typecheck
+npm run lint
+npm run lint:fix
+npm run format
+npm run security
+npm run test:unit
+npm run test:integration
+npm test
 npm run check
 ```
 
-Available quality scripts:
-
-```bash
-npm run build             # Compile TypeScript into dist/
-npm run typecheck         # Type-check source and unit tests
-npm run lint              # Biome lint and format checks
-npm run lint:fix          # Apply safe Biome fixes
-npm run format            # Format with Biome
-npm run security          # npm vulnerability audit and registry signature checks
-npm run security:audit    # Fail on moderate+ vulnerable dependencies
-npm run security:signatures # Verify npm signatures and attestations
-npm run test:unit         # Vitest unit tests
-npm run test:integration  # Shell integration test
-npm test                  # Unit + integration tests
-```
+`npm run check` is the release gate. It runs lint, typecheck, unit tests, build,
+compiled JavaScript syntax checks, Bash syntax checks and the shell integration
+test.
 
 The shell integration test validates the wrapper, flags, fake runtime CLIs,
 installer command wiring, skill discovery and public-safe reference checks.
 
-The GitHub Actions CI runs four gates:
+## CI And Release
+
+GitHub Actions runs:
 
 - `Check`: lint, typecheck, unit tests, build and integration tests;
 - `Secret scan`: Gitleaks over full Git history;
 - `Dependency audit`: `npm audit` and `npm audit signatures`;
-- `Dependency review`: blocks PRs that add moderate-or-higher vulnerable dependencies.
-
-These gates cover repository code, npm dependencies and pull-request dependency
-changes. External tool version safety is handled by `tools.lock.json` plus
-runtime provenance checks in the installer.
-
-## Maintenance
-
-Keep this repository public-safe:
-
-- do not add company-specific URLs, tokens, secrets or internal project names;
-- prefer public package installers and configurable sources;
-- keep the installer idempotent;
-- cover pure module behavior with Vitest;
-- keep the shell integration test around behavior that can regress;
-- document what is automatic and what still depends on each runtime CLI.
+- `Dependency review`: blocks PRs that add moderate-or-higher vulnerable
+  dependencies.
 
 Release a new npm version by updating `package.json`, pushing the change to
 `main`, then pushing a matching tag:
@@ -447,3 +407,16 @@ The `Release` workflow runs the full check and publishes the scoped package to
 npm through trusted publishing. Configure the npm package trusted publisher for
 GitHub Actions with workflow filename `release.yml` before pushing a release
 tag.
+
+## Maintenance Rules
+
+Keep this repository public-safe:
+
+- do not add company-specific URLs, tokens, secrets or internal project names;
+- keep third-party skills installed from pinned public sources instead of
+  vendoring them as bundled Custom Skills;
+- keep the installer idempotent;
+- keep `tools.lock.json` as the source of truth for external tool versions;
+- cover pure module behavior with Vitest;
+- keep the shell integration test around behavior that can regress;
+- document what is automatic and what still depends on each runtime CLI.

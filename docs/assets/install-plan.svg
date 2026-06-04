@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="560" viewBox="0 0 980 560" role="img" aria-labelledby="title desc">
+  <title id="title">Agent Toolkit install plan screen</title>
+  <desc id="desc">Terminal screenshot showing the final install plan before the installer asks for confirmation.</desc>
+  <rect width="980" height="560" rx="18" fill="#111827"/>
+  <rect x="24" y="24" width="932" height="512" rx="14" fill="#0b1020" stroke="#263247"/>
+  <circle cx="52" cy="52" r="7" fill="#ff5f57"/>
+  <circle cx="76" cy="52" r="7" fill="#ffbd2e"/>
+  <circle cx="100" cy="52" r="7" fill="#28c840"/>
+  <text x="126" y="57" fill="#9ca3af" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">Ready to install</text>
+
+  <text x="52" y="104" fill="#93c5fd" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="19" font-weight="700">Install plan</text>
+
+  <text x="74" y="144" fill="#cbd5e1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">Selected tools:</text>
+  <text x="96" y="174" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">- RTK: rtk 0.42.1 already on PATH</text>
+  <text x="96" y="202" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">- Graphify: graphify 0.8.31 already on PATH</text>
+  <text x="96" y="230" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">- Custom Skills: 1 selected source skill</text>
+
+  <text x="74" y="282" fill="#cbd5e1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">Selected runtimes:</text>
+  <text x="96" y="312" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">- Codex CLI: installed</text>
+  <text x="96" y="340" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">- Gemini CLI: missing from PATH; selected runtime may be skipped</text>
+
+  <text x="74" y="392" fill="#cbd5e1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">Custom Skills:</text>
+  <text x="96" y="422" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">- Selected packages: core</text>
+  <text x="96" y="450" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">- Selected source skills: core/agent-toolkit-maintainer</text>
+  <text x="96" y="478" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">- Codex CLI: 0/1 already present at ~/.codex/skills; 1 will be copied</text>
+
+  <rect x="52" y="506" width="876" height="36" rx="8" fill="#111827" stroke="#334155"/>
+  <text x="70" y="530" fill="#86efac" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">Continue with installation? Yes</text>
+</svg>

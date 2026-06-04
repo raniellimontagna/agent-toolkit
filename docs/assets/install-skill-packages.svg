@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="520" viewBox="0 0 980 520" role="img" aria-labelledby="title desc">
+  <title id="title">Agent Toolkit Custom Skill package selection screen</title>
+  <desc id="desc">Terminal screenshot showing selectable Custom Skill packages in the Clack installer.</desc>
+  <rect width="980" height="520" rx="18" fill="#111827"/>
+  <rect x="24" y="24" width="932" height="472" rx="14" fill="#0b1020" stroke="#263247"/>
+  <circle cx="52" cy="52" r="7" fill="#ff5f57"/>
+  <circle cx="76" cy="52" r="7" fill="#ffbd2e"/>
+  <circle cx="100" cy="52" r="7" fill="#28c840"/>
+  <text x="126" y="57" fill="#9ca3af" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">Custom Skills package selection</text>
+
+  <text x="52" y="104" fill="#93c5fd" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="19" font-weight="700">Select Custom Skill packages</text>
+  <text x="52" y="138" fill="#cbd5e1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">Space toggles a package. Enter confirms the selection.</text>
+
+  <rect x="72" y="172" width="836" height="56" rx="10" fill="#172033" stroke="#3b82f6"/>
+  <text x="96" y="207" fill="#bfdbfe" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16">(*) All skill packages</text>
+  <text x="388" y="207" fill="#94a3b8" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">install every bundled package</text>
+
+  <rect x="72" y="244" width="836" height="56" rx="10" fill="#111827" stroke="#334155"/>
+  <text x="96" y="279" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16">( ) core</text>
+  <text x="238" y="279" fill="#94a3b8" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">agent-toolkit-maintainer and repository workflow skills</text>
+
+  <rect x="72" y="316" width="836" height="56" rx="10" fill="#111827" stroke="#334155" opacity="0.72"/>
+  <text x="96" y="351" fill="#94a3b8" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16">( ) backend</text>
+  <text x="266" y="351" fill="#64748b" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">appears automatically when skills/backend exists</text>
+
+  <rect x="72" y="388" width="836" height="56" rx="10" fill="#111827" stroke="#334155" opacity="0.72"/>
+  <text x="96" y="423" fill="#94a3b8" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16">( ) frontend</text>
+  <text x="278" y="423" fill="#64748b" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">appears automatically when skills/frontend exists</text>
+
+  <text x="52" y="474" fill="#c4b5fd" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">CLI equivalent: --skills-package core</text>
+</svg>
