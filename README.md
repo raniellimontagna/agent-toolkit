@@ -7,6 +7,9 @@ The installer source is written in TypeScript and compiled to a dependency-free
 Node CLI in `dist/`. The Bash file is kept only as a compatibility wrapper, so
 existing commands still work after building the project.
 
+The repository includes CI, security gates, MIT licensing, portable agent
+instructions and tests for the installer flows.
+
 ## Runtimes
 
 | Runtime | Support |
@@ -39,6 +42,11 @@ selected runtimes.
 ```text
 bin/
   agent-toolkit.ts             Thin TypeScript entrypoint
+.github/
+  workflows/
+    ci.yml              Quality and security gates
+AGENTS.md              Shared project rules for coding agents
+CLAUDE.md              Pointer to AGENTS.md for Claude Code
 src/
   main.ts               Installer orchestration
   args.ts               CLI flag parsing
@@ -51,6 +59,7 @@ dist/
     agent-toolkit.js     Compiled CLI used by npm and the wrapper
 setup-agent-toolkit.sh         Bash compatibility wrapper
 package.json            CLI metadata and test scripts
+LICENSE                 MIT license
 skills/
   core/
     agent-toolkit-maintainer/
@@ -219,6 +228,32 @@ OPENCODE_CLI_PACKAGE=opencode-ai
 GEMINI_CLI_PACKAGE=@google/gemini-cli
 ```
 
+These defaults optimize convenience. For a higher-assurance installation, pin
+each package or release to an immutable version/ref before running the installer.
+
+## External Tool Provenance
+
+The CI protects this repository's own dependency graph with `npm audit`,
+registry signature checks, dependency review and Gitleaks. That does not fully
+prove the safety of tools downloaded later by the installer. External tools need
+their own provenance controls.
+
+Current external sources:
+
+| Tool | Current source | Stronger control |
+|---|---|---|
+| RTK | Latest GitHub release from `rtk-ai/rtk` | Pin a release tag and verify the asset SHA-256 before extraction |
+| Caveman | GitHub package source | Pin a tag or commit SHA instead of the default branch |
+| Graphify | `graphifyy` through `uv` or `pipx` | Pin an exact package version and prefer hash-verified installs when supported |
+| GSD | `get-shit-done-cc@latest` through `npx` | Pin an exact npm version instead of `@latest` |
+| Runtime CLIs | npm packages for Claude, Codex, OpenCode and Gemini | Pin exact versions when using `--install-missing-clis` |
+
+Recommended next hardening step: add a `tools.lock.json` manifest with the tool
+name, source, version/ref, expected SHA-256 when applicable, and verification
+command. The installer should read that manifest by default, reject mutable
+sources like `@latest`, and allow them only with an explicit override such as
+`--allow-latest`.
+
 ## Adding Skills
 
 Add personal skills under a scope path:
@@ -327,6 +362,10 @@ The GitHub Actions CI runs four gates:
 - `Secret scan`: Gitleaks over full Git history;
 - `Dependency audit`: `npm audit` and `npm audit signatures`;
 - `Dependency review`: blocks PRs that add moderate-or-higher vulnerable dependencies.
+
+These gates cover repository code, npm dependencies and pull-request dependency
+changes. External tool version safety should be handled by the provenance model
+described above.
 
 ## Maintenance
 
