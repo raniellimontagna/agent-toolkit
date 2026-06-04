@@ -1,8 +1,12 @@
-@/home/ranni/.codex/RTK.md
-
 --- project-doc ---
 
 # Agent Toolkit Project Rules
+
+## Shell Commands
+
+- Prefer `rtk` as the command prefix when it is available, for example `rtk npm run check`.
+- If `rtk` is not installed yet, run the equivalent command without the prefix or install RTK through this toolkit.
+- Keep these project rules portable; do not reference machine-local instruction files.
 
 ## Git Workflow
 
