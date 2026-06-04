@@ -96,7 +96,29 @@ npm run build
 
 ## Install
 
-Clone the repository and run:
+Run the published package directly:
+
+```bash
+npx -y @raniellimontagna/agent-toolkit
+```
+
+Interactive runs ask which tools, runtimes and skill scopes to install. Pressing
+Enter does not silently install the full kit; choose `all` explicitly when that
+is what you want.
+
+Run the full kit for Codex in one command:
+
+```bash
+npx -y @raniellimontagna/agent-toolkit --all --codex
+```
+
+Run the full kit for every supported runtime:
+
+```bash
+npx -y @raniellimontagna/agent-toolkit --all --all-runtimes
+```
+
+From a local clone, install development dependencies and build the CLI first:
 
 ```bash
 npm install
@@ -104,68 +126,58 @@ npm run build
 bash setup-agent-toolkit.sh
 ```
 
-Interactive runs ask which tools, runtimes and skill scopes to install. Pressing
-Enter does not silently install the full kit; choose `all` explicitly when that
-is what you want.
-
-You can also call the Node CLI directly:
+You can also call the compiled Node CLI directly from a built clone:
 
 ```bash
 node dist/bin/agent-toolkit.js
 ```
 
-Run the full kit non-interactively:
-
-```bash
-bash setup-agent-toolkit.sh --all --all-runtimes
-```
-
 Target one runtime:
 
 ```bash
-bash setup-agent-toolkit.sh --all --codex
+npx -y @raniellimontagna/agent-toolkit --all --codex
 ```
 
 Install a single tool:
 
 ```bash
-bash setup-agent-toolkit.sh --gsd-only --all-runtimes
+npx -y @raniellimontagna/agent-toolkit --gsd-only --all-runtimes
 ```
 
 Install Graphify for Codex only:
 
 ```bash
-bash setup-agent-toolkit.sh --graphify-only --codex
+npx -y @raniellimontagna/agent-toolkit --graphify-only --codex
 ```
 
 Install only third-party frontend design skills for Codex:
 
 ```bash
-bash setup-agent-toolkit.sh --frontend-skills-only --codex
+npx -y @raniellimontagna/agent-toolkit --frontend-skills-only --codex
 ```
 
 Install only bundled skills into the current project:
 
 ```bash
-bash setup-agent-toolkit.sh --skills-only --all-runtimes --local
+npx -y @raniellimontagna/agent-toolkit --skills-only --all-runtimes --local
 ```
 
 Install only React-scoped skills:
 
 ```bash
-bash setup-agent-toolkit.sh --skills-only --codex --skills-scope frontend/react
+npx -y @raniellimontagna/agent-toolkit --skills-only --codex --skills-scope frontend/react
 ```
 
 List available skills and their scope paths:
 
 ```bash
-bash setup-agent-toolkit.sh --skills-list
+npx -y @raniellimontagna/agent-toolkit --skills-list
 ```
 
 Install missing selected CLIs before configuring them:
 
 ```bash
-bash setup-agent-toolkit.sh --all --gemini --install-missing-clis
+npx -y @raniellimontagna/agent-toolkit --all --gemini --install-missing-clis
 ```
 
 ## Flags
@@ -401,3 +413,14 @@ Keep this repository public-safe:
 - cover pure module behavior with Vitest;
 - keep the shell integration test around behavior that can regress;
 - document what is automatic and what still depends on each runtime CLI.
+
+Release a new npm version by updating `package.json`, pushing the change to
+`main`, then pushing a matching tag:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The `Release` workflow runs the full check and publishes the scoped package to
+npm. Configure the repository secret `NPM_TOKEN` before pushing a release tag.

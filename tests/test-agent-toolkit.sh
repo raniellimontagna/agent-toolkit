@@ -40,6 +40,18 @@ if [[ ! -f "$ROOT_DIR/package.json" ]]; then
   exit 1
 fi
 
+PACKAGE_JSON_CONTENT="$(cat "$ROOT_DIR/package.json")"
+
+if ! grep -Fq -- '"name": "@raniellimontagna/agent-toolkit"' <<<"$PACKAGE_JSON_CONTENT"; then
+  echo "Expected package name to use the public scoped package" >&2
+  exit 1
+fi
+
+if ! grep -Fq -- '"access": "public"' <<<"$PACKAGE_JSON_CONTENT"; then
+  echo "Expected scoped package to publish publicly" >&2
+  exit 1
+fi
+
 if [[ ! -f "$ROOT_DIR/tools.lock.json" ]]; then
   echo "Expected external tool provenance lock to exist: tools.lock.json" >&2
   exit 1
@@ -251,6 +263,7 @@ fi
 
 for expected in \
   "Agent Toolkit" \
+  "npx -y @raniellimontagna/agent-toolkit" \
   "--caveman-only" \
   "--gsd-only" \
   "--frontend-skills-only" \
@@ -277,6 +290,11 @@ for expected in \
     exit 1
   fi
 done
+
+if ! grep -Fq -- "npx -y @raniellimontagna/agent-toolkit --all --codex" "$ROOT_DIR/README.md"; then
+  echo "Expected README to document one-command install through npm" >&2
+  exit 1
+fi
 
 HOME="$HOME_DIR" \
 XDG_CONFIG_HOME="$HOME_DIR/.config" \
