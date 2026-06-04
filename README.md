@@ -23,8 +23,9 @@ any work.
 ![Detected status terminal screen](docs/assets/install-status.svg)
 
 Custom Skills are grouped by first-level package. Today this repository ships
-`core`, `backend` and `frontend`; future packages can be added under
-`skills/<package>/...` and they will appear automatically in the menu.
+`core`, `backend`, `frontend`, `general` and `devops`; future packages can be
+added under `skills/<package>/...` and they will appear automatically in the
+menu.
 
 ![Custom Skill package selection terminal screen](docs/assets/install-skill-packages.svg)
 
@@ -128,6 +129,9 @@ skills/
     agent-toolkit-maintainer/
       SKILL.md
   backend/
+    database/
+      postgres-patterns/
+        SKILL.md
     fastify-best-practices/
       SKILL.md
       rules/
@@ -142,6 +146,13 @@ skills/
       java-junit/
         SKILL.md
   frontend/
+    accessibility/
+      SKILL.md
+    design/
+      ui-ux-pro-max/
+        SKILL.md
+        data/
+        scripts/
     react-native/
       react-native-expert/
         SKILL.md
@@ -157,6 +168,13 @@ skills/
       react-testing/
         SKILL.md
         rules/
+  general/
+    code-reviewer/
+      SKILL.md
+      rules/
+  devops/
+    docker-patterns/
+      SKILL.md
 ```
 
 The first path segment is a selectable package:
@@ -219,16 +237,21 @@ Follow these steps...
 | Package | Skill | Source |
 |---|---|---|
 | `core` | `agent-toolkit-maintainer` | Maintained in this repository |
+| `backend` | `postgres-patterns` | Adapted from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/.kiro/skills/postgres-patterns) and [`sickn33/antigravity-awesome-skills`](https://github.com/sickn33/antigravity-awesome-skills/tree/main/skills/postgresql), both under the MIT license |
 | `backend` | `fastify-best-practices` | Copied from Matteo Collina's [`mcollina/skills`](https://github.com/mcollina/skills/tree/main/skills/fastify) under the MIT license |
 | `backend` | `golang-patterns` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/skills/golang-patterns) under the MIT license |
 | `backend` | `golang-testing` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/.kiro/skills/golang-testing) under the MIT license |
 | `backend` | `java-coding-standards` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/skills/java-coding-standards) under the MIT license |
 | `backend` | `java-junit` | Copied from GitHub's [`awesome-copilot`](https://github.com/github/awesome-copilot/tree/main/skills/java-junit) under the MIT license |
+| `devops` | `docker-patterns` | Adapted from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/.kiro/skills/docker-patterns) and [`sickn33/antigravity-awesome-skills`](https://github.com/sickn33/antigravity-awesome-skills/tree/main/skills/docker-expert), both under the MIT license |
+| `frontend` | `accessibility` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/skills/accessibility) under the MIT license |
+| `frontend` | `ui-ux-pro-max` | Copied from Next Level Builder's [`ui-ux-pro-max-skill`](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/tree/main/.claude/skills/ui-ux-pro-max) under the MIT license |
 | `frontend` | `react-native-expert` | Copied from Jeffallan's [`claude-skills`](https://github.com/Jeffallan/claude-skills/tree/main/skills/react-native-expert) under the MIT license |
 | `frontend` | `react-native-unistyles-v3` | Copied from Jacek Pudysz's [`react-native-unistyles`](https://github.com/jpudysz/react-native-unistyles/tree/main/skills/react-native-unistyles-v3), declared MIT upstream |
 | `frontend` | `react-patterns` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/skills/react-patterns) under the MIT license |
 | `frontend` | `react-performance` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/skills/react-performance) under the MIT license |
 | `frontend` | `react-testing` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/skills/react-testing) under the MIT license |
+| `general` | `code-reviewer` | Copied from Shubhamsaboo's [`awesome-llm-apps`](https://github.com/Shubhamsaboo/awesome-llm-apps/tree/main/awesome_agent_skills/code-reviewer) under the repository Apache-2.0 license |
 
 Each React skill carries its own ECC `rules/react` references so Markdown links
 still resolve after the installer copies skills into flat runtime directories.
@@ -241,8 +264,8 @@ The installer validates:
 - `name` uses lowercase letters, numbers and hyphens;
 - `description` is non-empty and under 1024 characters.
 
-Third-party frontend design skills such as Impeccable and Taste Skill are not
-vendored as bundled Custom Skills. The `frontend-skills` tool installs them
+Other third-party frontend design skills such as Impeccable and Taste Skill are
+not vendored as bundled Custom Skills. The `frontend-skills` tool installs them
 externally through the Agent Skills CLI from pinned public sources.
 
 ## CLI Reference
@@ -483,8 +506,8 @@ Release a new npm version by updating `package.json`, pushing the change to
 `main`, then pushing a matching tag:
 
 ```bash
-git tag v0.1.7
-git push origin v0.1.7
+git tag v0.1.8
+git push origin v0.1.8
 ```
 
 The `Release` workflow runs the full check and publishes the scoped package to

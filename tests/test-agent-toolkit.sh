@@ -579,6 +579,7 @@ REPO_BACKEND_SKILLS_OUTPUT="$(
 )"
 
 for expected_backend_skill in \
+  "backend/database/postgres-patterns" \
   "backend/fastify-best-practices" \
   "backend/go/golang-patterns" \
   "backend/go/golang-testing" \
@@ -619,6 +620,20 @@ if ! grep -Fq -- "backend/go/golang-patterns" <<<"$REPO_GO_SKILLS_OUTPUT" || \
   exit 1
 fi
 
+REPO_DATABASE_SKILLS_OUTPUT="$(
+  HOME="$TECH_SKILLS_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-list --skills-package backend --skills-scope backend/database
+)"
+
+if ! grep -Fq -- "backend/database/postgres-patterns" <<<"$REPO_DATABASE_SKILLS_OUTPUT" || \
+  grep -Fq -- "backend/go/golang-patterns" <<<"$REPO_DATABASE_SKILLS_OUTPUT" || \
+  grep -Fq -- "backend/java/java-junit" <<<"$REPO_DATABASE_SKILLS_OUTPUT"; then
+  echo "Expected backend/database scope to list only database skills" >&2
+  echo "$REPO_DATABASE_SKILLS_OUTPUT" >&2
+  exit 1
+fi
+
 REPO_FRONTEND_SKILLS_OUTPUT="$(
   HOME="$TECH_SKILLS_HOME" \
   PATH="$FAKE_BIN:/usr/bin:/bin" \
@@ -626,6 +641,8 @@ REPO_FRONTEND_SKILLS_OUTPUT="$(
 )"
 
 for expected_frontend_skill in \
+  "frontend/accessibility" \
+  "frontend/design/ui-ux-pro-max" \
   "frontend/react-native/react-native-expert" \
   "frontend/react-native/react-native-unistyles-v3" \
   "frontend/react/react-patterns" \
@@ -652,6 +669,43 @@ if ! grep -Fq -- "frontend/react-native/react-native-expert" <<<"$REPO_REACT_NAT
   exit 1
 fi
 
+REPO_FRONTEND_DESIGN_SKILLS_OUTPUT="$(
+  HOME="$TECH_SKILLS_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-list --skills-package frontend --skills-scope frontend/design
+)"
+
+if ! grep -Fq -- "frontend/design/ui-ux-pro-max" <<<"$REPO_FRONTEND_DESIGN_SKILLS_OUTPUT" || \
+  grep -Fq -- "frontend/react/react-patterns" <<<"$REPO_FRONTEND_DESIGN_SKILLS_OUTPUT"; then
+  echo "Expected frontend/design scope to list only design skills" >&2
+  echo "$REPO_FRONTEND_DESIGN_SKILLS_OUTPUT" >&2
+  exit 1
+fi
+
+REPO_GENERAL_SKILLS_OUTPUT="$(
+  HOME="$TECH_SKILLS_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-list --skills-package general
+)"
+
+if ! grep -Fq -- "general/code-reviewer" <<<"$REPO_GENERAL_SKILLS_OUTPUT"; then
+  echo "Expected general package to include code-reviewer skill" >&2
+  echo "$REPO_GENERAL_SKILLS_OUTPUT" >&2
+  exit 1
+fi
+
+REPO_DEVOPS_SKILLS_OUTPUT="$(
+  HOME="$TECH_SKILLS_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-list --skills-package devops
+)"
+
+if ! grep -Fq -- "devops/docker-patterns" <<<"$REPO_DEVOPS_SKILLS_OUTPUT"; then
+  echo "Expected devops package to include docker-patterns skill" >&2
+  echo "$REPO_DEVOPS_SKILLS_OUTPUT" >&2
+  exit 1
+fi
+
 REPO_REACT_PROJECT="$TMP_DIR/repo-react-project"
 mkdir -p "$REPO_REACT_PROJECT"
 
@@ -669,6 +723,28 @@ for expected_react_rule in \
   if [[ ! -f "$expected_react_rule" ]]; then
     echo "Expected installed React skill rule reference to exist: $expected_react_rule" >&2
     find "$REPO_REACT_PROJECT/.codex/skills" -maxdepth 5 -type f -print >&2 || true
+    exit 1
+  fi
+done
+
+REPO_DESIGN_PROJECT="$TMP_DIR/repo-design-project"
+mkdir -p "$REPO_DESIGN_PROJECT"
+
+(
+  cd "$REPO_DESIGN_PROJECT"
+  HOME="$TECH_SKILLS_HOME" \
+    PATH="$FAKE_BIN:/usr/bin:/bin" \
+    bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-only --codex --local --skills-package frontend --skills-scope frontend/design >/dev/null
+)
+
+for expected_design_file in \
+  "$REPO_DESIGN_PROJECT/.codex/skills/ui-ux-pro-max/scripts/search.py" \
+  "$REPO_DESIGN_PROJECT/.codex/skills/ui-ux-pro-max/scripts/core.py" \
+  "$REPO_DESIGN_PROJECT/.codex/skills/ui-ux-pro-max/data/styles.csv" \
+  "$REPO_DESIGN_PROJECT/.codex/skills/ui-ux-pro-max/data/stacks/react.csv"; do
+  if [[ ! -f "$expected_design_file" ]]; then
+    echo "Expected installed UI/UX Pro Max support file to exist: $expected_design_file" >&2
+    find "$REPO_DESIGN_PROJECT/.codex/skills" -maxdepth 5 -type f -print >&2 || true
     exit 1
   fi
 done
