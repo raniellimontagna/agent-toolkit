@@ -52,6 +52,59 @@ if ! grep -Fq -- '"access": "public"' <<<"$PACKAGE_JSON_CONTENT"; then
   exit 1
 fi
 
+ROOT_DIR="$ROOT_DIR" "$REAL_NODE" --input-type=module <<'NODE'
+import { existsSync, readdirSync } from "node:fs";
+import { readFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
+
+const root = process.env.ROOT_DIR;
+if (!root) {
+  throw new Error("ROOT_DIR is required");
+}
+const files = [];
+
+function walk(path) {
+  for (const entry of readdirSync(path, { withFileTypes: true })) {
+    const next = path + "/" + entry.name;
+    if (entry.isDirectory()) {
+      walk(next);
+    } else if (entry.isFile() && entry.name.endsWith(".md")) {
+      files.push(next);
+    }
+  }
+}
+
+walk(root + "/skills");
+
+const missing = [];
+for (const file of files) {
+  const text = await readFile(file, "utf8");
+  const markdownLinkPattern = /\[[^\]]+\]\(([^)]+)\)/g;
+  for (const match of text.matchAll(markdownLinkPattern)) {
+    const raw = match[1].trim();
+    if (!raw || raw.startsWith("http:") || raw.startsWith("https:") || raw.startsWith("mailto:") || raw.startsWith("#")) {
+      continue;
+    }
+
+    const target = raw.split("#")[0];
+    if (!target || target.includes(":")) {
+      continue;
+    }
+
+    const absolute = resolve(dirname(file), target);
+    if (!existsSync(absolute)) {
+      missing.push(file.slice(root.length + 1) + " -> " + raw);
+    }
+  }
+}
+
+if (missing.length > 0) {
+  console.error("Expected bundled skill Markdown links to resolve locally:");
+  console.error(missing.join("\n"));
+  process.exit(1);
+}
+NODE
+
 if [[ ! -f "$ROOT_DIR/tools.lock.json" ]]; then
   echo "Expected external tool provenance lock to exist: tools.lock.json" >&2
   exit 1
@@ -525,9 +578,44 @@ REPO_BACKEND_SKILLS_OUTPUT="$(
   bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-list --skills-package backend
 )"
 
-if ! grep -Fq -- "backend/fastify-best-practices - Guides development of Fastify" <<<"$REPO_BACKEND_SKILLS_OUTPUT"; then
-  echo "Expected repository backend package to include Fastify best practices skill" >&2
-  echo "$REPO_BACKEND_SKILLS_OUTPUT" >&2
+for expected_backend_skill in \
+  "backend/fastify-best-practices" \
+  "backend/go/golang-patterns" \
+  "backend/go/golang-testing" \
+  "backend/java/java-coding-standards" \
+  "backend/java/java-junit"; do
+  if ! grep -Fq -- "$expected_backend_skill" <<<"$REPO_BACKEND_SKILLS_OUTPUT"; then
+    echo "Expected repository backend package to include: $expected_backend_skill" >&2
+    echo "$REPO_BACKEND_SKILLS_OUTPUT" >&2
+    exit 1
+  fi
+done
+
+REPO_JAVA_SKILLS_OUTPUT="$(
+  HOME="$TECH_SKILLS_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-list --skills-package backend --skills-scope backend/java
+)"
+
+if ! grep -Fq -- "backend/java/java-coding-standards" <<<"$REPO_JAVA_SKILLS_OUTPUT" || \
+  ! grep -Fq -- "backend/java/java-junit" <<<"$REPO_JAVA_SKILLS_OUTPUT" || \
+  grep -Fq -- "backend/go/golang-patterns" <<<"$REPO_JAVA_SKILLS_OUTPUT"; then
+  echo "Expected backend/java scope to list only Java skills" >&2
+  echo "$REPO_JAVA_SKILLS_OUTPUT" >&2
+  exit 1
+fi
+
+REPO_GO_SKILLS_OUTPUT="$(
+  HOME="$TECH_SKILLS_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-list --skills-package backend --skills-scope backend/go
+)"
+
+if ! grep -Fq -- "backend/go/golang-patterns" <<<"$REPO_GO_SKILLS_OUTPUT" || \
+  ! grep -Fq -- "backend/go/golang-testing" <<<"$REPO_GO_SKILLS_OUTPUT" || \
+  grep -Fq -- "backend/java/java-junit" <<<"$REPO_GO_SKILLS_OUTPUT"; then
+  echo "Expected backend/go scope to list only Go skills" >&2
+  echo "$REPO_GO_SKILLS_OUTPUT" >&2
   exit 1
 fi
 
@@ -563,6 +651,27 @@ if ! grep -Fq -- "frontend/react-native/react-native-expert" <<<"$REPO_REACT_NAT
   echo "$REPO_REACT_NATIVE_SKILLS_OUTPUT" >&2
   exit 1
 fi
+
+REPO_REACT_PROJECT="$TMP_DIR/repo-react-project"
+mkdir -p "$REPO_REACT_PROJECT"
+
+(
+  cd "$REPO_REACT_PROJECT"
+  HOME="$TECH_SKILLS_HOME" \
+    PATH="$FAKE_BIN:/usr/bin:/bin" \
+    bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-only --codex --local --skills-package frontend --skills-scope frontend/react >/dev/null
+)
+
+for expected_react_rule in \
+  "$REPO_REACT_PROJECT/.codex/skills/react-patterns/rules/react/hooks.md" \
+  "$REPO_REACT_PROJECT/.codex/skills/react-testing/rules/react/testing.md" \
+  "$REPO_REACT_PROJECT/.codex/skills/react-performance/rules/react/patterns.md"; do
+  if [[ ! -f "$expected_react_rule" ]]; then
+    echo "Expected installed React skill rule reference to exist: $expected_react_rule" >&2
+    find "$REPO_REACT_PROJECT/.codex/skills" -maxdepth 5 -type f -print >&2 || true
+    exit 1
+  fi
+done
 
 INTERACTIVE_HOME="$TMP_DIR/interactive-home"
 INTERACTIVE_PROJECT="$TMP_DIR/interactive-project"

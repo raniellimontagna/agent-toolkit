@@ -23,8 +23,8 @@ any work.
 ![Detected status terminal screen](docs/assets/install-status.svg)
 
 Custom Skills are grouped by first-level package. Today this repository ships
-`core`; future packages can be added under `skills/<package>/...` and they will
-appear automatically in the menu.
+`core`, `backend` and `frontend`; future packages can be added under
+`skills/<package>/...` and they will appear automatically in the menu.
 
 ![Custom Skill package selection terminal screen](docs/assets/install-skill-packages.svg)
 
@@ -131,6 +131,16 @@ skills/
     fastify-best-practices/
       SKILL.md
       rules/
+    go/
+      golang-patterns/
+        SKILL.md
+      golang-testing/
+        SKILL.md
+    java/
+      java-coding-standards/
+        SKILL.md
+      java-junit/
+        SKILL.md
   frontend/
     react-native/
       react-native-expert/
@@ -140,10 +150,13 @@ skills/
     react/
       react-patterns/
         SKILL.md
+        rules/
       react-performance/
         SKILL.md
+        rules/
       react-testing/
         SKILL.md
+        rules/
 ```
 
 The first path segment is a selectable package:
@@ -153,10 +166,10 @@ skills/<package>/<optional-scope>/<skill-name>/SKILL.md
 ```
 
 Runtime installs are flat even when repository paths are nested. For example,
-`skills/backend/node/fastify-api-patterns/SKILL.md` installs as:
+`skills/backend/java/java-junit/SKILL.md` installs as:
 
 ```text
-~/.codex/skills/fastify-api-patterns/
+~/.codex/skills/java-junit/
 ```
 
 Use `--skills-package` to select first-level packages:
@@ -168,7 +181,7 @@ npx -y @ranimontagna/agent-toolkit --skills-only --codex --skills-package core
 Use `--skills-scope` to select a narrower path:
 
 ```bash
-npx -y @ranimontagna/agent-toolkit --skills-only --codex --skills-scope backend/node
+npx -y @ranimontagna/agent-toolkit --skills-only --codex --skills-scope backend/java
 ```
 
 Install only React Native skills:
@@ -185,7 +198,7 @@ npx -y @ranimontagna/agent-toolkit \
   --skills-only \
   --codex \
   --skills-package backend \
-  --skills-scope backend/node
+  --skills-scope backend/java
 ```
 
 Each skill must be a directory containing `SKILL.md` with frontmatter:
@@ -207,11 +220,18 @@ Follow these steps...
 |---|---|---|
 | `core` | `agent-toolkit-maintainer` | Maintained in this repository |
 | `backend` | `fastify-best-practices` | Copied from Matteo Collina's [`mcollina/skills`](https://github.com/mcollina/skills/tree/main/skills/fastify) under the MIT license |
+| `backend` | `golang-patterns` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/skills/golang-patterns) under the MIT license |
+| `backend` | `golang-testing` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/.kiro/skills/golang-testing) under the MIT license |
+| `backend` | `java-coding-standards` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/skills/java-coding-standards) under the MIT license |
+| `backend` | `java-junit` | Copied from GitHub's [`awesome-copilot`](https://github.com/github/awesome-copilot/tree/main/skills/java-junit) under the MIT license |
 | `frontend` | `react-native-expert` | Copied from Jeffallan's [`claude-skills`](https://github.com/Jeffallan/claude-skills/tree/main/skills/react-native-expert) under the MIT license |
 | `frontend` | `react-native-unistyles-v3` | Copied from Jacek Pudysz's [`react-native-unistyles`](https://github.com/jpudysz/react-native-unistyles/tree/main/skills/react-native-unistyles-v3), declared MIT upstream |
 | `frontend` | `react-patterns` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/skills/react-patterns) under the MIT license |
 | `frontend` | `react-performance` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/skills/react-performance) under the MIT license |
 | `frontend` | `react-testing` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/skills/react-testing) under the MIT license |
+
+Each React skill carries its own ECC `rules/react` references so Markdown links
+still resolve after the installer copies skills into flat runtime directories.
 
 The installer validates:
 
@@ -463,8 +483,8 @@ Release a new npm version by updating `package.json`, pushing the change to
 `main`, then pushing a matching tag:
 
 ```bash
-git tag v0.1.6
-git push origin v0.1.6
+git tag v0.1.7
+git push origin v0.1.7
 ```
 
 The `Release` workflow runs the full check and publishes the scoped package to
