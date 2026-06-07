@@ -1,7 +1,7 @@
 # Agent Toolkit
 
 One command to set up an AI coding-agent workspace across Claude Code, Codex
-CLI, OpenCode and Gemini CLI.
+CLI, OpenCode, Gemini CLI and Antigravity.
 
 ```bash
 npx -y @ranimontagna/agent-toolkit
@@ -54,14 +54,18 @@ skills and already present destinations before installation starts.
 | Codex CLI | Plugins, skills and local automation |
 | OpenCode | Skills plus package-driven tools |
 | Gemini CLI | Extensions and native Agent Skills install |
+| Antigravity | Custom Skills and third-party frontend skills |
 
 Superpowers is installed automatically for Claude Code, Codex CLI and Gemini
 CLI. OpenCode Superpowers support is not automated yet because the upstream
-install flow is not a stable single command.
+install flow is not a stable single command. Antigravity Superpowers support is
+not automated yet because there is not a pinned supported plugin package in this
+toolkit.
 
 Caveman, GSD, Frontend Skills and Custom Skills can target Claude Code, Codex
-CLI, OpenCode and Gemini CLI. Graphify is installed through the official
-`graphifyy` package and registers itself for selected runtimes.
+CLI, OpenCode and Gemini CLI. Frontend Skills and Custom Skills can also target
+Antigravity. Graphify is installed through the official `graphifyy` package and
+registers itself for selected runtimes that Graphify supports.
 
 ## Quick Commands
 
@@ -340,15 +344,17 @@ Tools:
   --no-skills            Skip Custom Skills
 
 Runtimes:
-  --all-runtimes         Target Claude Code, Codex CLI, OpenCode and Gemini CLI
+  --all-runtimes         Target Claude Code, Codex CLI, OpenCode, Gemini CLI and Antigravity
   --claude               Target only Claude Code
   --codex                Target only Codex CLI
   --opencode             Target only OpenCode
   --gemini               Target only Gemini CLI
+  --antigravity          Target only Antigravity
   --no-claude            Skip Claude Code
   --no-codex             Skip Codex CLI
   --no-opencode          Skip OpenCode
   --no-gemini            Skip Gemini CLI
+  --no-antigravity       Skip Antigravity
 
 Install scope:
   --global               Install runtime assets into user config directories
@@ -386,6 +392,7 @@ CUSTOM_SKILLS_DIR     Source directory for Custom Skills
 SKILLS_PACKAGE        Comma-separated first-level skill package filters
 SKILLS_SCOPE          Comma-separated skill scope filters
 SKILLS_PATH           Comma-separated exact skill path filters
+ANTIGRAVITY_SKILLS_DIR Global Antigravity skills directory
 CLAUDE_CLI_PACKAGE    npm package used to install Claude Code CLI
 CODEX_CLI_PACKAGE     npm package used to install Codex CLI
 OPENCODE_CLI_PACKAGE  npm package used to install OpenCode CLI
@@ -434,7 +441,7 @@ Current external sources:
 | Graphify | `graphifyy==0.8.31` | Blocks unpinned package overrides |
 | GSD | `get-shit-done-cc@1.42.3` | Blocks `@latest` unless explicitly allowed |
 | Frontend Skills | `skills@1.5.10`, `pbakaus/impeccable` and `Leonxlnx/taste-skill` at pinned commits | Clones pinned refs before install |
-| Runtime CLIs | Exact npm versions for Claude, Codex, OpenCode and Gemini | Installed or updated only when `--install-missing-clis` is enabled |
+| Runtime CLIs | Exact npm versions for Claude, Codex, OpenCode and Gemini | Installed or updated only when `--install-missing-clis` is enabled; Antigravity uses the official `agy` installer instead of npm |
 
 Bundled third-party skills preserve upstream attribution and license files:
 
@@ -513,7 +520,8 @@ Prerequisites:
   publishing;
 - `uv` for Graphify, or `pipx` when `GRAPHIFY_INSTALLER=pipx`;
 - `tar` or `unzip` only when RTK needs to be downloaded;
-- runtime CLIs you want to target: `claude`, `codex`, `opencode`, `gemini`.
+- runtime CLIs you want to target: `claude`, `codex`, `opencode`, `gemini`,
+  `agy`.
 
 Install dependencies and build from a clone:
 

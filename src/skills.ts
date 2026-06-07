@@ -28,7 +28,17 @@ function geminiConfigDir(): string {
   return process.env.GEMINI_CONFIG_DIR || path.join(HOME, ".gemini");
 }
 
+function antigravitySkillsDir(): string {
+  return (
+    process.env.ANTIGRAVITY_SKILLS_DIR || path.join(HOME, ".agents", "skills")
+  );
+}
+
 export function skillsTargetDir(runtime: RuntimeName): string {
+  if (state.gsdScope === "local" && runtime === "antigravity") {
+    return path.join(process.cwd(), ".agents", "skills");
+  }
+
   if (state.gsdScope === "local") {
     return path.join(process.cwd(), `.${runtime}`, "skills");
   }
@@ -48,6 +58,8 @@ export function skillsTargetDir(runtime: RuntimeName): string {
       return path.join(opencodeConfigDir(), "skills");
     case "gemini":
       return path.join(geminiConfigDir(), "skills");
+    case "antigravity":
+      return antigravitySkillsDir();
   }
 }
 

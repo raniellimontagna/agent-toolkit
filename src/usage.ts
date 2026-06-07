@@ -23,15 +23,17 @@ Tools:
   --no-skills           Skip Custom Skills
 
 Runtimes:
-  --all-runtimes        Target Claude Code, Codex CLI, OpenCode and Gemini CLI
+  --all-runtimes        Target Claude Code, Codex CLI, OpenCode, Gemini CLI and Antigravity
   --claude              Target only Claude Code
   --codex               Target only Codex CLI
   --opencode            Target only OpenCode
   --gemini              Target only Gemini CLI
+  --antigravity         Target only Antigravity
   --no-claude           Skip Claude Code
   --no-codex            Skip Codex CLI
   --no-opencode         Skip OpenCode
   --no-gemini           Skip Gemini CLI
+  --no-antigravity      Skip Antigravity
 
 Install scope:
   --global              Install runtime assets into user config directories
@@ -63,6 +65,7 @@ Environment:
   SKILLS_PACKAGE        Comma-separated first-level skill package filters
   SKILLS_SCOPE          Comma-separated skill scope filters
   SKILLS_PATH           Comma-separated exact skill path filters
+  ANTIGRAVITY_SKILLS_DIR Global Antigravity skills directory
   CLAUDE_CLI_PACKAGE    npm package used to install Claude Code CLI
   CODEX_CLI_PACKAGE     npm package used to install Codex CLI
   OPENCODE_CLI_PACKAGE  npm package used to install OpenCode CLI

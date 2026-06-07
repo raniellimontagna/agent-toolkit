@@ -20,7 +20,13 @@ export const toolNames = [
 
 export type ToolName = (typeof toolNames)[number];
 
-export const runtimeNames = ["claude", "codex", "opencode", "gemini"] as const;
+export const runtimeNames = [
+  "claude",
+  "codex",
+  "opencode",
+  "gemini",
+  "antigravity",
+] as const;
 
 export type RuntimeName = (typeof runtimeNames)[number];
 export type InstallScope = "global" | "local";
@@ -53,7 +59,7 @@ type State = {
   skillScopes: string[];
   skillPaths: string[];
   listSkills: boolean;
-  cliPackages: Record<RuntimeName, string>;
+  cliPackages: Partial<Record<RuntimeName, string>>;
   tools: Record<ToolName, boolean>;
   runtimes: Record<RuntimeName, boolean>;
   nonInteractive: boolean;
@@ -193,6 +199,7 @@ export const state: State = {
     codex: true,
     opencode: true,
     gemini: true,
+    antigravity: true,
   },
   nonInteractive: false,
   installMissingClis: false,
@@ -208,6 +215,11 @@ export const runtimeMeta: Record<RuntimeName, RuntimeMeta> = {
   codex: { command: "codex", label: "Codex CLI", display: "Codex CLI" },
   opencode: { command: "opencode", label: "OpenCode CLI", display: "OpenCode" },
   gemini: { command: "gemini", label: "Gemini CLI", display: "Gemini CLI" },
+  antigravity: {
+    command: "agy",
+    label: "Antigravity CLI",
+    display: "Antigravity",
+  },
 };
 
 export function setAllTools(value: boolean): void {

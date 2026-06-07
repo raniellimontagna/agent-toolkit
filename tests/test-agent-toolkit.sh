@@ -21,6 +21,7 @@ CLAUDE_LOG="$LOG_DIR/claude.log"
 CODEX_LOG="$LOG_DIR/codex.log"
 OPENCODE_LOG="$LOG_DIR/opencode.log"
 GEMINI_LOG="$LOG_DIR/gemini.log"
+ANTIGRAVITY_LOG="$LOG_DIR/antigravity.log"
 GRAPHIFY_LOG="$LOG_DIR/graphify.log"
 GIT_LOG="$LOG_DIR/git.log"
 export GRAPHIFY_LOG
@@ -305,6 +306,16 @@ exit 0
 EOF
 chmod +x "$FAKE_BIN/gemini"
 
+cat > "$FAKE_BIN/agy" <<EOF
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "$ANTIGRAVITY_LOG"
+case "\${1:-}" in
+  --version) echo "agy 0.0.0-test" ;;
+esac
+exit 0
+EOF
+chmod +x "$FAKE_BIN/agy"
+
 HELP_OUTPUT="$("$REAL_NODE" "$ROOT_DIR/dist/bin/agent-toolkit.js" --help)"
 WRAPPER_HELP_OUTPUT="$(bash "$ROOT_DIR/setup-agent-toolkit.sh" --help)"
 
@@ -338,6 +349,8 @@ for expected in \
   "--codex" \
   "--opencode" \
   "--gemini" \
+  "--antigravity" \
+  "--no-antigravity" \
   "--no-gemini"; do
   if ! grep -Fq -- "$expected" <<<"$HELP_OUTPUT"; then
     echo "Expected help output to contain: $expected" >&2
@@ -363,20 +376,55 @@ if ! grep -Fxq -- "-y github:JuliusBrussee/caveman#655b7d9c5431f822264b7732e9901
   exit 1
 fi
 
+if grep -Fq -- "--only antigravity" "$NPM_LOG"; then
+  echo "Caveman should not target Antigravity until the upstream installer supports it" >&2
+  cat "$NPM_LOG" >&2
+  exit 1
+fi
+
 if ! grep -Fxq -- "-y get-shit-done-cc@1.42.3 --global --claude --codex --opencode --gemini" "$NPM_LOG"; then
   echo "Expected GSD installer to target Claude, Codex, OpenCode and Gemini globally" >&2
   cat "$NPM_LOG" >&2
   exit 1
 fi
 
-if ! grep -Eq -- "-y skills@1\\.5\\.10 add .+ --skill impeccable --agent claude-code --agent codex --agent opencode --agent gemini-cli --global -y --copy" "$NPM_LOG"; then
+if grep -Fq -- "--antigravity" "$NPM_LOG"; then
+  echo "GSD should not target Antigravity until the upstream installer supports it" >&2
+  cat "$NPM_LOG" >&2
+  exit 1
+fi
+
+if ! grep -Eq -- "-y skills@1\\.5\\.10 add .+ --skill impeccable --agent claude-code --agent codex --agent opencode --agent gemini-cli --agent antigravity --global -y --copy" "$NPM_LOG"; then
   echo "Expected external frontend skill installer to install Impeccable for selected runtimes" >&2
   cat "$NPM_LOG" >&2
   exit 1
 fi
 
-if ! grep -Eq -- "-y skills@1\\.5\\.10 add .+ --skill design-taste-frontend --agent claude-code --agent codex --agent opencode --agent gemini-cli --global -y --copy" "$NPM_LOG"; then
+if ! grep -Eq -- "-y skills@1\\.5\\.10 add .+ --skill design-taste-frontend --agent claude-code --agent codex --agent opencode --agent gemini-cli --agent antigravity --global -y --copy" "$NPM_LOG"; then
   echo "Expected external frontend skill installer to install Taste Skill for selected runtimes" >&2
+  cat "$NPM_LOG" >&2
+  exit 1
+fi
+
+: > "$NPM_LOG"
+HOME="$HOME_DIR" \
+XDG_CONFIG_HOME="$HOME_DIR/.config" \
+PATH="$FAKE_BIN:/usr/bin:/bin" \
+bash "$ROOT_DIR/setup-agent-toolkit.sh" --caveman-only --antigravity >/dev/null
+
+if grep -Fq -- "github:JuliusBrussee/caveman" "$NPM_LOG"; then
+  echo "Expected --caveman-only --antigravity to skip the Caveman upstream installer" >&2
+  cat "$NPM_LOG" >&2
+  exit 1
+fi
+
+HOME="$HOME_DIR" \
+XDG_CONFIG_HOME="$HOME_DIR/.config" \
+PATH="$FAKE_BIN:/usr/bin:/bin" \
+bash "$ROOT_DIR/setup-agent-toolkit.sh" --gsd-only --antigravity >/dev/null
+
+if grep -Fq -- "get-shit-done-cc" "$NPM_LOG"; then
+  echo "Expected --gsd-only --antigravity to skip the GSD upstream installer" >&2
   cat "$NPM_LOG" >&2
   exit 1
 fi
@@ -411,6 +459,12 @@ for expected_graphify in \
   fi
 done
 
+if grep -Fxq -- "install --platform antigravity" "$GRAPHIFY_LOG"; then
+  echo "Graphify should not target Antigravity until Graphify supports that platform" >&2
+  cat "$GRAPHIFY_LOG" >&2
+  exit 1
+fi
+
 if ! grep -Fxq -- "plugin install superpowers@claude-plugins-official" "$CLAUDE_LOG"; then
   echo "Expected Claude Superpowers plugin install" >&2
   cat "$CLAUDE_LOG" >&2
@@ -435,10 +489,17 @@ if [[ -s "$OPENCODE_LOG" ]] && grep -Fqi -- "superpowers" "$OPENCODE_LOG"; then
   exit 1
 fi
 
+if [[ -s "$ANTIGRAVITY_LOG" ]] && grep -Fqi -- "superpowers" "$ANTIGRAVITY_LOG"; then
+  echo "Superpowers should not pretend to install into Antigravity" >&2
+  cat "$ANTIGRAVITY_LOG" >&2
+  exit 1
+fi
+
 for skill_target in \
   "$HOME_DIR/.claude/skills/agent-toolkit-maintainer/SKILL.md" \
   "$HOME_DIR/.codex/skills/agent-toolkit-maintainer/SKILL.md" \
-  "$HOME_DIR/.config/opencode/skills/agent-toolkit-maintainer/SKILL.md"; do
+  "$HOME_DIR/.config/opencode/skills/agent-toolkit-maintainer/SKILL.md" \
+  "$HOME_DIR/.agents/skills/agent-toolkit-maintainer/SKILL.md"; do
   if [[ ! -f "$skill_target" ]]; then
     echo "Expected custom skill to be installed at: $skill_target" >&2
     find "$HOME_DIR" -maxdepth 5 -type f -name SKILL.md -print >&2 || true
@@ -475,6 +536,22 @@ EOF
 if [[ ! -f "$CUSTOM_PROJECT/.codex/skills/sample-skill/SKILL.md" ]]; then
   echo "Expected --skills-dir with --local --codex to install into project .codex/skills" >&2
   find "$CUSTOM_PROJECT" -maxdepth 5 -type f -print >&2 || true
+  exit 1
+fi
+
+CUSTOM_ANTIGRAVITY_PROJECT="$TMP_DIR/custom-antigravity-project"
+mkdir -p "$CUSTOM_ANTIGRAVITY_PROJECT"
+
+(
+  cd "$CUSTOM_ANTIGRAVITY_PROJECT"
+  HOME="$CUSTOM_SKILLS_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-only --antigravity --local --skills-dir "$CUSTOM_SOURCE" >/dev/null
+)
+
+if [[ ! -f "$CUSTOM_ANTIGRAVITY_PROJECT/.agents/skills/sample-skill/SKILL.md" ]]; then
+  echo "Expected --skills-dir with --local --antigravity to install into project .agents/skills" >&2
+  find "$CUSTOM_ANTIGRAVITY_PROJECT" -maxdepth 5 -type f -print >&2 || true
   exit 1
 fi
 

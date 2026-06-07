@@ -71,5 +71,11 @@ export function installSuperpowers(): boolean {
     }
   }
 
+  if (state.runtimes.antigravity) {
+    warn(
+      "Antigravity Superpowers install is not automated yet; skipping until a supported Antigravity plugin package is available.",
+    );
+  }
+
   return !hadError;
 }

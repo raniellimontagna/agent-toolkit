@@ -17,9 +17,23 @@ export function runtimeLabel(runtime: RuntimeName): string {
   return runtimeMeta[runtime].label;
 }
 
+const cavemanRuntimeNames: RuntimeName[] = [
+  "claude",
+  "codex",
+  "opencode",
+  "gemini",
+];
+
+const gsdRuntimeNames: RuntimeName[] = [
+  "claude",
+  "codex",
+  "opencode",
+  "gemini",
+];
+
 export function selectedCavemanArgs(): string[] {
   const args: string[] = [];
-  for (const runtime of runtimeNames) {
+  for (const runtime of cavemanRuntimeNames) {
     if (state.runtimes[runtime]) args.push("--only", runtime);
   }
   if (state.cavemanMode !== "all") args.push("--minimal");
@@ -27,12 +41,20 @@ export function selectedCavemanArgs(): string[] {
   return args;
 }
 
+export function hasSelectedCavemanRuntime(): boolean {
+  return cavemanRuntimeNames.some((runtime) => state.runtimes[runtime]);
+}
+
 export function selectedGsdArgs(): string[] {
   const args = [state.gsdScope === "local" ? "--local" : "--global"];
-  for (const runtime of runtimeNames) {
+  for (const runtime of gsdRuntimeNames) {
     if (state.runtimes[runtime]) args.push(`--${runtime}`);
   }
   return args;
+}
+
+export function hasSelectedGsdRuntime(): boolean {
+  return gsdRuntimeNames.some((runtime) => state.runtimes[runtime]);
 }
 
 const skillsAgentNames: Record<RuntimeName, string> = {
@@ -40,6 +62,7 @@ const skillsAgentNames: Record<RuntimeName, string> = {
   codex: "codex",
   opencode: "opencode",
   gemini: "gemini-cli",
+  antigravity: "antigravity",
 };
 
 export function selectedSkillsAgentArgs(): string[] {
@@ -55,6 +78,12 @@ function installRuntimeCli(runtime: RuntimeName): boolean {
   const label = runtimeLabel(runtime);
   const command = runtimeCommand(runtime);
   const packageName = state.cliPackages[runtime];
+  if (!packageName) {
+    warn(
+      `${label} does not have an npm package install path in Agent Toolkit yet.`,
+    );
+    return false;
+  }
 
   requireNode(18);
   requireCommand("npm");
@@ -75,7 +104,8 @@ function installRuntimeCli(runtime: RuntimeName): boolean {
   return false;
 }
 
-function npmPackageVersion(packageSpec: string): string | null {
+function npmPackageVersion(packageSpec: string | undefined): string | null {
+  if (!packageSpec) return null;
   if (packageSpec.startsWith("@")) {
     const slashIndex = packageSpec.indexOf("/");
     if (slashIndex === -1) return null;
@@ -96,9 +126,10 @@ function ensureRuntimeCli(runtime: RuntimeName): boolean {
   const command = runtimeCommand(runtime);
   const label = runtimeLabel(runtime);
   const commandPath = findCommand(command);
+  const packageName = state.cliPackages[runtime];
 
   if (commandPath) {
-    const expectedVersion = npmPackageVersion(state.cliPackages[runtime]);
+    const expectedVersion = npmPackageVersion(packageName);
     const versionOutput = runtimeVersionOutput(commandPath);
     if (!expectedVersion || versionOutput.includes(expectedVersion)) {
       ok(`${label} found`);
@@ -107,13 +138,20 @@ function ensureRuntimeCli(runtime: RuntimeName): boolean {
 
     if (state.installMissingClis) {
       warn(
-        `${label} version does not match pinned ${expectedVersion}; updating via npm package ${state.cliPackages[runtime]}...`,
+        `${label} version does not match pinned ${expectedVersion}; updating via npm package ${packageName}...`,
       );
       return installRuntimeCli(runtime);
     }
 
     warn(
       `${label} found but does not match pinned ${expectedVersion}; use --install-missing-clis to update it before plugin installs.`,
+    );
+    return true;
+  }
+
+  if (state.installMissingClis && !packageName) {
+    warn(
+      `${label} is installed with the official Antigravity installer, not npm; install it from https://antigravity.google/docs/cli-install.`,
     );
     return true;
   }

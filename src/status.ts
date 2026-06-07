@@ -114,6 +114,7 @@ export function detectInstallerStatus(): InstallerStatus {
       codex: commandDetection(runtimeMeta.codex.command),
       opencode: commandDetection(runtimeMeta.opencode.command),
       gemini: commandDetection(runtimeMeta.gemini.command),
+      antigravity: commandDetection(runtimeMeta.antigravity.command),
     },
   };
 }

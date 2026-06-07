@@ -1,5 +1,5 @@
 import { err, info, ok, step } from "../logger.js";
-import { selectedCavemanArgs } from "../runtimes.js";
+import { hasSelectedCavemanRuntime, selectedCavemanArgs } from "../runtimes.js";
 import { state } from "../state.js";
 import { requireCommand, requireNode, run } from "../system.js";
 
@@ -9,6 +9,11 @@ export function installCaveman(): boolean {
 
   requireNode(18);
   requireCommand("npx");
+
+  if (!hasSelectedCavemanRuntime()) {
+    ok("No Caveman-supported runtimes selected; skipping Caveman installer");
+    return true;
+  }
 
   info("Running Caveman installer for selected runtimes...");
   const result = run("npx", [

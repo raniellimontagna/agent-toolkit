@@ -316,6 +316,11 @@ function runtimeOptions(status: InstallerStatus): ClackOption[] {
       label: "Gemini CLI",
       hint: detectionHint(status.runtimes.gemini, "runtime CLI"),
     },
+    {
+      value: "antigravity",
+      label: "Antigravity",
+      hint: detectionHint(status.runtimes.antigravity, "runtime CLI"),
+    },
   ];
 }
 
@@ -474,7 +479,7 @@ async function showReadlineMenu(): Promise<void> {
     selectToolsFromAnswer(toolsAnswer);
 
     const runtimeAnswer = await rl.question(
-      "Runtimes to target [comma list: claude,codex,opencode,gemini, or all]: ",
+      "Runtimes to target [comma list: claude,codex,opencode,gemini,antigravity, or all]: ",
     );
     selectRuntimesFromAnswer(runtimeAnswer);
 

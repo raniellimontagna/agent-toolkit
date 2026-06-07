@@ -95,6 +95,10 @@ export function parseArgs(argv: string[]): boolean {
         selectOnlyRuntime("gemini");
         state.nonInteractive = true;
         break;
+      case "--antigravity":
+        selectOnlyRuntime("antigravity");
+        state.nonInteractive = true;
+        break;
       case "--no-claude":
         state.runtimes.claude = false;
         state.nonInteractive = true;
@@ -109,6 +113,10 @@ export function parseArgs(argv: string[]): boolean {
         break;
       case "--no-gemini":
         state.runtimes.gemini = false;
+        state.nonInteractive = true;
+        break;
+      case "--no-antigravity":
+        state.runtimes.antigravity = false;
         state.nonInteractive = true;
         break;
       case "--global":

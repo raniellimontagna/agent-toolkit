@@ -105,6 +105,7 @@ describe("clack menu", () => {
       codex: true,
       opencode: false,
       gemini: false,
+      antigravity: false,
     });
     expect(state.gsdScope).toBe("local");
     expect(state.installMissingClis).toBe(true);

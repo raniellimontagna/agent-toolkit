@@ -42,6 +42,10 @@ function graphifyPlatformArgs(runtime: RuntimeName): string[] {
   return ["install", "--platform", runtime];
 }
 
+function graphifySupportsRuntime(runtime: RuntimeName): boolean {
+  return runtime !== "antigravity";
+}
+
 function installGraphifyPackage(): boolean {
   const graphify = findGraphifyCommand();
   if (graphify) {
@@ -93,6 +97,12 @@ export function installGraphify(): boolean {
   let hadError = false;
   for (const runtime of runtimeNames) {
     if (!state.runtimes[runtime]) continue;
+    if (!graphifySupportsRuntime(runtime)) {
+      warn(
+        `${runtimeMeta[runtime].display} Graphify install is not automated yet; skipping until Graphify supports that platform.`,
+      );
+      continue;
+    }
 
     const args = graphifyPlatformArgs(runtime);
     if (state.gsdScope === "local") args.push("--project");

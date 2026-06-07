@@ -43,6 +43,8 @@ export function checkExternalToolProvenance(): void {
 
   for (const runtime of runtimeNames) {
     if (!state.runtimes[runtime]) continue;
-    checkSource(runtimeMeta[runtime].label, state.cliPackages[runtime]);
+    const packageName = state.cliPackages[runtime];
+    if (!packageName) continue;
+    checkSource(runtimeMeta[runtime].label, packageName);
   }
 }
