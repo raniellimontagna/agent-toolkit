@@ -120,11 +120,15 @@ for module in \
   args.ts \
   checksum.ts \
   context.ts \
+  doctor.ts \
+  lock-update.ts \
   logger.ts \
   main.ts \
   menu.ts \
+  manifest.ts \
   provenance.ts \
   runtimes.ts \
+  skills-audit.ts \
   skills.ts \
   state.ts \
   system.ts \
@@ -346,6 +350,15 @@ for expected in \
   "--skills-package" \
   "--skills-scope" \
   "--skills-path" \
+  "--dry-run" \
+  "--plan-only" \
+  "--doctor" \
+  "--status" \
+  "--json" \
+  "--uninstall" \
+  "--repair" \
+  "--update-lock" \
+  "--skills-audit" \
   "--install-missing-clis" \
   "--allow-mutable-sources" \
   "--claude" \
@@ -364,6 +377,62 @@ done
 
 if ! grep -Fq -- "npx -y @ranimontagna/agent-toolkit --all --codex" "$ROOT_DIR/README.md"; then
   echo "Expected README to document one-command install through npm" >&2
+  exit 1
+fi
+
+: > "$NPM_LOG"
+: > "$GIT_LOG"
+DRY_RUN_HOME="$TMP_DIR/dry-run-home"
+DRY_RUN_PROJECT="$TMP_DIR/dry-run-project"
+mkdir -p "$DRY_RUN_HOME" "$DRY_RUN_PROJECT"
+
+DRY_RUN_OUTPUT="$(
+  cd "$DRY_RUN_PROJECT"
+  HOME="$DRY_RUN_HOME" \
+  XDG_CONFIG_HOME="$DRY_RUN_HOME/.config" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  RTK_INSTALL_DIR="$TMP_DIR/dry-run-install-bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --all --codex --dry-run
+)"
+
+if ! grep -Fq -- "Dry run: no changes were made." <<<"$DRY_RUN_OUTPUT" || \
+  ! grep -Fq -- "Install plan" <<<"$DRY_RUN_OUTPUT"; then
+  echo "Expected --dry-run to print an install plan and no-change message" >&2
+  echo "$DRY_RUN_OUTPUT" >&2
+  exit 1
+fi
+
+if [[ -s "$NPM_LOG" || -s "$GIT_LOG" || -e "$DRY_RUN_PROJECT/.codex/skills" ]]; then
+  echo "Expected --dry-run to avoid installer side effects" >&2
+  cat "$NPM_LOG" >&2
+  cat "$GIT_LOG" >&2
+  find "$DRY_RUN_PROJECT" -maxdepth 5 -type f -print >&2 || true
+  exit 1
+fi
+
+DOCTOR_JSON="$(
+  HOME="$DRY_RUN_HOME" \
+  XDG_CONFIG_HOME="$DRY_RUN_HOME/.config" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --doctor --json --codex
+)"
+
+DOCTOR_JSON="$DOCTOR_JSON" "$REAL_NODE" --input-type=module <<'NODE'
+const report = JSON.parse(process.env.DOCTOR_JSON);
+if (report.command !== "doctor" || !report.status || !Array.isArray(report.issues)) {
+  throw new Error("Expected --doctor --json to emit a machine-readable doctor report");
+}
+NODE
+
+SKILLS_AUDIT_OUTPUT="$(
+  HOME="$DRY_RUN_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-audit --skills-package core
+)"
+
+if ! grep -Fq -- "Skills audit passed" <<<"$SKILLS_AUDIT_OUTPUT"; then
+  echo "Expected --skills-audit to pass for bundled core skills" >&2
+  echo "$SKILLS_AUDIT_OUTPUT" >&2
   exit 1
 fi
 
@@ -550,6 +619,25 @@ EOF
 
 if [[ ! -f "$CUSTOM_PROJECT/.codex/skills/sample-skill/SKILL.md" ]]; then
   echo "Expected --skills-dir with --local --codex to install into project .codex/skills" >&2
+  find "$CUSTOM_PROJECT" -maxdepth 5 -type f -print >&2 || true
+  exit 1
+fi
+
+if [[ ! -f "$CUSTOM_PROJECT/.agent-toolkit/install-manifest.json" ]]; then
+  echo "Expected local custom skill install to write an Agent Toolkit manifest" >&2
+  find "$CUSTOM_PROJECT" -maxdepth 5 -type f -print >&2 || true
+  exit 1
+fi
+
+(
+  cd "$CUSTOM_PROJECT"
+  HOME="$CUSTOM_SKILLS_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --uninstall --skills-only --codex --local >/dev/null
+)
+
+if [[ -e "$CUSTOM_PROJECT/.codex/skills/sample-skill" ]]; then
+  echo "Expected --uninstall to remove skill directories recorded in the manifest" >&2
   find "$CUSTOM_PROJECT" -maxdepth 5 -type f -print >&2 || true
   exit 1
 fi

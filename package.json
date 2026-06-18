@@ -14,7 +14,10 @@
     "skills",
     "tools.lock.json",
     "setup-agent-toolkit.sh",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md"
   ],
   "publishConfig": {
     "access": "public"
@@ -26,6 +29,9 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "prepare": "pnpm run build",
+    "release:major": "pnpm run build && node dist/src/release.js major",
+    "release:minor": "pnpm run build && node dist/src/release.js minor",
+    "release:patch": "pnpm run build && node dist/src/release.js patch",
     "security": "pnpm run security:audit",
     "security:audit": "pnpm audit --audit-level=moderate",
     "test": "pnpm run test:unit && pnpm run test:integration",

@@ -118,6 +118,30 @@ Install only bundled Custom Skills into the current project:
 npx -y @ranimontagna/agent-toolkit --skills-only --codex --local
 ```
 
+Preview an install plan without changing files:
+
+```bash
+npx -y @ranimontagna/agent-toolkit --all --codex --dry-run
+```
+
+Inspect selected tools and runtimes as JSON:
+
+```bash
+npx -y @ranimontagna/agent-toolkit --doctor --json --codex
+```
+
+Audit bundled Custom Skills metadata and local links:
+
+```bash
+npx -y @ranimontagna/agent-toolkit --skills-audit
+```
+
+Report newer candidates for pinned external tools:
+
+```bash
+npx -y @ranimontagna/agent-toolkit --update-lock
+```
+
 Install only the `core` Custom Skills package:
 
 ```bash
@@ -405,6 +429,16 @@ Install scope:
   --skills-path PATH     Install an exact Custom Skill path
   --skills-list          List discovered Custom Skills and exit
 
+Operations:
+  --dry-run              Print the selected install plan without changing files
+  --plan-only            Alias for --dry-run
+  --doctor, --status     Inspect selected tools and runtimes without installing
+  --json                 Emit machine-readable output for supported operations
+  --uninstall            Remove files recorded in the Agent Toolkit manifest
+  --repair               Re-run selected installs and refresh the manifest
+  --update-lock          Report newer versions for pinned external sources
+  --skills-audit         Validate bundled Custom Skills metadata and links
+
 Other:
   --install-missing-clis Install or update selected runtime CLIs
   --allow-mutable-sources Allow explicit mutable package sources like @latest
@@ -592,6 +626,9 @@ pnpm run typecheck
 pnpm run lint
 pnpm run lint:fix
 pnpm run format
+pnpm run release:patch
+pnpm run release:minor
+pnpm run release:major
 pnpm run security
 pnpm run test:unit
 pnpm run test:integration
@@ -623,6 +660,15 @@ Release a new npm version by updating `package.json`, pushing the change to
 ```bash
 git tag v0.1.17
 git push origin v0.1.17
+```
+
+For normal releases, prefer the scripted flow. It bumps `package.json`, updates
+the README release tag example, runs `pnpm run check`, commits with a
+Conventional Commit message and creates the local tag:
+
+```bash
+pnpm run release:patch
+git push origin main v0.1.18
 ```
 
 The `Release` workflow runs the full check and publishes the scoped package to

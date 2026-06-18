@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { HOME } from "./context.js";
 import { err, ok, step, warn } from "./logger.js";
+import { recordSkillInstall } from "./manifest.js";
 import {
   normalizedSkillPackages,
   normalizedSkillPaths,
@@ -277,7 +278,7 @@ export function listCustomSkills(): boolean {
   return true;
 }
 
-function copySkillDir(sourceDir: string, targetRoot: string): void {
+function copySkillDir(sourceDir: string, targetRoot: string): string {
   const name = path.basename(sourceDir);
   const destination = path.join(targetRoot, name);
   const tempDestination = `${destination}.tmp.${process.pid}`;
@@ -287,6 +288,7 @@ function copySkillDir(sourceDir: string, targetRoot: string): void {
   fs.cpSync(sourceDir, tempDestination, { recursive: true });
   fs.rmSync(destination, { recursive: true, force: true });
   fs.renameSync(tempDestination, destination);
+  return destination;
 }
 
 function installGeminiSkill(skillDir: string): boolean {
@@ -317,8 +319,16 @@ function installCustomSkillsForRuntime(
   for (const skillDir of skillDirs) {
     if (runtime === "gemini") {
       if (!installGeminiSkill(skillDir)) return false;
+      recordSkillInstall(
+        runtime,
+        skillDir,
+        path.join(skillsTargetDir(runtime), path.basename(skillDir)),
+      );
     } else {
-      for (const targetRoot of targetRoots) copySkillDir(skillDir, targetRoot);
+      for (const targetRoot of targetRoots) {
+        const destination = copySkillDir(skillDir, targetRoot);
+        recordSkillInstall(runtime, skillDir, destination);
+      }
     }
     installed += 1;
   }

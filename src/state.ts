@@ -70,6 +70,13 @@ type State = {
   tools: Record<ToolName, boolean>;
   runtimes: Record<RuntimeName, boolean>;
   nonInteractive: boolean;
+  dryRun: boolean;
+  doctor: boolean;
+  jsonOutput: boolean;
+  uninstall: boolean;
+  repair: boolean;
+  updateLock: boolean;
+  auditSkills: boolean;
   installMissingClis: boolean;
   allowMutableSources: boolean;
 };
@@ -216,6 +223,13 @@ export const state: State = {
     antigravity: true,
   },
   nonInteractive: false,
+  dryRun: false,
+  doctor: false,
+  jsonOutput: false,
+  uninstall: false,
+  repair: false,
+  updateLock: false,
+  auditSkills: false,
   installMissingClis: false,
   allowMutableSources: process.env.ALLOW_MUTABLE_SOURCES === "1",
 };

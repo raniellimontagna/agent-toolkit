@@ -46,6 +46,16 @@ Install scope:
   --skills-path PATH    Install exact Custom Skill path, repeatable
   --skills-list         List discovered Custom Skills and exit
 
+Operations:
+  --dry-run             Print the selected install plan without changing files
+  --plan-only           Alias for --dry-run
+  --doctor, --status    Inspect selected tools and runtimes without installing
+  --json                Emit machine-readable output for supported operations
+  --uninstall           Remove files recorded in the Agent Toolkit manifest
+  --repair              Re-run selected installs and refresh the manifest
+  --update-lock         Report newer versions for pinned external sources
+  --skills-audit        Validate bundled Custom Skills metadata and links
+
 Other:
   --install-missing-clis Install or update selected runtime CLIs
   --allow-mutable-sources Allow explicit mutable package sources like @latest

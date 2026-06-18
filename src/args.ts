@@ -172,6 +172,35 @@ export function parseArgs(argv: string[]): boolean {
         state.listSkills = true;
         state.nonInteractive = true;
         break;
+      case "--dry-run":
+      case "--plan-only":
+        state.dryRun = true;
+        state.nonInteractive = true;
+        break;
+      case "--doctor":
+      case "--status":
+        state.doctor = true;
+        state.nonInteractive = true;
+        break;
+      case "--json":
+        state.jsonOutput = true;
+        break;
+      case "--uninstall":
+        state.uninstall = true;
+        state.nonInteractive = true;
+        break;
+      case "--repair":
+        state.repair = true;
+        state.nonInteractive = true;
+        break;
+      case "--update-lock":
+        state.updateLock = true;
+        state.nonInteractive = true;
+        break;
+      case "--skills-audit":
+        state.auditSkills = true;
+        state.nonInteractive = true;
+        break;
       case "--install-missing-clis":
         state.installMissingClis = true;
         break;
