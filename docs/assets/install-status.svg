@@ -13,17 +13,17 @@
 
   <text x="74" y="174" fill="#cbd5e1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">Tools:</text>
   <text x="96" y="204" fill="#86efac" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">[installed]</text>
-  <text x="205" y="204" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">RTK - rtk 0.42.1 (/home/user/.local/bin/rtk)</text>
+  <text x="205" y="204" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">RTK - rtk 0.42.4 (/home/user/.local/bin/rtk)</text>
   <text x="96" y="232" fill="#fde68a" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">[external ]</text>
   <text x="205" y="232" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">Caveman - checked by the Caveman installer</text>
   <text x="96" y="260" fill="#86efac" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">[installed]</text>
-  <text x="205" y="260" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">Graphify - graphify 0.8.31</text>
+  <text x="205" y="260" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">Graphify - graphify 0.8.41</text>
   <text x="96" y="288" fill="#93c5fd" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">[available]</text>
   <text x="205" y="288" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">Custom Skills - 1 source skill package found</text>
 
   <text x="74" y="336" fill="#cbd5e1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">Runtimes:</text>
   <text x="96" y="366" fill="#86efac" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">[installed]</text>
-  <text x="205" y="366" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">Codex CLI - codex 0.137.0</text>
+  <text x="205" y="366" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">Codex CLI - codex 0.141.0</text>
   <text x="96" y="394" fill="#fca5a5" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">[missing  ]</text>
   <text x="205" y="394" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">Gemini CLI - missing from PATH</text>
 

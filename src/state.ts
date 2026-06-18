@@ -14,6 +14,7 @@ export const toolNames = [
   "superpowers",
   "graphify",
   "gsd",
+  "improve",
   "frontend-skills",
   "skills",
 ] as const;
@@ -46,6 +47,12 @@ type State = {
   graphifyPackage: string;
   graphifyInstaller: string;
   gsdPackage: string;
+  improveSkillSource: {
+    label: string;
+    repository: string;
+    ref: string;
+    skill: string;
+  };
   frontendSkillsCliPackage: string;
   frontendSkillSources: Array<{
     label: string;
@@ -128,6 +135,12 @@ export const state: State = {
       toolLock.tools.gsd.package,
       toolLock.tools.gsd.version,
     ),
+  improveSkillSource: {
+    label: "Improve",
+    repository: toolLock.tools.improve.repository,
+    ref: toolLock.tools.improve.ref,
+    skill: toolLock.tools.improve.skill,
+  },
   frontendSkillsCliPackage:
     process.env.SKILLS_CLI_PACKAGE ||
     formatNpmPackageSpec(
@@ -191,6 +204,7 @@ export const state: State = {
     superpowers: true,
     graphify: true,
     gsd: true,
+    improve: true,
     "frontend-skills": true,
     skills: true,
   },

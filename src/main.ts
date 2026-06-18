@@ -4,6 +4,7 @@ import { installCaveman } from "./installers/caveman.js";
 import { installFrontendSkills } from "./installers/frontend-skills.js";
 import { installGraphify } from "./installers/graphify.js";
 import { installGsd } from "./installers/gsd.js";
+import { installImprove } from "./installers/improve.js";
 import { installRtk } from "./installers/rtk.js";
 import { installSuperpowers } from "./installers/superpowers.js";
 import { die, err, skip, warn } from "./logger.js";
@@ -79,6 +80,15 @@ export async function runInstaller(
     }
   } else {
     skip("GSD");
+  }
+
+  if (state.tools.improve) {
+    if (!installImprove()) {
+      err("Improve install failed.");
+      hadError = true;
+    }
+  } else {
+    skip("Improve");
   }
 
   if (state.tools["frontend-skills"]) {

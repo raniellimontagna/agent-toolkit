@@ -75,6 +75,8 @@ export function selectedSkillsAgentArgs(): string[] {
 }
 
 function installRuntimeCli(runtime: RuntimeName): boolean {
+  if (runtime === "antigravity") return installAntigravityCli();
+
   const label = runtimeLabel(runtime);
   const command = runtimeCommand(runtime);
   const packageName = state.cliPackages[runtime];
@@ -101,6 +103,53 @@ function installRuntimeCli(runtime: RuntimeName): boolean {
   }
 
   err(`${label} package installed, but '${command}' is still not on PATH.`);
+  return false;
+}
+
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, "'\\''")}'`;
+}
+
+function installAntigravityCli(): boolean {
+  const label = runtimeLabel("antigravity");
+  const installScript =
+    process.env.ANTIGRAVITY_INSTALL_SCRIPT ||
+    "https://antigravity.google/cli/install.sh";
+
+  if (process.platform === "win32") {
+    const installCommand = `irm ${installScript} | iex`;
+    info(`Installing ${label} via official PowerShell installer...`);
+    const result = run("powershell.exe", [
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-Command",
+      installCommand,
+    ]);
+    if (!result.ok) {
+      err(`${label} install failed.`);
+      return false;
+    }
+  } else {
+    requireCommand("bash");
+    requireCommand("curl");
+    info(`Installing ${label} via official installer ${installScript}...`);
+    const result = run("bash", [
+      "-c",
+      `curl -fsSL ${shellQuote(installScript)} | bash`,
+    ]);
+    if (!result.ok) {
+      err(`${label} install failed.`);
+      return false;
+    }
+  }
+
+  if (commandExists(runtimeCommand("antigravity"))) {
+    ok(`${label} installed`);
+    return true;
+  }
+
+  err(`${label} installer completed, but 'agy' is still not on PATH.`);
   return false;
 }
 
@@ -149,12 +198,8 @@ function ensureRuntimeCli(runtime: RuntimeName): boolean {
     return true;
   }
 
-  if (state.installMissingClis && !packageName) {
-    warn(
-      `${label} is installed with the official Antigravity installer, not npm; install it from https://antigravity.google/docs/cli-install.`,
-    );
-    return true;
-  }
+  if (state.installMissingClis && !packageName)
+    return installRuntimeCli(runtime);
 
   if (state.installMissingClis) return installRuntimeCli(runtime);
 
@@ -185,7 +230,7 @@ export function checkPrerequisites(): void {
     ok("npx found");
   }
 
-  if (state.tools["frontend-skills"]) {
+  if (state.tools["frontend-skills"] || state.tools.improve) {
     requireNode(18);
     requireCommand("git");
     requireCommand("npx");
@@ -206,7 +251,12 @@ export function checkPrerequisites(): void {
     }
   }
 
-  if (state.installMissingClis) {
+  if (
+    state.installMissingClis &&
+    runtimeNames.some(
+      (runtime) => state.runtimes[runtime] && state.cliPackages[runtime],
+    )
+  ) {
     requireNode(18);
     requireCommand("npm");
     ok("npm found");

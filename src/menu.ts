@@ -278,6 +278,14 @@ function toolOptions(status: InstallerStatus): ClackOption[] {
       hint: detectionHint(status.tools.gsd, "phase-based project control"),
     },
     {
+      value: "improve",
+      label: "Improve",
+      hint: detectionHint(
+        status.tools.improve,
+        "codebase audit and planning advisor",
+      ),
+    },
+    {
       value: "frontend-skills",
       label: "Frontend Skills",
       hint: detectionHint(
@@ -474,7 +482,7 @@ async function showReadlineMenu(): Promise<void> {
     console.log("");
 
     const toolsAnswer = await rl.question(
-      "Tools to install [comma list: rtk,caveman,superpowers,graphify,gsd,frontend-skills,skills, or all]: ",
+      "Tools to install [comma list: rtk,caveman,superpowers,graphify,gsd,improve,frontend-skills,skills, or all]: ",
     );
     selectToolsFromAnswer(toolsAnswer);
 

@@ -97,6 +97,7 @@ describe("clack menu", () => {
       superpowers: false,
       graphify: false,
       gsd: false,
+      improve: false,
       "frontend-skills": false,
       skills: true,
     });

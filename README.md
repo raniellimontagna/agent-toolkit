@@ -8,8 +8,8 @@ npx -y @ranimontagna/agent-toolkit
 ```
 
 Agent Toolkit installs the tools and skills I use to run agentic coding
-workflows: RTK, Caveman, Superpowers, Graphify, GSD, third-party frontend
-skills and bundled Custom Skills.
+workflows: RTK, Caveman, Superpowers, Graphify, GSD, shadcn Improve,
+third-party frontend skills and bundled Custom Skills.
 
 The installer is a TypeScript CLI published to npm. The Bash script is only a
 compatibility wrapper for users who already run `setup-agent-toolkit.sh`.
@@ -43,6 +43,7 @@ skills and already present destinations before installation starts.
 | Superpowers | Planning, TDD, debugging, review and delivery workflows |
 | Graphify | Queryable knowledge graphs for codebases, docs and project context |
 | GSD | Phase-based planning, execution, verification and project control |
+| Improve | shadcn advisor skill for codebase audits and execution plans |
 | Frontend Skills | Third-party design skills installed through Agent Skills CLI |
 | Custom Skills | Bundled skills from this repository, selected by package, scope and exact skill |
 
@@ -54,7 +55,7 @@ skills and already present destinations before installation starts.
 | Codex CLI | Plugins, skills and local automation |
 | OpenCode | Skills plus package-driven tools |
 | Gemini CLI | Extensions and native Agent Skills install |
-| Antigravity | Custom Skills and third-party frontend skills |
+| Antigravity | Custom Skills, third-party frontend skills and official `agy` install |
 
 Superpowers is installed automatically for Claude Code, Codex CLI and Gemini
 CLI. OpenCode Superpowers support is not automated yet because the upstream
@@ -62,10 +63,16 @@ install flow is not a stable single command. Antigravity Superpowers support is
 not automated yet because there is not a pinned supported plugin package in this
 toolkit.
 
-Caveman, GSD, Frontend Skills and Custom Skills can target Claude Code, Codex
-CLI, OpenCode and Gemini CLI. Frontend Skills and Custom Skills can also target
-Antigravity. Graphify is installed through the official `graphifyy` package and
-registers itself for selected runtimes that Graphify supports.
+Caveman, GSD, Improve, Frontend Skills and Custom Skills can target Claude
+Code, Codex CLI, OpenCode and Gemini CLI. Improve, Frontend Skills and Custom
+Skills can also target Antigravity. Graphify is installed through the official
+`graphifyy` package and registers itself for selected runtimes that Graphify
+supports.
+
+When `--install-missing-clis` is enabled, Antigravity is installed through the
+official `agy` installer instead of npm. Global Antigravity Custom Skills are
+copied to the official `~/.gemini/antigravity-cli/skills/` path and mirrored to
+`~/.agents/skills/` for compatibility with the Agent Skills CLI.
 
 ## Quick Commands
 
@@ -91,6 +98,12 @@ Install only Graphify for Codex CLI:
 
 ```bash
 npx -y @ranimontagna/agent-toolkit --graphify-only --codex
+```
+
+Install only shadcn Improve for Codex CLI:
+
+```bash
+npx -y @ranimontagna/agent-toolkit --improve-only --codex
 ```
 
 Install only third-party frontend design skills for Codex CLI:
@@ -177,6 +190,23 @@ skills/
         SKILL.md
         data/
         scripts/
+    gsap/
+      gsap-core/
+        SKILL.md
+      gsap-frameworks/
+        SKILL.md
+      gsap-performance/
+        SKILL.md
+      gsap-plugins/
+        SKILL.md
+      gsap-react/
+        SKILL.md
+      gsap-scrolltrigger/
+        SKILL.md
+      gsap-timeline/
+        SKILL.md
+      gsap-utils/
+        SKILL.md
     react-native/
       react-native-expert/
         SKILL.md
@@ -301,6 +331,14 @@ Follow these steps...
 | `frontend` | `accessibility` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/skills/accessibility) under the MIT license |
 | `frontend` | `astro-developer` | Copied from the official [`withastro/astro`](https://github.com/withastro/astro/tree/main/.agents/skills/astro-developer) repository under the MIT license |
 | `frontend` | `ui-ux-pro-max` | Copied from Next Level Builder's [`ui-ux-pro-max-skill`](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/tree/main/.claude/skills/ui-ux-pro-max) under the MIT license |
+| `frontend` | `gsap-core` | Copied from GreenSock's [`gsap-skills`](https://github.com/greensock/gsap-skills/tree/main/skills/gsap-core) under the MIT license |
+| `frontend` | `gsap-frameworks` | Copied from GreenSock's [`gsap-skills`](https://github.com/greensock/gsap-skills/tree/main/skills/gsap-frameworks) under the MIT license |
+| `frontend` | `gsap-performance` | Copied from GreenSock's [`gsap-skills`](https://github.com/greensock/gsap-skills/tree/main/skills/gsap-performance) under the MIT license |
+| `frontend` | `gsap-plugins` | Copied from GreenSock's [`gsap-skills`](https://github.com/greensock/gsap-skills/tree/main/skills/gsap-plugins) under the MIT license |
+| `frontend` | `gsap-react` | Copied from GreenSock's [`gsap-skills`](https://github.com/greensock/gsap-skills/tree/main/skills/gsap-react) under the MIT license |
+| `frontend` | `gsap-scrolltrigger` | Copied from GreenSock's [`gsap-skills`](https://github.com/greensock/gsap-skills/tree/main/skills/gsap-scrolltrigger) under the MIT license |
+| `frontend` | `gsap-timeline` | Copied from GreenSock's [`gsap-skills`](https://github.com/greensock/gsap-skills/tree/main/skills/gsap-timeline) under the MIT license |
+| `frontend` | `gsap-utils` | Copied from GreenSock's [`gsap-skills`](https://github.com/greensock/gsap-skills/tree/main/skills/gsap-utils) under the MIT license |
 | `frontend` | `react-native-expert` | Copied from Jeffallan's [`claude-skills`](https://github.com/Jeffallan/claude-skills/tree/main/skills/react-native-expert) under the MIT license |
 | `frontend` | `react-native-unistyles-v3` | Copied from Jacek Pudysz's [`react-native-unistyles`](https://github.com/jpudysz/react-native-unistyles/tree/main/skills/react-native-unistyles-v3), declared MIT upstream |
 | `frontend` | `react-patterns` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/skills/react-patterns) under the MIT license |
@@ -333,6 +371,7 @@ Tools:
   --superpowers-only     Install only Superpowers
   --graphify-only        Install only Graphify
   --gsd-only             Install only GSD
+  --improve-only         Install only shadcn Improve
   --frontend-skills-only Install only third-party frontend skills
   --skills-only          Install only Custom Skills
   --no-rtk               Skip RTK
@@ -340,6 +379,7 @@ Tools:
   --no-superpowers       Skip Superpowers
   --no-graphify          Skip Graphify
   --no-gsd               Skip GSD
+  --no-improve           Skip shadcn Improve
   --no-frontend-skills   Skip third-party frontend skills
   --no-skills            Skip Custom Skills
 
@@ -392,7 +432,9 @@ CUSTOM_SKILLS_DIR     Source directory for Custom Skills
 SKILLS_PACKAGE        Comma-separated first-level skill package filters
 SKILLS_SCOPE          Comma-separated skill scope filters
 SKILLS_PATH           Comma-separated exact skill path filters
+ANTIGRAVITY_INSTALL_SCRIPT Official Antigravity CLI install script URL
 ANTIGRAVITY_SKILLS_DIR Global Antigravity skills directory
+ANTIGRAVITY_LEGACY_SKILLS_DIR Legacy Antigravity skills mirror directory
 CLAUDE_CLI_PACKAGE    npm package used to install Claude Code CLI
 CODEX_CLI_PACKAGE     npm package used to install Codex CLI
 OPENCODE_CLI_PACKAGE  npm package used to install OpenCode CLI
@@ -402,15 +444,16 @@ GEMINI_CLI_PACKAGE    npm package used to install Gemini CLI
 Defaults come from `tools.lock.json`:
 
 ```text
-CAVEMAN_PACKAGE=github:JuliusBrussee/caveman#655b7d9c5431f822264b7732e9901c5578ac84cf
-GRAPHIFY_PACKAGE=graphifyy==0.8.31
+CAVEMAN_PACKAGE=github:JuliusBrussee/caveman#25d22f864ad68cc447a4cb93aefde918aa4aec9f
+GRAPHIFY_PACKAGE=graphifyy==0.8.41
 GRAPHIFY_INSTALLER=uv
 GSD_PACKAGE=get-shit-done-cc@1.42.3
-SKILLS_CLI_PACKAGE=skills@1.5.10
-CLAUDE_CLI_PACKAGE=@anthropic-ai/claude-code@2.1.162
-CODEX_CLI_PACKAGE=@openai/codex@0.137.0
-OPENCODE_CLI_PACKAGE=opencode-ai@1.15.13
-GEMINI_CLI_PACKAGE=@google/gemini-cli@0.45.0
+SKILLS_CLI_PACKAGE=skills@1.5.11
+ANTIGRAVITY_INSTALL_SCRIPT=https://antigravity.google/cli/install.sh
+CLAUDE_CLI_PACKAGE=@anthropic-ai/claude-code@2.1.181
+CODEX_CLI_PACKAGE=@openai/codex@0.141.0
+OPENCODE_CLI_PACKAGE=opencode-ai@1.17.8
+GEMINI_CLI_PACKAGE=@google/gemini-cli@0.47.0
 ```
 
 Mutable overrides like `@latest`, unpinned npm packages or GitHub package
@@ -436,11 +479,12 @@ Current external sources:
 
 | Tool | Locked source | Runtime verification |
 |---|---|---|
-| RTK | GitHub release `rtk-ai/rtk@v0.42.1` | Verifies the selected asset SHA-256 before extraction |
-| Caveman | `JuliusBrussee/caveman` at commit `655b7d9c5431f822264b7732e9901c5578ac84cf` | Immutable GitHub npm spec |
-| Graphify | `graphifyy==0.8.31` | Blocks unpinned package overrides |
+| RTK | GitHub release `rtk-ai/rtk@v0.42.4` | Verifies the selected asset SHA-256 before extraction |
+| Caveman | `JuliusBrussee/caveman` at commit `25d22f864ad68cc447a4cb93aefde918aa4aec9f` | Immutable GitHub npm spec |
+| Graphify | `graphifyy==0.8.41` | Blocks unpinned package overrides |
 | GSD | `get-shit-done-cc@1.42.3` | Blocks `@latest` unless explicitly allowed |
-| Frontend Skills | `skills@1.5.10`, `pbakaus/impeccable` and `Leonxlnx/taste-skill` at pinned commits | Clones pinned refs before install |
+| Improve | `shadcn/improve` at commit `03369ee6d7cafbfcecc4346539b05b3dc0a603bb` | Clones the pinned ref before Agent Skills CLI install |
+| Frontend Skills | `skills@1.5.11`, `pbakaus/impeccable` and `Leonxlnx/taste-skill` at pinned commits | Clones pinned refs before install |
 | Runtime CLIs | Exact npm versions for Claude, Codex, OpenCode and Gemini | Installed or updated only when `--install-missing-clis` is enabled; Antigravity uses the official `agy` installer instead of npm |
 
 Bundled third-party skills preserve upstream attribution and license files:
@@ -450,6 +494,7 @@ Bundled third-party skills preserve upstream attribution and license files:
 | `api-design` | `affaan-m/ECC@0f84c0e2796703fbda87d577b2636351418c7442` | MIT |
 | `fastify-best-practices` | `mcollina/skills@5b2a81354b6d10325da0db9decc9ce5ecc714138` | MIT |
 | `astro-developer` | `withastro/astro@c90ce9751c7862a7280e752549ef74298669693d` | MIT |
+| `gsap-*` | `greensock/gsap-skills@aed9cfd3277740755f6bfc1155c7aa645403b760` | MIT |
 | `react-native-expert` | `Jeffallan/claude-skills@e8be415bc94d8d6ebddc2fb50e5d03c6e27d4319` | MIT |
 | `react-native-unistyles-v3` | `jpudysz/react-native-unistyles@8b5e9fd281a81bdfd87d4fe9e6a0b042c84c5c83` | MIT |
 | `react-patterns` | `affaan-m/ECC@0f84c0e2796703fbda87d577b2636351418c7442` | MIT |
@@ -513,11 +558,13 @@ tools.lock.json          Pinned external tool sources and RTK checksums
 Prerequisites:
 
 - Node.js 22+ for the full toolkit;
-- `npx` for Caveman, GSD and third-party frontend skills;
-- `git` for pinned third-party frontend skill sources;
+- `npx` for Caveman, GSD, Improve and third-party frontend skills;
+- `git` for pinned third-party Agent Skills sources;
 - `pnpm` 11.x for repository development;
-- `npm` when using `--install-missing-clis` or publishing through npm trusted
-  publishing;
+- `npm` when using `--install-missing-clis` for npm-managed runtimes or
+  publishing through npm trusted publishing;
+- `curl` and `bash` when installing Antigravity CLI through
+  `--install-missing-clis`;
 - `uv` for Graphify, or `pipx` when `GRAPHIFY_INSTALLER=pipx`;
 - `tar` or `unzip` only when RTK needs to be downloaded;
 - runtime CLIs you want to target: `claude`, `codex`, `opencode`, `gemini`,

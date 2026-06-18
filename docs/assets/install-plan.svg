@@ -11,8 +11,8 @@
   <text x="52" y="104" fill="#93c5fd" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="19" font-weight="700">Install plan</text>
 
   <text x="74" y="144" fill="#cbd5e1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">Selected tools:</text>
-  <text x="96" y="174" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">- RTK: rtk 0.42.1 already on PATH</text>
-  <text x="96" y="202" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">- Graphify: graphify 0.8.31 already on PATH</text>
+  <text x="96" y="174" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">- RTK: rtk 0.42.4 already on PATH</text>
+  <text x="96" y="202" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">- Graphify: graphify 0.8.41 already on PATH</text>
   <text x="96" y="230" fill="#e5e7eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">- Custom Skills: 1 selected source skill</text>
 
   <text x="74" y="282" fill="#cbd5e1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">Selected runtimes:</text>

@@ -3,7 +3,7 @@
   "version": "0.1.16",
   "description": "Personal AI agent toolkit installer for Claude Code, Codex CLI, OpenCode, Gemini CLI, Antigravity and graph-aware workflows.",
   "type": "module",
-  "packageManager": "pnpm@11.0.6",
+  "packageManager": "pnpm@11.8.0",
   "bin": {
     "agent-toolkit": "dist/bin/agent-toolkit.js",
     "setup-agent-toolkit": "dist/bin/agent-toolkit.js"
@@ -43,12 +43,12 @@
   "homepage": "https://github.com/raniellimontagna/agent-toolkit#readme",
   "license": "MIT",
   "devDependencies": {
-    "@biomejs/biome": "^2.4.16",
-    "@types/node": "^25.9.1",
+    "@biomejs/biome": "^2.5.0",
+    "@types/node": "^25.9.3",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.9"
   },
   "dependencies": {
-    "@clack/prompts": "^1.5.0"
+    "@clack/prompts": "^1.5.1"
   }
 }

@@ -24,6 +24,8 @@ export function printSelections(): void {
   if (state.tools.graphify)
     console.log(`   ${color.green}+${color.reset} Graphify`);
   if (state.tools.gsd) console.log(`   ${color.green}+${color.reset} GSD`);
+  if (state.tools.improve)
+    console.log(`   ${color.green}+${color.reset} Improve`);
   if (state.tools.skills)
     console.log(`   ${color.green}+${color.reset} Custom Skills`);
   console.log("");

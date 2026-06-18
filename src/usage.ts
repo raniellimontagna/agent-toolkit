@@ -12,6 +12,7 @@ Tools:
   --superpowers-only    Install only Superpowers
   --graphify-only       Install only Graphify
   --gsd-only            Install only GSD
+  --improve-only        Install only shadcn Improve
   --frontend-skills-only Install only third-party frontend skills
   --skills-only         Install only Custom Skills
   --no-rtk              Skip RTK
@@ -19,6 +20,7 @@ Tools:
   --no-superpowers      Skip Superpowers
   --no-graphify         Skip Graphify
   --no-gsd              Skip GSD
+  --no-improve          Skip shadcn Improve
   --no-frontend-skills  Skip third-party frontend skills
   --no-skills           Skip Custom Skills
 
@@ -65,7 +67,9 @@ Environment:
   SKILLS_PACKAGE        Comma-separated first-level skill package filters
   SKILLS_SCOPE          Comma-separated skill scope filters
   SKILLS_PATH           Comma-separated exact skill path filters
+  ANTIGRAVITY_INSTALL_SCRIPT Official Antigravity CLI install script URL
   ANTIGRAVITY_SKILLS_DIR Global Antigravity skills directory
+  ANTIGRAVITY_LEGACY_SKILLS_DIR Legacy Antigravity skills mirror directory
   CLAUDE_CLI_PACKAGE    npm package used to install Claude Code CLI
   CODEX_CLI_PACKAGE     npm package used to install Codex CLI
   OPENCODE_CLI_PACKAGE  npm package used to install OpenCode CLI

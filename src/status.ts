@@ -43,6 +43,8 @@ export function toolDisplayName(tool: ToolName): string {
       return "Graphify";
     case "gsd":
       return "GSD";
+    case "improve":
+      return "Improve";
     case "frontend-skills":
       return "Frontend Skills";
     case "skills":
@@ -101,6 +103,11 @@ export function detectInstallerStatus(): InstallerStatus {
         state: "external",
         summary: "checked by the GSD installer",
         detail: state.gsdPackage,
+      },
+      improve: {
+        state: "external",
+        summary: "pinned shadcn advisor skill",
+        detail: `${state.improveSkillSource.repository}@${state.improveSkillSource.ref}`,
       },
       "frontend-skills": {
         state: "external",

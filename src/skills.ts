@@ -28,10 +28,29 @@ function geminiConfigDir(): string {
   return process.env.GEMINI_CONFIG_DIR || path.join(HOME, ".gemini");
 }
 
-function antigravitySkillsDir(): string {
+function antigravityOfficialSkillsDir(): string {
   return (
-    process.env.ANTIGRAVITY_SKILLS_DIR || path.join(HOME, ".agents", "skills")
+    process.env.ANTIGRAVITY_SKILLS_DIR ||
+    path.join(HOME, ".gemini", "antigravity-cli", "skills")
   );
+}
+
+function antigravityLegacySkillsDir(): string {
+  return (
+    process.env.ANTIGRAVITY_LEGACY_SKILLS_DIR ||
+    path.join(HOME, ".agents", "skills")
+  );
+}
+
+function skillsTargetDirs(runtime: RuntimeName): string[] {
+  if (state.gsdScope === "global" && runtime === "antigravity") {
+    return [
+      antigravityOfficialSkillsDir(),
+      antigravityLegacySkillsDir(),
+    ].filter((dir, index, dirs) => dirs.indexOf(dir) === index);
+  }
+
+  return [skillsTargetDir(runtime)];
 }
 
 export function skillsTargetDir(runtime: RuntimeName): string {
@@ -59,7 +78,7 @@ export function skillsTargetDir(runtime: RuntimeName): string {
     case "gemini":
       return path.join(geminiConfigDir(), "skills");
     case "antigravity":
-      return antigravitySkillsDir();
+      return antigravityOfficialSkillsDir();
   }
 }
 
@@ -292,14 +311,14 @@ function installCustomSkillsForRuntime(
   runtime: RuntimeName,
   skillDirs: string[],
 ): boolean {
-  const targetRoot = skillsTargetDir(runtime);
+  const targetRoots = skillsTargetDirs(runtime);
   let installed = 0;
 
   for (const skillDir of skillDirs) {
     if (runtime === "gemini") {
       if (!installGeminiSkill(skillDir)) return false;
     } else {
-      copySkillDir(skillDir, targetRoot);
+      for (const targetRoot of targetRoots) copySkillDir(skillDir, targetRoot);
     }
     installed += 1;
   }
@@ -308,7 +327,9 @@ function installCustomSkillsForRuntime(
     if (runtime === "gemini" && commandExists("gemini")) {
       ok(`Installed ${installed} skill(s) for gemini via Gemini CLI`);
     } else {
-      ok(`Installed ${installed} skill(s) for ${runtime} at ${targetRoot}`);
+      ok(
+        `Installed ${installed} skill(s) for ${runtime} at ${targetRoots.join(", ")}`,
+      );
     }
   } else {
     warn(`No skills found in ${state.customSkillsDir} for ${runtime}`);

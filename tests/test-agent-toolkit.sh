@@ -135,6 +135,7 @@ for module in \
   installers/frontend-skills.ts \
   installers/graphify.ts \
   installers/gsd.ts \
+  installers/improve.ts \
   installers/rtk.ts \
   installers/superpowers.ts; do
   if [[ ! -f "$ROOT_DIR/src/$module" ]]; then
@@ -234,7 +235,7 @@ cat > "$FAKE_BIN/uv" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$GRAPHIFY_LOG"
 case " \$* " in
-  *" tool install graphifyy==0.8.31 "*) cat > "$FAKE_BIN/graphify" <<'GRAPHIFY'
+  *" tool install graphifyy==0.8.41 "*) cat > "$FAKE_BIN/graphify" <<'GRAPHIFY'
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$GRAPHIFY_LOG"
 case "\${1:-}" in
@@ -252,7 +253,7 @@ cat > "$FAKE_BIN/pipx" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$GRAPHIFY_LOG"
 case " \$* " in
-  *" install graphifyy==0.8.31 "*) cat > "$FAKE_BIN/graphify" <<'GRAPHIFY'
+  *" install graphifyy==0.8.41 "*) cat > "$FAKE_BIN/graphify" <<'GRAPHIFY'
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$GRAPHIFY_LOG"
 case "\${1:-}" in
@@ -330,12 +331,14 @@ for expected in \
   "npx -y @ranimontagna/agent-toolkit" \
   "--caveman-only" \
   "--gsd-only" \
+  "--improve-only" \
   "--frontend-skills-only" \
   "--graphify-only" \
   "--skills-only" \
   "--superpowers-only" \
   "--rtk-only" \
   "--no-graphify" \
+  "--no-improve" \
   "--no-frontend-skills" \
   "--no-skills" \
   "--skills-dir" \
@@ -370,7 +373,7 @@ PATH="$FAKE_BIN:/usr/bin:/bin" \
 RTK_INSTALL_DIR="$TMP_DIR/install-bin" \
 bash "$ROOT_DIR/setup-agent-toolkit.sh" --all --all-runtimes >/dev/null
 
-if ! grep -Fxq -- "-y github:JuliusBrussee/caveman#655b7d9c5431f822264b7732e9901c5578ac84cf --only claude --only codex --only opencode --only gemini --minimal --non-interactive" "$NPM_LOG"; then
+if ! grep -Fxq -- "-y github:JuliusBrussee/caveman#25d22f864ad68cc447a4cb93aefde918aa4aec9f --only claude --only codex --only opencode --only gemini --minimal --non-interactive" "$NPM_LOG"; then
   echo "Expected Caveman installer to target Claude, Codex, OpenCode and Gemini" >&2
   cat "$NPM_LOG" >&2
   exit 1
@@ -394,14 +397,20 @@ if grep -Fq -- "--antigravity" "$NPM_LOG"; then
   exit 1
 fi
 
-if ! grep -Eq -- "-y skills@1\\.5\\.10 add .+ --skill impeccable --agent claude-code --agent codex --agent opencode --agent gemini-cli --agent antigravity --global -y --copy" "$NPM_LOG"; then
+if ! grep -Eq -- "-y skills@1\\.5\\.11 add .+ --skill impeccable --agent claude-code --agent codex --agent opencode --agent gemini-cli --agent antigravity --global -y --copy" "$NPM_LOG"; then
   echo "Expected external frontend skill installer to install Impeccable for selected runtimes" >&2
   cat "$NPM_LOG" >&2
   exit 1
 fi
 
-if ! grep -Eq -- "-y skills@1\\.5\\.10 add .+ --skill design-taste-frontend --agent claude-code --agent codex --agent opencode --agent gemini-cli --agent antigravity --global -y --copy" "$NPM_LOG"; then
+if ! grep -Eq -- "-y skills@1\\.5\\.11 add .+ --skill design-taste-frontend --agent claude-code --agent codex --agent opencode --agent gemini-cli --agent antigravity --global -y --copy" "$NPM_LOG"; then
   echo "Expected external frontend skill installer to install Taste Skill for selected runtimes" >&2
+  cat "$NPM_LOG" >&2
+  exit 1
+fi
+
+if ! grep -Eq -- "-y skills@1\\.5\\.11 add .+/skills/improve --skill improve --agent claude-code --agent codex --agent opencode --agent gemini-cli --agent antigravity --global -y --copy" "$NPM_LOG"; then
+  echo "Expected Improve installer to install the pinned shadcn Improve skill for selected runtimes" >&2
   cat "$NPM_LOG" >&2
   exit 1
 fi
@@ -441,7 +450,13 @@ if ! grep -Fq -- "https://github.com/Leonxlnx/taste-skill.git" "$GIT_LOG"; then
   exit 1
 fi
 
-if ! grep -Fxq -- "tool install graphifyy==0.8.31" "$GRAPHIFY_LOG"; then
+if ! grep -Fq -- "https://github.com/shadcn/improve.git" "$GIT_LOG"; then
+  echo "Expected Improve source to be cloned before CLI installation" >&2
+  cat "$GIT_LOG" >&2
+  exit 1
+fi
+
+if ! grep -Fxq -- "tool install graphifyy==0.8.41" "$GRAPHIFY_LOG"; then
   echo "Expected Graphify package install through uv tool" >&2
   cat "$GRAPHIFY_LOG" >&2
   exit 1
@@ -554,6 +569,23 @@ if [[ ! -f "$CUSTOM_ANTIGRAVITY_PROJECT/.agents/skills/sample-skill/SKILL.md" ]]
   find "$CUSTOM_ANTIGRAVITY_PROJECT" -maxdepth 5 -type f -print >&2 || true
   exit 1
 fi
+
+ANTIGRAVITY_GLOBAL_HOME="$TMP_DIR/antigravity-global-home"
+mkdir -p "$ANTIGRAVITY_GLOBAL_HOME"
+
+HOME="$ANTIGRAVITY_GLOBAL_HOME" \
+PATH="$FAKE_BIN:/usr/bin:/bin" \
+bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-only --antigravity --global --skills-dir "$CUSTOM_SOURCE" >/dev/null
+
+for antigravity_skill_target in \
+  "$ANTIGRAVITY_GLOBAL_HOME/.gemini/antigravity-cli/skills/sample-skill/SKILL.md" \
+  "$ANTIGRAVITY_GLOBAL_HOME/.agents/skills/sample-skill/SKILL.md"; do
+  if [[ ! -f "$antigravity_skill_target" ]]; then
+    echo "Expected global Antigravity skill mirror at: $antigravity_skill_target" >&2
+    find "$ANTIGRAVITY_GLOBAL_HOME" -maxdepth 6 -type f -print >&2 || true
+    exit 1
+  fi
+done
 
 TECH_SKILLS_HOME="$TMP_DIR/tech-skills-home"
 TECH_SKILLS_PROJECT="$TMP_DIR/tech-skills-project"
@@ -790,6 +822,14 @@ for expected_frontend_skill in \
   "frontend/accessibility" \
   "frontend/astro/astro-developer" \
   "frontend/design/ui-ux-pro-max" \
+  "frontend/gsap/gsap-core" \
+  "frontend/gsap/gsap-frameworks" \
+  "frontend/gsap/gsap-performance" \
+  "frontend/gsap/gsap-plugins" \
+  "frontend/gsap/gsap-react" \
+  "frontend/gsap/gsap-scrolltrigger" \
+  "frontend/gsap/gsap-timeline" \
+  "frontend/gsap/gsap-utils" \
   "frontend/react-native/react-native-expert" \
   "frontend/react-native/react-native-unistyles-v3" \
   "frontend/react/react-patterns" \
@@ -812,6 +852,20 @@ if ! grep -Fq -- "frontend/astro/astro-developer" <<<"$REPO_ASTRO_SKILLS_OUTPUT"
   grep -Fq -- "frontend/react/react-patterns" <<<"$REPO_ASTRO_SKILLS_OUTPUT"; then
   echo "Expected frontend/astro scope to list only Astro skills" >&2
   echo "$REPO_ASTRO_SKILLS_OUTPUT" >&2
+  exit 1
+fi
+
+REPO_GSAP_SKILLS_OUTPUT="$(
+  HOME="$TECH_SKILLS_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-list --skills-package frontend --skills-scope frontend/gsap
+)"
+
+if ! grep -Fq -- "frontend/gsap/gsap-core" <<<"$REPO_GSAP_SKILLS_OUTPUT" || \
+  ! grep -Fq -- "frontend/gsap/gsap-scrolltrigger" <<<"$REPO_GSAP_SKILLS_OUTPUT" || \
+  grep -Fq -- "frontend/react/react-patterns" <<<"$REPO_GSAP_SKILLS_OUTPUT"; then
+  echo "Expected frontend/gsap scope to list only GSAP skills" >&2
+  echo "$REPO_GSAP_SKILLS_OUTPUT" >&2
   exit 1
 fi
 
@@ -905,6 +959,27 @@ for expected_design_file in \
   if [[ ! -f "$expected_design_file" ]]; then
     echo "Expected installed UI/UX Pro Max support file to exist: $expected_design_file" >&2
     find "$REPO_DESIGN_PROJECT/.codex/skills" -maxdepth 5 -type f -print >&2 || true
+    exit 1
+  fi
+done
+
+REPO_GSAP_PROJECT="$TMP_DIR/repo-gsap-project"
+mkdir -p "$REPO_GSAP_PROJECT"
+
+(
+  cd "$REPO_GSAP_PROJECT"
+  HOME="$TECH_SKILLS_HOME" \
+    PATH="$FAKE_BIN:/usr/bin:/bin" \
+    bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-only --codex --local --skills-package frontend --skills-scope frontend/gsap >/dev/null
+)
+
+for expected_gsap_file in \
+  "$REPO_GSAP_PROJECT/.codex/skills/gsap-core/SKILL.md" \
+  "$REPO_GSAP_PROJECT/.codex/skills/gsap-scrolltrigger/NOTICE.md" \
+  "$REPO_GSAP_PROJECT/.codex/skills/gsap-react/LICENSE"; do
+  if [[ ! -f "$expected_gsap_file" ]]; then
+    echo "Expected installed GSAP skill file to exist: $expected_gsap_file" >&2
+    find "$REPO_GSAP_PROJECT/.codex/skills" -maxdepth 3 -type f -print >&2 || true
     exit 1
   fi
 done
@@ -1047,7 +1122,7 @@ cat > "$PIPX_BIN/pipx" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$PIPX_LOG"
 case " \$* " in
-  *" install graphifyy==0.8.31 "*) cat > "$PIPX_BIN/graphify" <<'GRAPHIFY'
+  *" install graphifyy==0.8.41 "*) cat > "$PIPX_BIN/graphify" <<'GRAPHIFY'
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$PIPX_LOG"
 case "\${1:-}" in
@@ -1066,7 +1141,7 @@ PATH="$PIPX_BIN:/usr/bin:/bin" \
 GRAPHIFY_INSTALLER="pipx" \
 bash "$ROOT_DIR/setup-agent-toolkit.sh" --graphify-only --gemini >/dev/null
 
-if ! grep -Fxq -- "install graphifyy==0.8.31" "$PIPX_LOG"; then
+if ! grep -Fxq -- "install graphifyy==0.8.41" "$PIPX_LOG"; then
   echo "Expected GRAPHIFY_INSTALLER=pipx to install graphifyy through pipx" >&2
   cat "$PIPX_LOG" >&2
   exit 1
@@ -1087,7 +1162,7 @@ cat > "$UV_FALLBACK_BIN/uv" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$UV_FALLBACK_LOG"
 case " \$* " in
-  *" tool install graphifyy==0.8.31 "*) mkdir -p "$UV_FALLBACK_HOME/.local/bin"; cat > "$UV_FALLBACK_HOME/.local/bin/graphify" <<'GRAPHIFY'
+  *" tool install graphifyy==0.8.41 "*) mkdir -p "$UV_FALLBACK_HOME/.local/bin"; cat > "$UV_FALLBACK_HOME/.local/bin/graphify" <<'GRAPHIFY'
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "UV_FALLBACK_LOG_PLACEHOLDER"
 case "\${1:-}" in
@@ -1106,7 +1181,7 @@ HOME="$UV_FALLBACK_HOME" \
 PATH="$UV_FALLBACK_BIN:/usr/bin:/bin" \
 bash "$ROOT_DIR/setup-agent-toolkit.sh" --graphify-only --codex >/dev/null
 
-if ! grep -Fxq -- "tool install graphifyy==0.8.31" "$UV_FALLBACK_LOG"; then
+if ! grep -Fxq -- "tool install graphifyy==0.8.41" "$UV_FALLBACK_LOG"; then
   echo "Expected Graphify uv install when graphify is absent from PATH" >&2
   cat "$UV_FALLBACK_LOG" >&2
   exit 1
@@ -1170,7 +1245,7 @@ cat > "$INSTALL_BIN/npm" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$INSTALL_LOG"
 case " \$* " in
-  *" @google/gemini-cli@0.45.0 "*) cat > "$INSTALL_BIN/gemini" <<'GEMINI'
+  *" @google/gemini-cli@0.47.0 "*) cat > "$INSTALL_BIN/gemini" <<'GEMINI'
 #!/usr/bin/env bash
 case "${1:-}" in
   --version) echo "gemini 0.0.0-installed" ;;
@@ -1187,9 +1262,53 @@ HOME="$INSTALL_HOME" \
 PATH="$INSTALL_BIN:/usr/bin:/bin" \
 bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-only --gemini --install-missing-clis >/dev/null
 
-if ! grep -Fxq -- "install -g @google/gemini-cli@0.45.0" "$INSTALL_LOG"; then
+if ! grep -Fxq -- "install -g @google/gemini-cli@0.47.0" "$INSTALL_LOG"; then
   echo "Expected --install-missing-clis to install Gemini CLI package" >&2
   cat "$INSTALL_LOG" >&2
+  exit 1
+fi
+
+ANTIGRAVITY_INSTALL_BIN="$TMP_DIR/antigravity-install-bin"
+ANTIGRAVITY_INSTALL_HOME="$TMP_DIR/antigravity-install-home"
+ANTIGRAVITY_INSTALL_LOG="$TMP_DIR/antigravity-install.log"
+mkdir -p "$ANTIGRAVITY_INSTALL_BIN" "$ANTIGRAVITY_INSTALL_HOME"
+cp "$FAKE_BIN/node" "$ANTIGRAVITY_INSTALL_BIN/node"
+cat > "$ANTIGRAVITY_INSTALL_BIN/npm" <<'EOF'
+#!/usr/bin/env bash
+exit 0
+EOF
+chmod +x "$ANTIGRAVITY_INSTALL_BIN/npm"
+cat > "$ANTIGRAVITY_INSTALL_BIN/curl" <<EOF
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "$ANTIGRAVITY_INSTALL_LOG"
+cat <<'INSTALL'
+#!/usr/bin/env bash
+cat > "$ANTIGRAVITY_INSTALL_BIN/agy" <<'AGY'
+#!/usr/bin/env bash
+case "${1:-}" in
+  --version) echo "agy 0.0.0-installed" ;;
+esac
+exit 0
+AGY
+chmod +x "$ANTIGRAVITY_INSTALL_BIN/agy"
+INSTALL
+EOF
+chmod +x "$ANTIGRAVITY_INSTALL_BIN/curl"
+
+HOME="$ANTIGRAVITY_INSTALL_HOME" \
+ANTIGRAVITY_INSTALL_BIN="$ANTIGRAVITY_INSTALL_BIN" \
+PATH="$ANTIGRAVITY_INSTALL_BIN:/usr/bin:/bin" \
+bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-only --antigravity --install-missing-clis >/dev/null
+
+if ! grep -Fxq -- "-fsSL https://antigravity.google/cli/install.sh" "$ANTIGRAVITY_INSTALL_LOG"; then
+  echo "Expected --install-missing-clis to use the official Antigravity CLI installer" >&2
+  cat "$ANTIGRAVITY_INSTALL_LOG" >&2
+  exit 1
+fi
+
+if [[ ! -x "$ANTIGRAVITY_INSTALL_BIN/agy" ]]; then
+  echo "Expected official Antigravity installer to provide agy on PATH" >&2
+  find "$ANTIGRAVITY_INSTALL_BIN" -maxdepth 2 -type f -print >&2 || true
   exit 1
 fi
 
@@ -1203,11 +1322,11 @@ cat > "$OUTDATED_BIN/npm" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$OUTDATED_NPM_LOG"
 case " \$* " in
-  *" @openai/codex@0.137.0 "*) cat > "$OUTDATED_BIN/codex" <<'CODEX'
+  *" @openai/codex@0.141.0 "*) cat > "$OUTDATED_BIN/codex" <<'CODEX'
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "OUTDATED_CODEX_LOG_PLACEHOLDER"
 case "\${1:-}" in
-  --version) echo "codex-cli 0.137.0" ;;
+  --version) echo "codex-cli 0.141.0" ;;
 esac
 exit 0
 CODEX
@@ -1232,7 +1351,7 @@ HOME="$OUTDATED_HOME" \
 PATH="$OUTDATED_BIN:/usr/bin:/bin" \
 bash "$ROOT_DIR/setup-agent-toolkit.sh" --superpowers-only --codex --install-missing-clis >/dev/null
 
-if ! grep -Fxq -- "install -g @openai/codex@0.137.0" "$OUTDATED_NPM_LOG"; then
+if ! grep -Fxq -- "install -g @openai/codex@0.141.0" "$OUTDATED_NPM_LOG"; then
   echo "Expected --install-missing-clis to update outdated Codex CLI package" >&2
   cat "$OUTDATED_NPM_LOG" >&2
   exit 1

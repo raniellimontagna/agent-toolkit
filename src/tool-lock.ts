@@ -28,6 +28,12 @@ export type ToolLock = {
       package: string;
       version: string;
     };
+    improve: {
+      source: "github";
+      repository: string;
+      ref: string;
+      skill: string;
+    };
     frontendSkills: {
       source: "skills-cli";
       skillsCli: {
@@ -180,6 +186,9 @@ function validateToolLock(lock: ToolLock): ToolLock {
   assertExactVersion(lock.tools.graphify.version, "tools.graphify.version");
   assertString(lock.tools.gsd.package, "tools.gsd.package");
   assertExactVersion(lock.tools.gsd.version, "tools.gsd.version");
+  assertString(lock.tools.improve.repository, "tools.improve.repository");
+  assertGitSha(lock.tools.improve.ref, "tools.improve.ref");
+  assertString(lock.tools.improve.skill, "tools.improve.skill");
   assertString(
     lock.tools.frontendSkills.skillsCli.package,
     "tools.frontendSkills.skillsCli.package",
