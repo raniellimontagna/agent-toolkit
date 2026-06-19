@@ -250,6 +250,8 @@ skills/
     code-reviewer/
       SKILL.md
       rules/
+    thermo-nuclear-code-quality-review/
+      SKILL.md
   devops/
     docker-patterns/
       SKILL.md
@@ -369,6 +371,7 @@ Follow these steps...
 | `frontend` | `react-performance` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/skills/react-performance) under the MIT license |
 | `frontend` | `react-testing` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/skills/react-testing) under the MIT license |
 | `general` | `code-reviewer` | Copied from Shubhamsaboo's [`awesome-llm-apps`](https://github.com/Shubhamsaboo/awesome-llm-apps/tree/main/awesome_agent_skills/code-reviewer) under the repository Apache-2.0 license |
+| `general` | `thermo-nuclear-code-quality-review` | Copied from Cursor's [`plugins`](https://github.com/cursor/plugins/tree/main/cursor-team-kit/skills/thermo-nuclear-code-quality-review) repository under the MIT license |
 
 Each React skill carries its own ECC `rules/react` references so Markdown links
 still resolve after the installer copies skills into flat runtime directories.
