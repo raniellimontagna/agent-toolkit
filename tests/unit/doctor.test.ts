@@ -7,7 +7,7 @@ const status: InstallerStatus = {
     rtk: { state: "missing", summary: "missing from PATH" },
     caveman: { state: "external", summary: "checked by installer" },
     superpowers: { state: "external", summary: "checked by runtime" },
-    graphify: { state: "installed", summary: "graphify 0.8.41" },
+    graphify: { state: "installed", summary: "graphify 0.8.51" },
     gsd: { state: "external", summary: "checked by installer" },
     improve: { state: "external", summary: "pinned skill" },
     "frontend-skills": { state: "external", summary: "2 pinned skills" },

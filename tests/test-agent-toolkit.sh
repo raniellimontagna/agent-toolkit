@@ -239,7 +239,7 @@ cat > "$FAKE_BIN/uv" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$GRAPHIFY_LOG"
 case " \$* " in
-  *" tool install graphifyy==0.8.41 "*) cat > "$FAKE_BIN/graphify" <<'GRAPHIFY'
+  *" tool install graphifyy==0.8.51 "*) cat > "$FAKE_BIN/graphify" <<'GRAPHIFY'
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$GRAPHIFY_LOG"
 case "\${1:-}" in
@@ -257,7 +257,7 @@ cat > "$FAKE_BIN/pipx" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$GRAPHIFY_LOG"
 case " \$* " in
-  *" install graphifyy==0.8.41 "*) cat > "$FAKE_BIN/graphify" <<'GRAPHIFY'
+  *" install graphifyy==0.8.51 "*) cat > "$FAKE_BIN/graphify" <<'GRAPHIFY'
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$GRAPHIFY_LOG"
 case "\${1:-}" in
@@ -466,19 +466,19 @@ if grep -Fq -- "--antigravity" "$NPM_LOG"; then
   exit 1
 fi
 
-if ! grep -Eq -- "-y skills@1\\.5\\.11 add .+ --skill impeccable --agent claude-code --agent codex --agent opencode --agent gemini-cli --agent antigravity --global -y --copy" "$NPM_LOG"; then
+if ! grep -Eq -- "-y skills@1\\.5\\.13 add .+ --skill impeccable --agent claude-code --agent codex --agent opencode --agent gemini-cli --agent antigravity --global -y --copy" "$NPM_LOG"; then
   echo "Expected external frontend skill installer to install Impeccable for selected runtimes" >&2
   cat "$NPM_LOG" >&2
   exit 1
 fi
 
-if ! grep -Eq -- "-y skills@1\\.5\\.11 add .+ --skill design-taste-frontend --agent claude-code --agent codex --agent opencode --agent gemini-cli --agent antigravity --global -y --copy" "$NPM_LOG"; then
+if ! grep -Eq -- "-y skills@1\\.5\\.13 add .+ --skill design-taste-frontend --agent claude-code --agent codex --agent opencode --agent gemini-cli --agent antigravity --global -y --copy" "$NPM_LOG"; then
   echo "Expected external frontend skill installer to install Taste Skill for selected runtimes" >&2
   cat "$NPM_LOG" >&2
   exit 1
 fi
 
-if ! grep -Eq -- "-y skills@1\\.5\\.11 add .+/skills/improve --skill improve --agent claude-code --agent codex --agent opencode --agent gemini-cli --agent antigravity --global -y --copy" "$NPM_LOG"; then
+if ! grep -Eq -- "-y skills@1\\.5\\.13 add .+/skills/improve --skill improve --agent claude-code --agent codex --agent opencode --agent gemini-cli --agent antigravity --global -y --copy" "$NPM_LOG"; then
   echo "Expected Improve installer to install the pinned shadcn Improve skill for selected runtimes" >&2
   cat "$NPM_LOG" >&2
   exit 1
@@ -525,7 +525,7 @@ if ! grep -Fq -- "https://github.com/shadcn/improve.git" "$GIT_LOG"; then
   exit 1
 fi
 
-if ! grep -Fxq -- "tool install graphifyy==0.8.41" "$GRAPHIFY_LOG"; then
+if ! grep -Fxq -- "tool install graphifyy==0.8.51" "$GRAPHIFY_LOG"; then
   echo "Expected Graphify package install through uv tool" >&2
   cat "$GRAPHIFY_LOG" >&2
   exit 1
@@ -1210,7 +1210,7 @@ cat > "$PIPX_BIN/pipx" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$PIPX_LOG"
 case " \$* " in
-  *" install graphifyy==0.8.41 "*) cat > "$PIPX_BIN/graphify" <<'GRAPHIFY'
+  *" install graphifyy==0.8.51 "*) cat > "$PIPX_BIN/graphify" <<'GRAPHIFY'
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$PIPX_LOG"
 case "\${1:-}" in
@@ -1229,7 +1229,7 @@ PATH="$PIPX_BIN:/usr/bin:/bin" \
 GRAPHIFY_INSTALLER="pipx" \
 bash "$ROOT_DIR/setup-agent-toolkit.sh" --graphify-only --gemini >/dev/null
 
-if ! grep -Fxq -- "install graphifyy==0.8.41" "$PIPX_LOG"; then
+if ! grep -Fxq -- "install graphifyy==0.8.51" "$PIPX_LOG"; then
   echo "Expected GRAPHIFY_INSTALLER=pipx to install graphifyy through pipx" >&2
   cat "$PIPX_LOG" >&2
   exit 1
@@ -1250,7 +1250,7 @@ cat > "$UV_FALLBACK_BIN/uv" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$UV_FALLBACK_LOG"
 case " \$* " in
-  *" tool install graphifyy==0.8.41 "*) mkdir -p "$UV_FALLBACK_HOME/.local/bin"; cat > "$UV_FALLBACK_HOME/.local/bin/graphify" <<'GRAPHIFY'
+  *" tool install graphifyy==0.8.51 "*) mkdir -p "$UV_FALLBACK_HOME/.local/bin"; cat > "$UV_FALLBACK_HOME/.local/bin/graphify" <<'GRAPHIFY'
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "UV_FALLBACK_LOG_PLACEHOLDER"
 case "\${1:-}" in
@@ -1269,7 +1269,7 @@ HOME="$UV_FALLBACK_HOME" \
 PATH="$UV_FALLBACK_BIN:/usr/bin:/bin" \
 bash "$ROOT_DIR/setup-agent-toolkit.sh" --graphify-only --codex >/dev/null
 
-if ! grep -Fxq -- "tool install graphifyy==0.8.41" "$UV_FALLBACK_LOG"; then
+if ! grep -Fxq -- "tool install graphifyy==0.8.51" "$UV_FALLBACK_LOG"; then
   echo "Expected Graphify uv install when graphify is absent from PATH" >&2
   cat "$UV_FALLBACK_LOG" >&2
   exit 1
@@ -1333,7 +1333,7 @@ cat > "$INSTALL_BIN/npm" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$INSTALL_LOG"
 case " \$* " in
-  *" @google/gemini-cli@0.47.0 "*) cat > "$INSTALL_BIN/gemini" <<'GEMINI'
+  *" @google/gemini-cli@0.49.0 "*) cat > "$INSTALL_BIN/gemini" <<'GEMINI'
 #!/usr/bin/env bash
 case "${1:-}" in
   --version) echo "gemini 0.0.0-installed" ;;
@@ -1350,7 +1350,7 @@ HOME="$INSTALL_HOME" \
 PATH="$INSTALL_BIN:/usr/bin:/bin" \
 bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-only --gemini --install-missing-clis >/dev/null
 
-if ! grep -Fxq -- "install -g @google/gemini-cli@0.47.0" "$INSTALL_LOG"; then
+if ! grep -Fxq -- "install -g @google/gemini-cli@0.49.0" "$INSTALL_LOG"; then
   echo "Expected --install-missing-clis to install Gemini CLI package" >&2
   cat "$INSTALL_LOG" >&2
   exit 1
@@ -1410,11 +1410,11 @@ cat > "$OUTDATED_BIN/npm" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$OUTDATED_NPM_LOG"
 case " \$* " in
-  *" @openai/codex@0.141.0 "*) cat > "$OUTDATED_BIN/codex" <<'CODEX'
+  *" @openai/codex@0.142.3 "*) cat > "$OUTDATED_BIN/codex" <<'CODEX'
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "OUTDATED_CODEX_LOG_PLACEHOLDER"
 case "\${1:-}" in
-  --version) echo "codex-cli 0.141.0" ;;
+  --version) echo "codex-cli 0.142.3" ;;
 esac
 exit 0
 CODEX
@@ -1439,7 +1439,7 @@ HOME="$OUTDATED_HOME" \
 PATH="$OUTDATED_BIN:/usr/bin:/bin" \
 bash "$ROOT_DIR/setup-agent-toolkit.sh" --superpowers-only --codex --install-missing-clis >/dev/null
 
-if ! grep -Fxq -- "install -g @openai/codex@0.141.0" "$OUTDATED_NPM_LOG"; then
+if ! grep -Fxq -- "install -g @openai/codex@0.142.3" "$OUTDATED_NPM_LOG"; then
   echo "Expected --install-missing-clis to update outdated Codex CLI package" >&2
   cat "$OUTDATED_NPM_LOG" >&2
   exit 1

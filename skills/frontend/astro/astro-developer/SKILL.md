@@ -127,6 +127,6 @@ See [testing.md](testing.md) for complete patterns and examples.
 
 - Root: [/AGENTS.md](https://github.com/withastro/astro/blob/main/AGENTS.md)
 - Root: [/CONTRIBUTING.md](https://github.com/withastro/astro/blob/main/CONTRIBUTING.md)
-- Astro docs: https://docs.astro.build/llms.txt
+- Astro docs: https://docs.astro.build/
 - Package: packages/astro/src/core/README.md
 - Build plugins: packages/astro/src/core/build/plugins/README.md

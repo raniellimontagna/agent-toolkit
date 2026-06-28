@@ -1,6 +1,6 @@
 ---
 name: ui-ux-pro-max
-description: Use when designing, implementing, reviewing, or improving UI/UX for web or mobile products, including layout, style, color, typography, accessibility, interaction states, responsive behavior, dashboards, landing pages, SaaS, e-commerce, portfolios, and app interfaces.
+description: "UI/UX design intelligence for web and mobile. Includes 50+ styles, 161 color palettes, 57 font pairings, 161 product types, 99 UX guidelines, and 25 chart types across 10 stacks (React, Next.js, Vue, Svelte, SwiftUI, React Native, Flutter, Tailwind, shadcn/ui, and HTML/CSS). Actions: plan, build, create, design, implement, review, fix, improve, optimize, enhance, refactor, and check UI/UX code. Projects: website, landing page, dashboard, admin panel, e-commerce, SaaS, portfolio, blog, and mobile app. Elements: button, modal, navbar, sidebar, card, table, form, and chart. Styles: glassmorphism, claymorphism, minimalism, brutalism, neumorphism, bento grid, dark mode, responsive, skeuomorphism, and flat design. Topics: color systems, accessibility, animation, layout, typography, font pairing, spacing, interaction states, shadow, and gradient. Integrations: shadcn/ui MCP for component search and examples."
 ---
 
 # UI/UX Pro Max - Design Intelligence
@@ -330,6 +330,8 @@ sudo apt update && sudo apt install python3
 winget install Python.Python.3.12
 ```
 
+> **Note:** On Windows, use `python` instead of `python3` to run scripts (e.g., `python scripts/search.py` instead of `python3 scripts/search.py`).
+
 ---
 
 ## How to Use This Skill
@@ -360,7 +362,7 @@ Extract key information from user request:
 - **Product type**: Entertainment (social, video, music, gaming), Tool (scanner, editor, converter), Productivity (task manager, notes, calendar), or hybrid
 - **Target audience**: C-end consumer users; consider age group, usage context (commute, leisure, work)
 - **Style keywords**: playful, vibrant, minimal, dark mode, content-first, immersive, etc.
-- **Stack**: Detect the project stack first, then use the matching stack search when available
+- **Stack**: Match the project's framework. The engine ships guidance for many stacks (see [Available Stacks](#available-stacks) below) — pass the matching `--stack` (e.g. `nextjs`, `react`, `shadcn`, `vue`, `svelte`, `astro`, `swiftui`, `flutter`, `react-native`).
 
 ### Step 2: Generate Design System (REQUIRED)
 
@@ -440,12 +442,14 @@ python3 scripts/search.py "<keyword>" --domain <domain> [-n <max_results>]
 | App interface a11y | `web` | `--domain web "accessibilityLabel touch safe-areas"` |
 | AI prompt / CSS keywords | `prompt` | `--domain prompt "minimalism"` |
 
-### Step 4: Stack Guidelines
+### Step 4: Stack Guidelines (match your framework)
 
-Get implementation-specific best practices for the detected stack:
+Get implementation-specific best practices for the stack you're building in.
+Pass the `--stack` that matches the project's framework:
 
 ```bash
-python3 scripts/search.py "<keyword>" --stack react
+python3 scripts/search.py "<keyword>" --stack <your-stack>
+# e.g. --stack nextjs | react | shadcn | vue | svelte | astro | swiftui | flutter | react-native
 ```
 
 ---
@@ -470,18 +474,26 @@ python3 scripts/search.py "<keyword>" --stack react
 
 ### Available Stacks
 
+Run `ls <skill>/data/stacks/` to see the live set. Shipped stacks:
+
 | Stack | Focus |
 |-------|-------|
-| `react` | Components, state, rendering, accessibility |
-| `nextjs` | App Router, server/client boundaries, routing |
-| `vue` | Components and composition patterns |
-| `svelte` | Components and reactivity patterns |
-| `astro` | Content and island architecture |
-| `swiftui` | iOS-native UI structure |
-| `react-native` | Components, navigation, lists |
-| `flutter` | Widgets, theming, navigation |
-| `html-tailwind` | Utility-first HTML/CSS |
-| `shadcn` | Radix/shadcn UI composition |
+| `react` | Components, hooks, render performance |
+| `nextjs` | App Router, RSC, Server Actions, rendering |
+| `vue` | Components, Composition API, reactivity |
+| `nuxtjs` | Nuxt app patterns, SSR data fetching |
+| `nuxt-ui` | Nuxt UI component patterns |
+| `svelte` | Components, stores, transitions |
+| `astro` | Islands, content, partial hydration |
+| `shadcn` | shadcn/ui primitives, composition |
+| `html-tailwind` | Tailwind utility patterns |
+| `angular` | Components, signals, services |
+| `laravel` | Blade / server-rendered UI patterns |
+| `swiftui` | Views, state, navigation (iOS/macOS) |
+| `flutter` | Widgets, state, navigation |
+| `jetpack-compose` | Composables, state, navigation (Android) |
+| `react-native` | Components, Navigation, Lists |
+| `threejs` | 3D scenes, materials, performance |
 
 ---
 
@@ -493,7 +505,7 @@ python3 scripts/search.py "<keyword>" --stack react
 - Product type: Tool (AI search engine)
 - Target audience: C-end users looking for fast, intelligent search
 - Style keywords: modern, minimal, content-first, dark mode
-- Stack: detected from the target project
+- Stack: Next.js (a homepage is a web surface; use a web `--stack`)
 
 ### Step 2: Generate Design System (REQUIRED)
 
@@ -516,7 +528,7 @@ python3 scripts/search.py "search loading animation" --domain ux
 ### Step 4: Stack Guidelines
 
 ```bash
-python3 scripts/search.py "list performance navigation" --stack react
+python3 scripts/search.py "list performance navigation" --stack nextjs
 ```
 
 **Then:** Synthesize design system + detailed searches and implement the design.
@@ -544,7 +556,7 @@ python3 scripts/search.py "fintech crypto" --design-system -f markdown
 - Use **multi-dimensional keywords** — combine product + industry + tone + density: `"entertainment social vibrant content-dense"` not just `"app"`
 - Try different keywords for the same need: `"playful neon"` → `"vibrant dark"` → `"content-first minimal"`
 - Use `--design-system` first for full recommendations, then `--domain` to deep-dive any dimension you're unsure about
-- Add the matching `--stack` option for implementation-specific guidance
+- Add the `--stack` that matches the project's framework for implementation-specific guidance
 
 ### Common Sticking Points
 

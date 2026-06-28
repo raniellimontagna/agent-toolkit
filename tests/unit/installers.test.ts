@@ -55,7 +55,7 @@ describe("third-party skill installers", () => {
           "npx",
           expect.arrayContaining([
             "-y",
-            "skills@1.5.11",
+            "skills@1.5.13",
             "add",
             "--skill",
             "improve",

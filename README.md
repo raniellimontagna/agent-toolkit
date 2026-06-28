@@ -482,15 +482,15 @@ Defaults come from `tools.lock.json`:
 
 ```text
 CAVEMAN_PACKAGE=github:JuliusBrussee/caveman#25d22f864ad68cc447a4cb93aefde918aa4aec9f
-GRAPHIFY_PACKAGE=graphifyy==0.8.41
+GRAPHIFY_PACKAGE=graphifyy==0.8.51
 GRAPHIFY_INSTALLER=uv
 GSD_PACKAGE=get-shit-done-cc@1.42.3
-SKILLS_CLI_PACKAGE=skills@1.5.11
+SKILLS_CLI_PACKAGE=skills@1.5.13
 ANTIGRAVITY_INSTALL_SCRIPT=https://antigravity.google/cli/install.sh
-CLAUDE_CLI_PACKAGE=@anthropic-ai/claude-code@2.1.181
-CODEX_CLI_PACKAGE=@openai/codex@0.141.0
-OPENCODE_CLI_PACKAGE=opencode-ai@1.17.8
-GEMINI_CLI_PACKAGE=@google/gemini-cli@0.47.0
+CLAUDE_CLI_PACKAGE=@anthropic-ai/claude-code@2.1.195
+CODEX_CLI_PACKAGE=@openai/codex@0.142.3
+OPENCODE_CLI_PACKAGE=opencode-ai@1.17.11
+GEMINI_CLI_PACKAGE=@google/gemini-cli@0.49.0
 ```
 
 Mutable overrides like `@latest`, unpinned npm packages or GitHub package
@@ -516,31 +516,31 @@ Current external sources:
 
 | Tool | Locked source | Runtime verification |
 |---|---|---|
-| RTK | GitHub release `rtk-ai/rtk@v0.42.4` | Verifies the selected asset SHA-256 before extraction |
+| RTK | GitHub release `rtk-ai/rtk@v0.43.0` | Verifies the selected asset SHA-256 before extraction |
 | Caveman | `JuliusBrussee/caveman` at commit `25d22f864ad68cc447a4cb93aefde918aa4aec9f` | Immutable GitHub npm spec |
-| Graphify | `graphifyy==0.8.41` | Blocks unpinned package overrides |
+| Graphify | `graphifyy==0.8.51` | Blocks unpinned package overrides |
 | GSD | `get-shit-done-cc@1.42.3` | Blocks `@latest` unless explicitly allowed |
 | Improve | `shadcn/improve` at commit `03369ee6d7cafbfcecc4346539b05b3dc0a603bb` | Clones the pinned ref before Agent Skills CLI install |
-| Frontend Skills | `skills@1.5.11`, `pbakaus/impeccable` and `Leonxlnx/taste-skill` at pinned commits | Clones pinned refs before install |
+| Frontend Skills | `skills@1.5.13`, `pbakaus/impeccable` and `Leonxlnx/taste-skill` at pinned commits | Clones pinned refs before install |
 | Runtime CLIs | Exact npm versions for Claude, Codex, OpenCode and Gemini | Installed or updated only when `--install-missing-clis` is enabled; Antigravity uses the official `agy` installer instead of npm |
 
 Bundled third-party skills preserve upstream attribution and license files:
 
 | Skill | Source commit | License |
 |---|---|---|
-| `api-design` | `affaan-m/ECC@0f84c0e2796703fbda87d577b2636351418c7442` | MIT |
+| `api-design` | `affaan-m/ECC@2bc924faf2f8e893bfe0af86b1931283693c30ae` | MIT |
 | `fastify-best-practices` | `mcollina/skills@5b2a81354b6d10325da0db9decc9ce5ecc714138` | MIT |
-| `astro-developer` | `withastro/astro@c90ce9751c7862a7280e752549ef74298669693d` | MIT |
+| `astro-developer` | `withastro/astro@e37dfe2a7623acd364d7e3556ecc9b31e3e45520` | MIT |
 | `gsap-*` | `greensock/gsap-skills@aed9cfd3277740755f6bfc1155c7aa645403b760` | MIT |
 | `react-native-expert` | `Jeffallan/claude-skills@e8be415bc94d8d6ebddc2fb50e5d03c6e27d4319` | MIT |
 | `react-native-unistyles-v3` | `jpudysz/react-native-unistyles@8b5e9fd281a81bdfd87d4fe9e6a0b042c84c5c83` | MIT |
-| `react-patterns` | `affaan-m/ECC@0f84c0e2796703fbda87d577b2636351418c7442` | MIT |
-| `react-performance` | `affaan-m/ECC@0f84c0e2796703fbda87d577b2636351418c7442` | MIT |
-| `react-testing` | `affaan-m/ECC@0f84c0e2796703fbda87d577b2636351418c7442` | MIT |
+| `react-patterns` | `affaan-m/ECC@2bc924faf2f8e893bfe0af86b1931283693c30ae` | MIT |
+| `react-performance` | `affaan-m/ECC@2bc924faf2f8e893bfe0af86b1931283693c30ae` | MIT |
+| `react-testing` | `affaan-m/ECC@2bc924faf2f8e893bfe0af86b1931283693c30ae` | MIT |
 | `python-patterns` | `affaan-m/ECC@0f84c0e2796703fbda87d577b2636351418c7442` | MIT |
 | `python-testing` | `affaan-m/ECC@0f84c0e2796703fbda87d577b2636351418c7442` | MIT |
-| `kotlin-patterns` | `affaan-m/ECC@0f84c0e2796703fbda87d577b2636351418c7442` | MIT |
-| `kotlin-testing` | `affaan-m/ECC@0f84c0e2796703fbda87d577b2636351418c7442` | MIT |
+| `kotlin-patterns` | `affaan-m/ECC@2bc924faf2f8e893bfe0af86b1931283693c30ae` | MIT |
+| `kotlin-testing` | `affaan-m/ECC@2bc924faf2f8e893bfe0af86b1931283693c30ae` | MIT |
 
 Releases use npm trusted publishing through GitHub Actions OIDC. The npm
 package is published without a long-lived npm token, and npm automatically

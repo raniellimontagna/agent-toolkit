@@ -1,7 +1,8 @@
 ---
 name: accessibility
 description: Use when designing, implementing, or auditing accessible web, iOS, or Android interfaces against WCAG 2.2 Level AA, semantic HTML, ARIA, keyboard navigation, focus management, and native accessibility traits.
-origin: ECC
+metadata:
+  origin: ECC
 ---
 
 # Accessibility (WCAG 2.2)

@@ -1,7 +1,8 @@
 ---
 name: api-design
 description: Use when designing, reviewing, or implementing REST APIs, including resource naming, status codes, pagination, filtering, error responses, versioning, and rate limiting.
-origin: ECC
+metadata:
+  origin: ECC
 ---
 
 # API Design Patterns

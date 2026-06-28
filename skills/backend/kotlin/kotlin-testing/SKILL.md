@@ -1,7 +1,8 @@
 ---
 name: kotlin-testing
 description: Use when writing or improving Kotlin tests with Kotest, MockK, coroutine testing, property-based testing, Ktor testApplication, Kover coverage, or TDD workflows.
-origin: ECC
+metadata:
+  origin: ECC
 ---
 
 # Kotlin Testing Patterns

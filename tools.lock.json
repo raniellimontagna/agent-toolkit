@@ -4,22 +4,22 @@
     "rtk": {
       "source": "github-release",
       "repository": "rtk-ai/rtk",
-      "tag": "v0.42.4",
+      "tag": "v0.43.0",
       "assets": {
         "rtk-aarch64-apple-darwin.tar.gz": {
-          "sha256": "f223ca074a0215af002679bc1d34ca92b93e25b3e8ae16aace6e84c06e586802"
+          "sha256": "8a17e49acbd378997eb21d0eb6f7f861111f35b4fc9b1c74edf4c7448e576c65"
         },
         "rtk-aarch64-unknown-linux-gnu.tar.gz": {
-          "sha256": "cc2b91c064eb670c097c184913c8fbcb1a943d53d7fe505375e96ba0c5b6459f"
+          "sha256": "5519f7ca12e5c143a609f0d28a0a77b97413a8dce31c2681f1a41c24519a8731"
         },
         "rtk-x86_64-apple-darwin.tar.gz": {
-          "sha256": "84121316867613e61925c209607f033b2113bb0ce312c267a79d3e3e8f221e49"
+          "sha256": "a85f60e2637811be68366208b8d8b9c5ba1b748cb5df4477ab20cd73d3c5d9f8"
         },
         "rtk-x86_64-pc-windows-msvc.zip": {
-          "sha256": "f0ec18963581657173bd6a51f5ba012b093823f844db749fec218581af30a568"
+          "sha256": "7c5e4a2ef816a4d4ed947ddd74ca3df851fc39ea87d49a3ca2bf3abc515a016b"
         },
         "rtk-x86_64-unknown-linux-musl.tar.gz": {
-          "sha256": "34975116da11e09e502501daf758143e0b22ed3a42a10eb67fb693a6270d9e36"
+          "sha256": "ff8a1e7766496e175291a85aeca1dc97c9ff6df33e51e5893d1fbc78fea2a609"
         }
       }
     },
@@ -31,7 +31,7 @@
     "graphify": {
       "source": "pypi",
       "package": "graphifyy",
-      "version": "0.8.41"
+      "version": "0.8.51"
     },
     "gsd": {
       "source": "npm",
@@ -49,18 +49,18 @@
       "skillsCli": {
         "source": "npm",
         "package": "skills",
-        "version": "1.5.11"
+        "version": "1.5.13"
       },
       "impeccable": {
         "source": "github",
         "repository": "pbakaus/impeccable",
-        "ref": "1c897a09c86ea7ed7e5cc3affaabcbbb46a05a7d",
+        "ref": "3590bf9e37c84ecbc92f9c205ce1aebf2185a971",
         "skill": "impeccable"
       },
       "tasteSkill": {
         "source": "github",
         "repository": "Leonxlnx/taste-skill",
-        "ref": "5285855df6719b6efb95d5268359e752d3d79045",
+        "ref": "06d6028b5c623016c59ce8536f578e5a1127b499",
         "skill": "design-taste-frontend"
       }
     }
@@ -69,22 +69,22 @@
     "claude": {
       "source": "npm",
       "package": "@anthropic-ai/claude-code",
-      "version": "2.1.181"
+      "version": "2.1.195"
     },
     "codex": {
       "source": "npm",
       "package": "@openai/codex",
-      "version": "0.141.0"
+      "version": "0.142.3"
     },
     "opencode": {
       "source": "npm",
       "package": "opencode-ai",
-      "version": "1.17.8"
+      "version": "1.17.11"
     },
     "gemini": {
       "source": "npm",
       "package": "@google/gemini-cli",
-      "version": "0.47.0"
+      "version": "0.49.0"
     }
   }
 }

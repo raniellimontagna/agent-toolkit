@@ -1,7 +1,8 @@
 ---
 name: golang-patterns
 description: Use when writing, reviewing, or refactoring Go applications and applying idiomatic patterns, conventions, concurrency, error handling, package design, and maintainability practices.
-origin: ECC
+metadata:
+  origin: ECC
 ---
 
 # Go Development Patterns

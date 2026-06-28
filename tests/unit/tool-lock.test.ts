@@ -25,40 +25,40 @@ describe("external tool lock", () => {
     const lock = loadToolLock(lockPath);
 
     expect(lock.version).toBe(1);
-    expect(lock.tools.rtk.tag).toBe("v0.42.4");
+    expect(lock.tools.rtk.tag).toBe("v0.43.0");
     expect(
       lock.tools.rtk.assets["rtk-x86_64-unknown-linux-musl.tar.gz"],
     ).toEqual({
       sha256:
-        "34975116da11e09e502501daf758143e0b22ed3a42a10eb67fb693a6270d9e36",
+        "ff8a1e7766496e175291a85aeca1dc97c9ff6df33e51e5893d1fbc78fea2a609",
     });
     expect(lock.tools.caveman.ref).toBe(
       "25d22f864ad68cc447a4cb93aefde918aa4aec9f",
     );
     expect(lock.tools.gsd.version).toBe("1.42.3");
-    expect(lock.tools.graphify.version).toBe("0.8.41");
+    expect(lock.tools.graphify.version).toBe("0.8.51");
     expect(lock.tools.improve.ref).toBe(
       "03369ee6d7cafbfcecc4346539b05b3dc0a603bb",
     );
-    expect(lock.tools.frontendSkills.skillsCli.version).toBe("1.5.11");
+    expect(lock.tools.frontendSkills.skillsCli.version).toBe("1.5.13");
     expect(lock.tools.frontendSkills.impeccable.ref).toBe(
-      "1c897a09c86ea7ed7e5cc3affaabcbbb46a05a7d",
+      "3590bf9e37c84ecbc92f9c205ce1aebf2185a971",
     );
     expect(lock.tools.frontendSkills.tasteSkill.ref).toBe(
-      "5285855df6719b6efb95d5268359e752d3d79045",
+      "06d6028b5c623016c59ce8536f578e5a1127b499",
     );
-    expect(lock.runtimeClis.gemini.version).toBe("0.47.0");
+    expect(lock.runtimeClis.gemini.version).toBe("0.49.0");
   });
 
   it("formats immutable package specs from locked versions", () => {
     expect(formatNpmPackageSpec("get-shit-done-cc", "1.42.3")).toBe(
       "get-shit-done-cc@1.42.3",
     );
-    expect(formatNpmPackageSpec("@google/gemini-cli", "0.47.0")).toBe(
-      "@google/gemini-cli@0.47.0",
+    expect(formatNpmPackageSpec("@google/gemini-cli", "0.49.0")).toBe(
+      "@google/gemini-cli@0.49.0",
     );
-    expect(formatPythonPackageSpec("graphifyy", "0.8.41")).toBe(
-      "graphifyy==0.8.41",
+    expect(formatPythonPackageSpec("graphifyy", "0.8.51")).toBe(
+      "graphifyy==0.8.51",
     );
     expect(
       formatGithubPackageSpec(
@@ -68,8 +68,8 @@ describe("external tool lock", () => {
     ).toBe(
       "github:JuliusBrussee/caveman#25d22f864ad68cc447a4cb93aefde918aa4aec9f",
     );
-    expect(githubReleaseApiUrl("rtk-ai/rtk", "v0.42.4")).toBe(
-      "https://api.github.com/repos/rtk-ai/rtk/releases/tags/v0.42.4",
+    expect(githubReleaseApiUrl("rtk-ai/rtk", "v0.43.0")).toBe(
+      "https://api.github.com/repos/rtk-ai/rtk/releases/tags/v0.43.0",
     );
   });
 
@@ -83,7 +83,7 @@ describe("external tool lock", () => {
     expect(isMutableExternalSource("graphifyy")).toBe(true);
 
     expect(isMutableExternalSource("get-shit-done-cc@1.42.3")).toBe(false);
-    expect(isMutableExternalSource("graphifyy==0.8.41")).toBe(false);
+    expect(isMutableExternalSource("graphifyy==0.8.51")).toBe(false);
     expect(
       isMutableExternalSource(
         "github:JuliusBrussee/caveman#25d22f864ad68cc447a4cb93aefde918aa4aec9f",

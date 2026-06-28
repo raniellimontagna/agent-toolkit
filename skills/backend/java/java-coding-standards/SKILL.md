@@ -1,7 +1,8 @@
 ---
 name: java-coding-standards
 description: "Use when writing or reviewing Java 17+ code in Spring Boot or Quarkus services, including naming, immutability, Optional usage, streams, exceptions, generics, CDI, reactive patterns, and project layout."
-origin: ECC
+metadata:
+  origin: ECC
 ---
 
 # Java Coding Standards
