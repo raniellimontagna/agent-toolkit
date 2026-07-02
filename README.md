@@ -210,6 +210,10 @@ skills/
         debugging.md
         testing.md
     design/
+      revenue-centric-design/
+        SKILL.md
+        assets/
+        references/
       ui-ux-pro-max/
         SKILL.md
         data/
@@ -356,6 +360,7 @@ Follow these steps...
 | `devops` | `docker-patterns` | Adapted from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/.kiro/skills/docker-patterns) and [`sickn33/antigravity-awesome-skills`](https://github.com/sickn33/antigravity-awesome-skills/tree/main/skills/docker-expert), both under the MIT license |
 | `frontend` | `accessibility` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/skills/accessibility) under the MIT license |
 | `frontend` | `astro-developer` | Copied from the official [`withastro/astro`](https://github.com/withastro/astro/tree/main/.agents/skills/astro-developer) repository under the MIT license |
+| `frontend` | `revenue-centric-design` | Copied from Helio Costa's [`revenue-centric-design`](https://github.com/heliocosta-dev/revenue-centric-design) under source-available custom terms requiring attribution and excluding gambling/betting/casino use |
 | `frontend` | `ui-ux-pro-max` | Copied from Next Level Builder's [`ui-ux-pro-max-skill`](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/tree/main/.claude/skills/ui-ux-pro-max) under the MIT license |
 | `frontend` | `gsap-core` | Copied from GreenSock's [`gsap-skills`](https://github.com/greensock/gsap-skills/tree/main/skills/gsap-core) under the MIT license |
 | `frontend` | `gsap-frameworks` | Copied from GreenSock's [`gsap-skills`](https://github.com/greensock/gsap-skills/tree/main/skills/gsap-frameworks) under the MIT license |

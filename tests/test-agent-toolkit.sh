@@ -909,6 +909,7 @@ REPO_FRONTEND_SKILLS_OUTPUT="$(
 for expected_frontend_skill in \
   "frontend/accessibility" \
   "frontend/astro/astro-developer" \
+  "frontend/design/revenue-centric-design" \
   "frontend/design/ui-ux-pro-max" \
   "frontend/gsap/gsap-core" \
   "frontend/gsap/gsap-frameworks" \
@@ -977,7 +978,8 @@ REPO_FRONTEND_DESIGN_SKILLS_OUTPUT="$(
   bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-list --skills-package frontend --skills-scope frontend/design
 )"
 
-if ! grep -Fq -- "frontend/design/ui-ux-pro-max" <<<"$REPO_FRONTEND_DESIGN_SKILLS_OUTPUT" || \
+if ! grep -Fq -- "frontend/design/revenue-centric-design" <<<"$REPO_FRONTEND_DESIGN_SKILLS_OUTPUT" || \
+  ! grep -Fq -- "frontend/design/ui-ux-pro-max" <<<"$REPO_FRONTEND_DESIGN_SKILLS_OUTPUT" || \
   grep -Fq -- "frontend/react/react-patterns" <<<"$REPO_FRONTEND_DESIGN_SKILLS_OUTPUT"; then
   echo "Expected frontend/design scope to list only design skills" >&2
   echo "$REPO_FRONTEND_DESIGN_SKILLS_OUTPUT" >&2
@@ -1043,9 +1045,14 @@ for expected_design_file in \
   "$REPO_DESIGN_PROJECT/.codex/skills/ui-ux-pro-max/scripts/search.py" \
   "$REPO_DESIGN_PROJECT/.codex/skills/ui-ux-pro-max/scripts/core.py" \
   "$REPO_DESIGN_PROJECT/.codex/skills/ui-ux-pro-max/data/styles.csv" \
-  "$REPO_DESIGN_PROJECT/.codex/skills/ui-ux-pro-max/data/stacks/react.csv"; do
+  "$REPO_DESIGN_PROJECT/.codex/skills/ui-ux-pro-max/data/stacks/react.csv" \
+  "$REPO_DESIGN_PROJECT/.codex/skills/revenue-centric-design/SKILL.md" \
+  "$REPO_DESIGN_PROJECT/.codex/skills/revenue-centric-design/LICENSE" \
+  "$REPO_DESIGN_PROJECT/.codex/skills/revenue-centric-design/NOTICE.md" \
+  "$REPO_DESIGN_PROJECT/.codex/skills/revenue-centric-design/references/pricing-and-monetization.md" \
+  "$REPO_DESIGN_PROJECT/.codex/skills/revenue-centric-design/assets/2070140923380420796__1.jpg"; do
   if [[ ! -f "$expected_design_file" ]]; then
-    echo "Expected installed UI/UX Pro Max support file to exist: $expected_design_file" >&2
+    echo "Expected installed design skill support file to exist: $expected_design_file" >&2
     find "$REPO_DESIGN_PROJECT/.codex/skills" -maxdepth 5 -type f -print >&2 || true
     exit 1
   fi
