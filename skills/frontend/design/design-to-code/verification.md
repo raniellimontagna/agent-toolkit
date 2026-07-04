@@ -26,6 +26,7 @@ Prove the generated code matches the design **structurally** — not pixel-for-p
    3. Compare against the original design artifact side by side.
    - **Match app state to the design's depicted state before comparing** (auth logged in/out, active tab, filters, seeded data). A state mismatch reads as dozens of false layout diffs.
    - `file://` screenshot pitfalls: spaces/unicode in filenames break the URL — copy the file to a space-free scratch path instead of fighting encoding. A suspiciously small screenshot (~15–20 KB dark page) is Chrome's error page (`ERR_FILE_NOT_FOUND`), not your render — check the path before debugging the code.
+   - **SPA prototypes with state-based routing** (route in `useState`/localStorage, no URL routing) can't deep-link to inner views. To screenshot an inner view, patch a *copy* of the prototype's initial-route expression (`sed` on the copy — never the original). If the bundle is compiled/minified and the pattern doesn't match, don't fight it: verify that view against the design-spec derived from the JSX sources instead, and note in the report that the pixel reference was home-only.
 
 3. **Fidelity checklist (structural, not pixel)**
    - [ ] Section order and hierarchy match the design-spec component tree

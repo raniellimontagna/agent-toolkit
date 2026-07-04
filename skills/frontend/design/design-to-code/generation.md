@@ -41,6 +41,7 @@ Produce the code exactly as `mapping-table.md` (approved at the gate) prescribes
    - Does it compile in your head — every import exists per `repo-map.md`?
    - Every class traceable to the approved mapping? Zero arbitrary values outside the Exceptions table?
    - Props typed, mock data typed?
+   - Only use component APIs the repo actually has (per the `repo-map.md` props column). Don't assume shadcn idioms (`asChild`, `forwardRef` wrappers, slot props) on hand-rolled components that look similar.
 
 ## Output
 
