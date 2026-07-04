@@ -7,7 +7,8 @@
       "!dist",
       "!graphify-out",
       "!node_modules",
-      "!pnpm-lock.yaml"
+      "!pnpm-lock.yaml",
+      "!temp"
     ]
   },
   "formatter": {
