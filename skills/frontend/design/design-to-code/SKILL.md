@@ -50,8 +50,31 @@ Write intermediate artifacts to the session scratchpad directory:
 - `repo-map.md` — what the repo offers (tokens, components, conventions, wiring patterns)
 - `design-spec.md` — what the design asks for (component tree, observed tokens, content, states)
 - `mapping-table.md` — the crossing of the two (REUSE / EXTEND / NEW decisions, token mapping, exceptions)
+- `screen-backlog.md` — multi-screen runs only (see below)
 
 Later phases **read artifacts instead of re-analyzing**. If a session is resumed mid-pipeline, read the existing artifacts and continue from the first missing one.
+
+**Persistence across sessions:** for work likely to span sessions (multi-screen designs, large repos), write the artifacts to `.design-to-code/` at the target repo root instead of the scratchpad, and add that directory to the repo's `.gitignore` if not already ignored. A new session then resumes by reading `.design-to-code/` — repo-map and mapping decisions survive, only staleness needs re-checking (did tokens/components change since the artifact was written? `git log` on the token/component paths answers it).
+
+## Multi-screen designs
+
+A design with more than ~2 screens does not fit one pipeline pass. Structure it:
+
+1. Phase 2 produces one `design-spec.md` **per screen** (or per tight screen group), plus `screen-backlog.md`:
+
+```markdown
+# Screen backlog — <design>
+| # | Screen | Depends on | Status | Commit |
+|---|---|---|---|---|
+| 1 | Chrome (sidebar+topbar) | — | done | abc123 |
+| 2 | Home | 1 | done | def456 |
+| 3 | Search | 1 | in progress | |
+| 4 | Detail + booking modal | 1 | pending | |
+```
+
+2. Order the backlog: shared chrome/layout first, then screens leaf-to-complex. Phases 3–5 run **per batch** (1–2 screens), each batch ending in a commit and a backlog status update.
+3. Phase 1 runs once; Phase 3's mapping-table grows incrementally — new screens append rows, and components created by earlier batches become REUSE candidates for later ones.
+4. The consolidation pass (see `verification.md`) runs once at the end, across everything the run created.
 
 ## The Phase 3 gate (hard stop)
 

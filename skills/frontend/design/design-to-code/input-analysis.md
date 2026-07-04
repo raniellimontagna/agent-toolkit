@@ -79,4 +79,4 @@ Analytics dashboard: fixed sidebar, header, stats row, revenue table, chart pane
 
 - **Illegible / low-res screenshot** → request a better export or the HTML. Do not invent details vision can't confirm.
 - **URL unreachable** → ask for an HTML export instead.
-- **Design spans multiple screens/pages** → split into one spec per screen, confirm with the user which to implement first.
+- **Design spans multiple screens/pages** → one `design-spec.md` per screen plus `screen-backlog.md`, per the Multi-screen designs section of SKILL.md. Confirm scope/order with the user unless running autonomously (then: chrome first, leaf-to-complex).
