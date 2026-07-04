@@ -30,6 +30,9 @@ Inventory the target repository so every later decision (naming, reuse, tokens, 
 4. **Convention detection**
    - File naming (PascalCase.tsx vs kebab-case.tsx), folder-per-feature vs flat, export style (default vs named, barrel `index.ts` or not), test file pattern (`*.test.tsx` location), class-merge helper (`cn`, `clsx`, `twMerge`).
 
+5. **Verify build commands**
+   - Actually run the repo's typecheck and build once, now. If `pnpm exec`/`npx` wrappers misbehave (hook/proxy environments can break them), fall back to `./node_modules/.bin/<tool>` and record whichever form worked — Phases 4–5 depend on these commands.
+
 ## Output: `repo-map.md`
 
 Write to the session scratchpad, in this shape:
@@ -59,6 +62,11 @@ Write to the session scratchpad, in this shape:
 - Naming: kebab-case files, named exports, no barrels
 - Class merge: cn() from lib/utils
 - Tests: colocated *.test.tsx
+
+## Verified commands
+- Typecheck: ./node_modules/.bin/tsc -b
+- Build: ./node_modules/.bin/vite build
+- Dev/preview: ./node_modules/.bin/vite preview --port 4180
 
 ## Wiring patterns
 - Route example: app/dashboard/page.tsx

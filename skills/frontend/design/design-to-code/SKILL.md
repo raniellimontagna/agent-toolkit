@@ -62,6 +62,8 @@ Later phases **read artifacts instead of re-analyzing**. If a session is resumed
 
 Wait for explicit approval. Apply any requested changes to the table, then enter Phase 4. Never skip this gate, even when every decision is REUSE.
 
+**Autonomous runs:** when the user has explicitly pre-authorized unattended execution (batch run, "não precisa me perguntar", scheduled/loop mode), self-approve the gate — but record in `mapping-table.md` that it was auto-approved and why, keep every EXTEND strictly additive, and surface the full table in the final report so the user reviews it after the fact.
+
 ## Input priority
 
 When multiple design inputs exist for the same design:

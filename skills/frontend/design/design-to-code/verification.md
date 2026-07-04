@@ -15,6 +15,7 @@ Prove the generated code matches the design **structurally** — not pixel-for-p
 1. **Static verification (must pass before the visual loop)**
    - Discover the target repo's scripts from its `package.json`: typecheck (`tsc --noEmit` or a `typecheck` script), lint, build.
    - Run all three. Fix failures before any screenshot — a broken build makes visual comparison meaningless.
+   - If `pnpm exec`/`npx` misbehaves (hangs, OOMs, "missing script" for a binary that exists — shell hooks/proxies can break these wrappers), bypass with the direct binary: `./node_modules/.bin/<tool>`. Record the working commands in `repo-map.md` so later phases reuse them.
 
 2. **Visual loop**
    1. Start the repo's dev server (its `dev` script) in the background; wait for it to report ready.
@@ -23,6 +24,8 @@ Prove the generated code matches the design **structurally** — not pixel-for-p
       - `npx playwright screenshot` available → use that
       - Headless Chrome/Chromium (`chromium --headless --screenshot`) → fallback
    3. Compare against the original design artifact side by side.
+   - **Match app state to the design's depicted state before comparing** (auth logged in/out, active tab, filters, seeded data). A state mismatch reads as dozens of false layout diffs.
+   - `file://` screenshot pitfalls: spaces/unicode in filenames break the URL — copy the file to a space-free scratch path instead of fighting encoding. A suspiciously small screenshot (~15–20 KB dark page) is Chrome's error page (`ERR_FILE_NOT_FOUND`), not your render — check the path before debugging the code.
 
 3. **Fidelity checklist (structural, not pixel)**
    - [ ] Section order and hierarchy match the design-spec component tree
