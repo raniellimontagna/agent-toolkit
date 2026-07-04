@@ -278,11 +278,30 @@ export function listCustomSkills(): boolean {
   return true;
 }
 
+function assertDirectoryPath(targetRoot: string): void {
+  let current = targetRoot;
+  const seen: string[] = [];
+  while (true) {
+    seen.push(current);
+    const parent = path.dirname(current);
+    if (parent === current) break;
+    current = parent;
+  }
+  for (const segment of seen.reverse()) {
+    if (fs.existsSync(segment) && !fs.statSync(segment).isDirectory()) {
+      throw new Error(
+        `Cannot create skills directory: "${segment}" exists but is a file, not a directory. Remove or rename it and rerun the installer.`,
+      );
+    }
+  }
+}
+
 function copySkillDir(sourceDir: string, targetRoot: string): string {
   const name = path.basename(sourceDir);
   const destination = path.join(targetRoot, name);
   const tempDestination = `${destination}.tmp.${process.pid}`;
 
+  assertDirectoryPath(targetRoot);
   fs.mkdirSync(targetRoot, { recursive: true });
   fs.rmSync(tempDestination, { recursive: true, force: true });
   fs.cpSync(sourceDir, tempDestination, { recursive: true });
@@ -326,8 +345,13 @@ function installCustomSkillsForRuntime(
       );
     } else {
       for (const targetRoot of targetRoots) {
-        const destination = copySkillDir(skillDir, targetRoot);
-        recordSkillInstall(runtime, skillDir, destination);
+        try {
+          const destination = copySkillDir(skillDir, targetRoot);
+          recordSkillInstall(runtime, skillDir, destination);
+        } catch (error) {
+          err(error instanceof Error ? error.message : String(error));
+          return false;
+        }
       }
     }
     installed += 1;
