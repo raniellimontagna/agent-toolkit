@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lumen — Ship docs your users actually read</title>
+<style>
+  :root {
+    --primary: #7c5cff;
+    --primary-dark: #6242e8;
+    --primary-soft: #f1edff;
+    --ink: #16121f;
+    --ink-muted: #5d5670;
+    --bg: #fdfcff;
+    --surface: #ffffff;
+    --border: #e9e5f4;
+    --highlight: #ffb84d;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Inter", "Segoe UI", -apple-system, sans-serif; background: var(--bg); color: var(--ink); line-height: 1.55; }
+  .container { max-width: 1080px; margin: 0 auto; padding: 0 26px; }
+
+  /* Buttons — 3 variants × 2 sizes */
+  .btn {
+    display: inline-block; border-radius: 10px; font-weight: 600;
+    text-decoration: none; cursor: pointer; border: 1px solid transparent;
+    transition: all 0.15s ease; font-size: 15px; padding: 11px 22px;
+  }
+  .btn-lg { font-size: 16.5px; padding: 15px 30px; }
+  .btn-solid { background: var(--primary); color: #fff; }
+  .btn-solid:hover { background: var(--primary-dark); }
+  .btn-ghost { color: var(--ink-muted); }
+  .btn-ghost:hover { color: var(--ink); background: var(--primary-soft); }
+  .btn-outline { border-color: var(--border); color: var(--ink); background: var(--surface); }
+  .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+
+  /* Navbar */
+  .navbar {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(253, 252, 255, 0.85); backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+  .navbar .container { display: flex; align-items: center; justify-content: space-between; height: 66px; }
+  .brand { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 18.5px; }
+  .brand-mark { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, var(--primary), #b49bff); }
+  .nav-links { display: flex; gap: 26px; list-style: none; }
+  .nav-links a { color: var(--ink-muted); text-decoration: none; font-size: 14.5px; font-weight: 500; }
+  .nav-links a:hover { color: var(--ink); }
+  .nav-cta { display: flex; gap: 10px; }
+
+  /* Hero */
+  .hero { text-align: center; padding: 92px 0 70px; }
+  .hero h1 { font-size: 52px; line-height: 1.12; font-weight: 800; letter-spacing: -0.02em; max-width: 720px; margin: 0 auto 22px; }
+  .hero h1 em { font-style: normal; color: var(--primary); }
+  .hero p { font-size: 19px; color: var(--ink-muted); max-width: 540px; margin: 0 auto 34px; }
+  .hero-form { display: flex; gap: 12px; justify-content: center; margin-bottom: 26px; }
+  .hero-form input {
+    width: 320px; padding: 15px 18px; font-size: 15px;
+    border: 1px solid var(--border); border-radius: 10px; background: var(--surface);
+  }
+  .hero-form input:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
+  .social-proof { font-size: 13.5px; color: var(--ink-muted); }
+  .social-proof strong { color: var(--ink); }
+
+  /* Features */
+  .features { padding: 70px 0; }
+  .section-title { text-align: center; font-size: 34px; font-weight: 800; letter-spacing: -0.01em; margin-bottom: 14px; }
+  .section-sub { text-align: center; color: var(--ink-muted); font-size: 16.5px; max-width: 480px; margin: 0 auto 46px; }
+  .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .feature-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 26px;
+  }
+  .feature-icon { width: 42px; height: 42px; border-radius: 11px; background: var(--primary-soft); margin-bottom: 17px; }
+  .feature-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+  .feature-card p { font-size: 14.5px; color: var(--ink-muted); }
+
+  /* Pricing */
+  .pricing { padding: 70px 0; background: var(--surface); border-block: 1px solid var(--border); }
+  .tier-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; align-items: start; }
+  .tier {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 16px; padding: 30px; position: relative;
+  }
+  .tier.featured { border: 2px solid var(--primary); background: var(--surface); box-shadow: 0 14px 38px rgba(124, 92, 255, 0.13); }
+  .tier-badge {
+    position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+    background: var(--highlight); color: #4b2e00;
+    font-size: 12px; font-weight: 700; padding: 5px 14px; border-radius: 999px;
+  }
+  .tier h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .tier .price { font-size: 38px; font-weight: 800; margin-bottom: 2px; }
+  .tier .price span { font-size: 15px; font-weight: 500; color: var(--ink-muted); }
+  .tier .desc { font-size: 14px; color: var(--ink-muted); margin-bottom: 22px; }
+  .tier ul { list-style: none; margin-bottom: 26px; display: flex; flex-direction: column; gap: 11px; }
+  .tier li { font-size: 14.5px; padding-left: 26px; position: relative; }
+  .tier li::before { content: "✓"; position: absolute; left: 0; color: var(--primary); font-weight: 700; }
+  .tier .btn { width: 100%; text-align: center; }
+
+  /* CTA band */
+  .cta-band { padding: 84px 0; text-align: center; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: #fff; }
+  .cta-band h2 { font-size: 36px; font-weight: 800; margin-bottom: 12px; }
+  .cta-band p { opacity: 0.85; margin-bottom: 30px; font-size: 17px; }
+  .cta-band .btn { background: #fff; color: var(--primary-dark); }
+  .cta-band .btn:hover { background: var(--primary-soft); }
+
+  /* Footer */
+  footer { padding: 54px 0 40px; }
+  .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 30px; margin-bottom: 38px; }
+  .footer-grid h4 { font-size: 13.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-muted); margin-bottom: 15px; }
+  .footer-grid ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .footer-grid a { color: var(--ink); text-decoration: none; font-size: 14.5px; }
+  .footer-grid a:hover { color: var(--primary); }
+  .footer-note { border-top: 1px solid var(--border); padding-top: 22px; font-size: 13px; color: var(--ink-muted); }
+</style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <div class="brand"><div class="brand-mark"></div> Lumen</div>
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="#">Changelog</a></li>
+        <li><a href="#">Docs</a></li>
+      </ul>
+      <div class="nav-cta">
+        <a class="btn btn-ghost" href="#">Sign in</a>
+        <a class="btn btn-solid" href="#">Start free</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero container">
+    <h1>Ship docs your users <em>actually read</em></h1>
+    <p>Lumen turns your markdown into a beautiful, searchable knowledge base — deployed in minutes, loved forever.</p>
+    <form class="hero-form">
+      <input type="email" placeholder="you@company.com" aria-label="Work email">
+      <button class="btn btn-solid btn-lg" type="submit">Get early access</button>
+    </form>
+    <div class="social-proof">Trusted by <strong>2,400+</strong> product teams, including Vercel, Linear and Raycast</div>
+  </header>
+
+  <section class="features container" id="features">
+    <h2 class="section-title">Everything a docs site needs</h2>
+    <p class="section-sub">Stop gluing together static site generators. Lumen ships the whole stack.</p>
+    <div class="feature-grid">
+      <div class="feature-card"><div class="feature-icon"></div><h3>Instant search</h3><p>Typo-tolerant, keyboard-first search across every page, synced on each deploy.</p></div>
+      <div class="feature-card"><div class="feature-icon"></div><h3>Markdown native</h3><p>Bring your existing .md files. MDX components when you need interactivity.</p></div>
+      <div class="feature-card"><div class="feature-icon"></div><h3>Versioned docs</h3><p>Publish per release. Readers switch versions without losing their place.</p></div>
+      <div class="feature-card"><div class="feature-icon"></div><h3>Analytics built in</h3><p>See what readers search for and never find. Fix the gap before support does.</p></div>
+      <div class="feature-card"><div class="feature-icon"></div><h3>Custom domains</h3><p>docs.yourproduct.com with automatic SSL, edge-cached worldwide.</p></div>
+      <div class="feature-card"><div class="feature-icon"></div><h3>API references</h3><p>OpenAPI in, polished three-column reference out. Always in sync with your spec.</p></div>
+    </div>
+  </section>
+
+  <section class="pricing" id="pricing">
+    <div class="container">
+      <h2 class="section-title">Simple, honest pricing</h2>
+      <p class="section-sub">Start free. Upgrade when your docs outgrow you.</p>
+      <div class="tier-grid">
+        <div class="tier">
+          <h3>Hobby</h3>
+          <div class="price">$0 <span>/month</span></div>
+          <p class="desc">For side projects and open source.</p>
+          <ul><li>1 project</li><li>Lumen subdomain</li><li>Community support</li></ul>
+          <a class="btn btn-outline" href="#">Start for free</a>
+        </div>
+        <div class="tier featured">
+          <div class="tier-badge">Most popular</div>
+          <h3>Pro</h3>
+          <div class="price">$29 <span>/month</span></div>
+          <p class="desc">For teams shipping real products.</p>
+          <ul><li>Unlimited projects</li><li>Custom domain + SSL</li><li>Search analytics</li><li>Version switcher</li></ul>
+          <a class="btn btn-solid" href="#">Start 14-day trial</a>
+        </div>
+        <div class="tier">
+          <h3>Enterprise</h3>
+          <div class="price">Custom</div>
+          <p class="desc">For orgs with compliance needs.</p>
+          <ul><li>SSO / SAML</li><li>Audit logs</li><li>SLA + dedicated support</li></ul>
+          <a class="btn btn-outline" href="#">Talk to sales</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-band">
+    <div class="container">
+      <h2>Your docs deserve better</h2>
+      <p>Join 2,400+ teams shipping documentation readers love.</p>
+      <a class="btn btn-lg" href="#">Get started — it's free</a>
+    </div>
+  </section>
+
+  <footer class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="brand"><div class="brand-mark"></div> Lumen</div>
+      </div>
+      <div><h4>Product</h4><ul><li><a href="#">Features</a></li><li><a href="#">Pricing</a></li><li><a href="#">Changelog</a></li></ul></div>
+      <div><h4>Company</h4><ul><li><a href="#">About</a></li><li><a href="#">Blog</a></li><li><a href="#">Careers</a></li></ul></div>
+      <div><h4>Legal</h4><ul><li><a href="#">Privacy</a></li><li><a href="#">Terms</a></li><li><a href="#">Security</a></li></ul></div>
+    </div>
+    <div class="footer-note">© 2026 Lumen Labs. All rights reserved.</div>
+  </footer>
+</body>
+</html>
