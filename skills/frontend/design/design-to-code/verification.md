@@ -29,7 +29,7 @@ Prove the generated code matches the design **structurally** — not pixel-for-p
 
 3. **Interactive states (don't skip — static screenshots miss them)**
    Route screenshots never capture modals, hover states, dropdowns, or multi-step flows. For every spec'd state that needs interaction to reach:
-   - **Preferred:** a throwaway Playwright script (via the repo's Playwright or `./node_modules/.bin/playwright`) that clicks through and screenshots each state (e.g., open the booking modal, advance each step).
+   - **Preferred:** drive the real flow — a throwaway Playwright script (repo's Playwright or `./node_modules/.bin/playwright`), or headless Chrome via DevTools Protocol, that clicks through and screenshots each state (e.g., open the booking modal, advance each step; log in through the app's own mock auth to reach protected screens). Real-flow driving beats state injection: it also proves the transitions work.
    - **Fallback — state injection:** temporarily flip the state's source to render it directly (store default, seeded route param, initial-step prop), screenshot, then revert before committing. Same technique as auth-state parity.
    - **Neither possible:** the state goes in the report under **"Spec'd states NOT visually verified"** with the reason. This list is mandatory in the final report — an empty list is a claim, so make it explicitly ("all interactive states exercised"), not by omission.
    - **Match app state to the design's depicted state before comparing** (auth logged in/out, active tab, filters, seeded data). A state mismatch reads as dozens of false layout diffs.
@@ -44,6 +44,7 @@ Prove the generated code matches the design **structurally** — not pixel-for-p
    - [ ] Interactive states present (hover/focus/disabled where the spec lists them)
    - [ ] Colors correct **per mapping-table** — the repo token was applied where the mapping says; divergence from the design's raw hex is correct behavior, divergence from the mapping is a bug
    - [ ] Content matches the spec's content inventory (real texts/numbers, no placeholder lorem)
+   - [ ] **No design drift**: the result keeps the design's visual identity and mood — its motifs, its type-scale relationships, its negative space — instead of collapsing into a generic template that merely has the same sections
 
 5. **Iterate**
    - Any unchecked item → fix the code, re-screenshot, re-run the checklist.
@@ -53,6 +54,7 @@ Prove the generated code matches the design **structurally** — not pixel-for-p
    After several screens/batches, generated components drift: near-duplicates appear (two card variants that are one component with a prop), and components born inside a feature turn out to be app-wide primitives. Before the final report:
    - Scan the components created this run for near-duplicates → merge into one component + variant prop.
    - Any component used by 2+ features that has no feature-specific logic → promote to the repo's primitive layer (`ui/`), following its conventions.
+   - **Cross-screen consistency audit**: batches drift visually, not just structurally. Compare screens for the same type-scale logic, the same spacing discipline, the same CTA styling, the same recurring motifs (from the design-spec). A screen built in batch 5 that renders its CTAs or section headings differently from batch 1 is a bug even if each screen individually passes.
    - Re-run static verification after consolidating.
    Single-screen runs skip this step.
 

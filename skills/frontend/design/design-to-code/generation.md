@@ -31,13 +31,19 @@ Produce the code exactly as `mapping-table.md` (approved at the gate) prescribes
    - Shows a state pattern and the design needs shared state → follow it. Local UI state stays `useState`.
    - Pattern "none detected" → typed mock data only: put it in the repo's `mocks/` dir if one exists, else colocate a `*.mock.ts` next to the page. Mock content comes from the design-spec Content inventory — real texts and numbers, not lorem ipsum.
 
-4. **Accessibility baseline (mandatory)**
+4. **Filling design gaps with restraint**
+   When the design doesn't specify something you must build anyway (responsive collapse it never drew, empty/error/loading states, a screen edge case):
+   - Default to restraint: no invented badges/pills/decorative micro-UI, no cards nested inside cards, preserve the design's negative space and rhythm.
+   - Reuse the design's own motifs (from the design-spec) instead of importing generic patterns.
+   - Every invented piece goes in the Phase 5 report under "accepted differences" — gap-filling is fine, silent invention is not.
+
+5. **Accessibility baseline (mandatory)**
    - Semantic landmarks: `nav`, `main`, `header`, `footer`, `aside`.
    - Heading hierarchy exactly as extracted in the design-spec.
    - `alt` on images, labels on form controls, `button` vs `a` used by behavior (action vs navigation).
    - Interactive elements keyboard-reachable with visible focus (repo's focus ring token if one exists).
 
-5. **Per-file self-check (before moving to the next file)**
+6. **Per-file self-check (before moving to the next file)**
    - Does it compile in your head — every import exists per `repo-map.md`?
    - Every class traceable to the approved mapping? Zero arbitrary values outside the Exceptions table?
    - Props typed, mock data typed?

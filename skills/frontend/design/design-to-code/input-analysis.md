@@ -27,16 +27,17 @@ Turn the design artifact into a structured spec: what sections exist, how they'r
 
 3. **Extract observed tokens**
    - Colors (hex/rgb) with role: background, surface, text, accent, success/danger.
-   - Typography: families, the distinct size/weight steps actually used.
-   - Spacing rhythm: the distinct paddings/gaps in use (e.g., 18/22/28px) — record raw values; mapping to repo scale happens in Phase 3, not here.
+   - Typography: families, the distinct size/weight steps actually used — and the **scale relationships** (how much bigger is the h1 than the sub? than body?), which survive token mapping even when exact px don't.
+   - Spacing rhythm: the distinct paddings/gaps in use (e.g., 18/22/28px) — record raw values; mapping to repo scale happens in Phase 3, not here. Also record **cadence relationships**: headline↔subheadline distance vs section gaps vs card gaps — relative rhythm is what Phase 5 checks.
    - Radii, shadows, borders.
+   - Repeated visual motifs (a texture, a chip style, a decorative pattern) — name them once; they anchor cross-screen consistency later.
 
 4. **Extract states and interactions**
    - Hover/active/disabled styles present in CSS; focus styles; anything animated.
    - Screenshots can't show hover — note "states not observable" so Phase 4 falls back to repo component defaults.
 
 5. **Extract content**
-   - Real texts, numbers, table rows, labels. These become **typed mock data** in Phase 4 — never lorem ipsum when the design has real content.
+   - Real texts, numbers, table rows, labels — **verbatim**, including CTA microcopy, section headings, and small labels. These become **typed mock data** in Phase 4 — never lorem ipsum, never paraphrased copy, when the design has real content.
 
 6. **Decompose into candidate components**
    - One responsibility per node. Repeated visual units (cards, rows, tiers) → one component + data array.
