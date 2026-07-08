@@ -390,10 +390,8 @@ The installer validates:
 - `name` uses lowercase letters, numbers and hyphens;
 - `description` is non-empty and under 1024 characters.
 
-Other third-party frontend design skills such as Impeccable and Taste Skill are
-not vendored as bundled Custom Skills. The `frontend-skills` tool installs them
-externally through the Agent Skills CLI from pinned public sources. React
-Doctor is installed as an agent skill integration, not automatic CI setup.
+Other third-party frontend skills such as Impeccable, Taste Skill and React
+Doctor are not vendored as bundled Custom Skills. The `frontend-skills` tool installs them externally through the Agent Skills CLI from pinned public sources. React Doctor is installed as an agent skill integration, not automatic CI setup.
 
 ## CLI Reference
 
