@@ -53,7 +53,7 @@ export type ToolLock = {
         ref: string;
         skill: string;
       };
-      reactDoctor?: {
+      reactDoctor: {
         source: "github";
         repository: string;
         ref: string;

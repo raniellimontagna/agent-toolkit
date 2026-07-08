@@ -51,6 +51,12 @@ const lock: ToolLock = {
         ref: "d".repeat(40),
         skill: "design-taste-frontend",
       },
+      reactDoctor: {
+        source: "github",
+        repository: "millionco/react-doctor",
+        ref: "e".repeat(40),
+        skill: "react-doctor",
+      },
     },
   },
   runtimeClis: {
