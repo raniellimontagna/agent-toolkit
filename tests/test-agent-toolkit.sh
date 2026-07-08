@@ -478,6 +478,12 @@ if ! grep -Eq -- "-y skills@1\\.5\\.13 add .+ --skill design-taste-frontend --ag
   exit 1
 fi
 
+if ! grep -Eq -- "-y skills@1\\.5\\.13 add .+ --skill react-doctor --agent claude-code --agent codex --agent opencode --agent gemini-cli --agent antigravity --global -y --copy" "$NPM_LOG"; then
+  echo "Expected external frontend skill installer to install React Doctor for selected runtimes" >&2
+  cat "$NPM_LOG" >&2
+  exit 1
+fi
+
 if ! grep -Eq -- "-y skills@1\\.5\\.13 add .+/skills/improve --skill improve --agent claude-code --agent codex --agent opencode --agent gemini-cli --agent antigravity --global -y --copy" "$NPM_LOG"; then
   echo "Expected Improve installer to install the pinned shadcn Improve skill for selected runtimes" >&2
   cat "$NPM_LOG" >&2
@@ -515,6 +521,12 @@ fi
 
 if ! grep -Fq -- "https://github.com/Leonxlnx/taste-skill.git" "$GIT_LOG"; then
   echo "Expected Taste Skill source to be cloned before CLI installation" >&2
+  cat "$GIT_LOG" >&2
+  exit 1
+fi
+
+if ! grep -Fq -- "https://github.com/millionco/react-doctor.git" "$GIT_LOG"; then
+  echo "Expected React Doctor source to be cloned before CLI installation" >&2
   cat "$GIT_LOG" >&2
   exit 1
 fi

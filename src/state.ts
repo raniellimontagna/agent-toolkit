@@ -167,6 +167,12 @@ export const state: State = {
       ref: toolLock.tools.frontendSkills.tasteSkill.ref,
       skill: toolLock.tools.frontendSkills.tasteSkill.skill,
     },
+    {
+      label: "React Doctor",
+      repository: toolLock.tools.frontendSkills.reactDoctor.repository,
+      ref: toolLock.tools.frontendSkills.reactDoctor.ref,
+      skill: toolLock.tools.frontendSkills.reactDoctor.skill,
+    },
   ],
   gsdScope: envInstallScope(process.env.GSD_SCOPE),
   customSkillsDir:
