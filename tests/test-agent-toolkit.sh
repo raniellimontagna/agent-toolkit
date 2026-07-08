@@ -207,7 +207,7 @@ case "${1:-}" in
   *) exec "$REAL_NODE_FOR_TEST" "$@" ;;
 esac
 EOF
-sed -i "s|REAL_NODE_PLACEHOLDER|REAL_NODE_FOR_TEST='$REAL_NODE'|" "$FAKE_BIN/node"
+perl -i -pe "s|REAL_NODE_PLACEHOLDER|REAL_NODE_FOR_TEST='$REAL_NODE'|" "$FAKE_BIN/node"
 chmod +x "$FAKE_BIN/node"
 
 cat > "$FAKE_BIN/npm" <<EOF
@@ -454,7 +454,7 @@ if grep -Fq -- "--only antigravity" "$NPM_LOG"; then
   exit 1
 fi
 
-if ! grep -Fxq -- "-y get-shit-done-cc@1.42.3 --global --claude --codex --opencode --gemini" "$NPM_LOG"; then
+if ! grep -Fxq -- "-y @opengsd/gsd-core@1.6.1 --global --claude --codex --opencode --gemini" "$NPM_LOG"; then
   echo "Expected GSD installer to target Claude, Codex, OpenCode and Gemini globally" >&2
   cat "$NPM_LOG" >&2
   exit 1
@@ -501,7 +501,7 @@ XDG_CONFIG_HOME="$HOME_DIR/.config" \
 PATH="$FAKE_BIN:/usr/bin:/bin" \
 bash "$ROOT_DIR/setup-agent-toolkit.sh" --gsd-only --antigravity >/dev/null
 
-if grep -Fq -- "get-shit-done-cc" "$NPM_LOG"; then
+if grep -Fq -- "@opengsd/gsd-core" "$NPM_LOG"; then
   echo "Expected --gsd-only --antigravity to skip the GSD upstream installer" >&2
   cat "$NPM_LOG" >&2
   exit 1
@@ -1265,7 +1265,7 @@ case "\${1:-}" in
 esac
 exit 0
 GRAPHIFY
-sed -i "s|UV_FALLBACK_LOG_PLACEHOLDER|$UV_FALLBACK_LOG|" "$UV_FALLBACK_HOME/.local/bin/graphify"
+perl -i -pe "s|UV_FALLBACK_LOG_PLACEHOLDER|$UV_FALLBACK_LOG|" "$UV_FALLBACK_HOME/.local/bin/graphify"
 chmod +x "$UV_FALLBACK_HOME/.local/bin/graphify" ;;
 esac
 exit 0
@@ -1333,7 +1333,7 @@ case "${1:-}" in
   *) exec "$REAL_NODE_FOR_TEST" "$@" ;;
 esac
 EOF
-sed -i "s|REAL_NODE_PLACEHOLDER|REAL_NODE_FOR_TEST='$REAL_NODE'|" "$INSTALL_BIN/node"
+perl -i -pe "s|REAL_NODE_PLACEHOLDER|REAL_NODE_FOR_TEST='$REAL_NODE'|" "$INSTALL_BIN/node"
 chmod +x "$INSTALL_BIN/node"
 
 cat > "$INSTALL_BIN/npm" <<EOF
@@ -1417,15 +1417,15 @@ cat > "$OUTDATED_BIN/npm" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$OUTDATED_NPM_LOG"
 case " \$* " in
-  *" @openai/codex@0.142.3 "*) cat > "$OUTDATED_BIN/codex" <<'CODEX'
+  *" @openai/codex@0.143.0 "*) cat > "$OUTDATED_BIN/codex" <<'CODEX'
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "OUTDATED_CODEX_LOG_PLACEHOLDER"
 case "\${1:-}" in
-  --version) echo "codex-cli 0.142.3" ;;
+  --version) echo "codex-cli 0.143.0" ;;
 esac
 exit 0
 CODEX
-sed -i "s|OUTDATED_CODEX_LOG_PLACEHOLDER|$OUTDATED_CODEX_LOG|" "$OUTDATED_BIN/codex"
+perl -i -pe "s|OUTDATED_CODEX_LOG_PLACEHOLDER|$OUTDATED_CODEX_LOG|" "$OUTDATED_BIN/codex"
 chmod +x "$OUTDATED_BIN/codex" ;;
 esac
 exit 0
@@ -1446,7 +1446,7 @@ HOME="$OUTDATED_HOME" \
 PATH="$OUTDATED_BIN:/usr/bin:/bin" \
 bash "$ROOT_DIR/setup-agent-toolkit.sh" --superpowers-only --codex --install-missing-clis >/dev/null
 
-if ! grep -Fxq -- "install -g @openai/codex@0.142.3" "$OUTDATED_NPM_LOG"; then
+if ! grep -Fxq -- "install -g @openai/codex@0.143.0" "$OUTDATED_NPM_LOG"; then
   echo "Expected --install-missing-clis to update outdated Codex CLI package" >&2
   cat "$OUTDATED_NPM_LOG" >&2
   exit 1
@@ -1462,7 +1462,7 @@ MUTABLE_OUTPUT="$(
   set +e
   HOME="$INSTALL_HOME" \
   PATH="$FAKE_BIN:/usr/bin:/bin" \
-  GSD_PACKAGE="get-shit-done-cc@latest" \
+  GSD_PACKAGE="@opengsd/gsd-core@latest" \
   bash "$ROOT_DIR/setup-agent-toolkit.sh" --gsd-only --codex 2>&1
   printf 'status:%s\n' "$?"
 )"
@@ -1483,10 +1483,10 @@ chmod +x "$FAKE_BIN/npx"
 
 HOME="$INSTALL_HOME" \
 PATH="$FAKE_BIN:/usr/bin:/bin" \
-GSD_PACKAGE="get-shit-done-cc@latest" \
+GSD_PACKAGE="@opengsd/gsd-core@latest" \
 bash "$ROOT_DIR/setup-agent-toolkit.sh" --gsd-only --codex --allow-mutable-sources >/dev/null
 
-if ! grep -Fxq -- "-y get-shit-done-cc@latest --global --codex" "$MUTABLE_ALLOWED_LOG"; then
+if ! grep -Fxq -- "-y @opengsd/gsd-core@latest --global --codex" "$MUTABLE_ALLOWED_LOG"; then
   echo "Expected --allow-mutable-sources to permit explicit mutable override" >&2
   cat "$MUTABLE_ALLOWED_LOG" >&2
   exit 1

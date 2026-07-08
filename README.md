@@ -489,12 +489,12 @@ Defaults come from `tools.lock.json`:
 CAVEMAN_PACKAGE=github:JuliusBrussee/caveman#25d22f864ad68cc447a4cb93aefde918aa4aec9f
 GRAPHIFY_PACKAGE=graphifyy==0.8.51
 GRAPHIFY_INSTALLER=uv
-GSD_PACKAGE=get-shit-done-cc@1.42.3
+GSD_PACKAGE=@opengsd/gsd-core@1.6.1
 SKILLS_CLI_PACKAGE=skills@1.5.13
 ANTIGRAVITY_INSTALL_SCRIPT=https://antigravity.google/cli/install.sh
-CLAUDE_CLI_PACKAGE=@anthropic-ai/claude-code@2.1.195
-CODEX_CLI_PACKAGE=@openai/codex@0.142.3
-OPENCODE_CLI_PACKAGE=opencode-ai@1.17.11
+CLAUDE_CLI_PACKAGE=@anthropic-ai/claude-code@2.1.204
+CODEX_CLI_PACKAGE=@openai/codex@0.143.0
+OPENCODE_CLI_PACKAGE=opencode-ai@1.17.15
 GEMINI_CLI_PACKAGE=@google/gemini-cli@0.49.0
 ```
 
@@ -524,7 +524,7 @@ Current external sources:
 | RTK | GitHub release `rtk-ai/rtk@v0.43.0` | Verifies the selected asset SHA-256 before extraction |
 | Caveman | `JuliusBrussee/caveman` at commit `25d22f864ad68cc447a4cb93aefde918aa4aec9f` | Immutable GitHub npm spec |
 | Graphify | `graphifyy==0.8.51` | Blocks unpinned package overrides |
-| GSD | `get-shit-done-cc@1.42.3` | Blocks `@latest` unless explicitly allowed |
+| GSD | `@opengsd/gsd-core@1.6.1` | Blocks `@latest` unless explicitly allowed |
 | Improve | `shadcn/improve` at commit `03369ee6d7cafbfcecc4346539b05b3dc0a603bb` | Clones the pinned ref before Agent Skills CLI install |
 | Frontend Skills | `skills@1.5.13`, `pbakaus/impeccable` and `Leonxlnx/taste-skill` at pinned commits | Clones pinned refs before install |
 | Runtime CLIs | Exact npm versions for Claude, Codex, OpenCode and Gemini | Installed or updated only when `--install-missing-clis` is enabled; Antigravity uses the official `agy` installer instead of npm |

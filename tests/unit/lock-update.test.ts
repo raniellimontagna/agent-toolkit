@@ -23,7 +23,7 @@ const lock: ToolLock = {
     },
     gsd: {
       source: "npm",
-      package: "get-shit-done-cc",
+      package: "@opengsd/gsd-core",
       version: "1.0.0",
     },
     improve: {

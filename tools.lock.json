@@ -35,8 +35,8 @@
     },
     "gsd": {
       "source": "npm",
-      "package": "get-shit-done-cc",
-      "version": "1.42.3"
+      "package": "@opengsd/gsd-core",
+      "version": "1.6.1"
     },
     "improve": {
       "source": "github",
@@ -69,17 +69,17 @@
     "claude": {
       "source": "npm",
       "package": "@anthropic-ai/claude-code",
-      "version": "2.1.195"
+      "version": "2.1.204"
     },
     "codex": {
       "source": "npm",
       "package": "@openai/codex",
-      "version": "0.142.3"
+      "version": "0.143.0"
     },
     "opencode": {
       "source": "npm",
       "package": "opencode-ai",
-      "version": "1.17.11"
+      "version": "1.17.15"
     },
     "gemini": {
       "source": "npm",

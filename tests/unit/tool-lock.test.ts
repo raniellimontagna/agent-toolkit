@@ -35,7 +35,7 @@ describe("external tool lock", () => {
     expect(lock.tools.caveman.ref).toBe(
       "25d22f864ad68cc447a4cb93aefde918aa4aec9f",
     );
-    expect(lock.tools.gsd.version).toBe("1.42.3");
+    expect(lock.tools.gsd.version).toBe("1.6.1");
     expect(lock.tools.graphify.version).toBe("0.8.51");
     expect(lock.tools.improve.ref).toBe(
       "03369ee6d7cafbfcecc4346539b05b3dc0a603bb",
@@ -51,8 +51,8 @@ describe("external tool lock", () => {
   });
 
   it("formats immutable package specs from locked versions", () => {
-    expect(formatNpmPackageSpec("get-shit-done-cc", "1.42.3")).toBe(
-      "get-shit-done-cc@1.42.3",
+    expect(formatNpmPackageSpec("@opengsd/gsd-core", "1.6.1")).toBe(
+      "@opengsd/gsd-core@1.6.1",
     );
     expect(formatNpmPackageSpec("@google/gemini-cli", "0.49.0")).toBe(
       "@google/gemini-cli@0.49.0",
@@ -74,15 +74,15 @@ describe("external tool lock", () => {
   });
 
   it("detects mutable external sources", () => {
-    expect(isMutableExternalSource("get-shit-done-cc@latest")).toBe(true);
-    expect(isMutableExternalSource("get-shit-done-cc")).toBe(true);
+    expect(isMutableExternalSource("@opengsd/gsd-core@latest")).toBe(true);
+    expect(isMutableExternalSource("@opengsd/gsd-core")).toBe(true);
     expect(isMutableExternalSource("github:JuliusBrussee/caveman")).toBe(true);
     expect(isMutableExternalSource("github:JuliusBrussee/caveman#main")).toBe(
       true,
     );
     expect(isMutableExternalSource("graphifyy")).toBe(true);
 
-    expect(isMutableExternalSource("get-shit-done-cc@1.42.3")).toBe(false);
+    expect(isMutableExternalSource("@opengsd/gsd-core@1.6.1")).toBe(false);
     expect(isMutableExternalSource("graphifyy==0.8.51")).toBe(false);
     expect(
       isMutableExternalSource(
