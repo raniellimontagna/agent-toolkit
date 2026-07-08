@@ -79,13 +79,17 @@ describe("third-party skill installers", () => {
     expect(cloneUrls.flat()).toEqual([
       "https://github.com/pbakaus/impeccable.git",
       "https://github.com/Leonxlnx/taste-skill.git",
+      "https://github.com/millionco/react-doctor.git",
     ]);
-    expect(npxCalls).toHaveLength(2);
+    expect(npxCalls).toHaveLength(3);
     expect(npxCalls[0]?.[1]).toEqual(
       expect.arrayContaining(["--skill", "impeccable", "--copy"]),
     );
     expect(npxCalls[1]?.[1]).toEqual(
       expect.arrayContaining(["--skill", "design-taste-frontend", "--copy"]),
+    );
+    expect(npxCalls[2]?.[1]).toEqual(
+      expect.arrayContaining(["--skill", "react-doctor", "--copy"]),
     );
   });
 });

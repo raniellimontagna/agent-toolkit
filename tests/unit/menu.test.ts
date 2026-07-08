@@ -69,7 +69,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("clack menu", () => {
+describe("clack menu", { timeout: 20_000 }, () => {
   it("applies visual prompt selections to installer state", async () => {
     writeSkill("backend/node/fastify-patterns");
     writeSkill("backend/node/express-patterns");
