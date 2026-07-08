@@ -216,6 +216,18 @@ export async function buildLockUpdateReport(
           resolvedClients,
         ),
     ),
+    collectItem(
+      {
+        name: "React Doctor",
+        source: "github",
+        current: lock.tools.frontendSkills.reactDoctor.ref,
+      },
+      () =>
+        latestGitHubCommit(
+          lock.tools.frontendSkills.reactDoctor.repository,
+          resolvedClients,
+        ),
+    ),
     ...(["claude", "codex", "opencode", "gemini"] as const).map((runtime) =>
       collectItem(
         {

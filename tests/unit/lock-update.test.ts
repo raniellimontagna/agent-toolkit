@@ -54,7 +54,7 @@ const lock: ToolLock = {
       reactDoctor: {
         source: "github",
         repository: "millionco/react-doctor",
-        ref: "e".repeat(40),
+        ref: "f".repeat(40),
         skill: "react-doctor",
       },
     },
@@ -102,6 +102,12 @@ describe("lock update report", () => {
           current: "1.0.0",
           latest: "1.0.0",
           status: "current",
+        }),
+        expect.objectContaining({
+          name: "React Doctor",
+          current: "f".repeat(40),
+          latest: "e".repeat(40),
+          status: "update-available",
         }),
       ]),
     );
