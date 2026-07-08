@@ -380,6 +380,17 @@ if ! grep -Fq -- "npx -y @ranimontagna/agent-toolkit --all --codex" "$ROOT_DIR/R
   exit 1
 fi
 
+for expected_readme in \
+  "React Doctor" \
+  "millionco/react-doctor" \
+  "Modified MIT License" \
+  "agent skill integration, not automatic CI setup"; do
+  if ! grep -Fq -- "$expected_readme" "$ROOT_DIR/README.md"; then
+    echo "Expected README to document React Doctor detail: $expected_readme" >&2
+    exit 1
+  fi
+done
+
 : > "$NPM_LOG"
 : > "$GIT_LOG"
 DRY_RUN_HOME="$TMP_DIR/dry-run-home"

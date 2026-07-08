@@ -9,7 +9,8 @@ npx -y @ranimontagna/agent-toolkit
 
 Agent Toolkit installs the tools and skills I use to run agentic coding
 workflows: RTK, Caveman, Superpowers, Graphify, GSD, shadcn Improve,
-third-party frontend skills and bundled Custom Skills.
+third-party frontend skills installed through Agent Skills CLI and bundled
+Custom Skills.
 
 The installer is a TypeScript CLI published to npm. The Bash script is only a
 compatibility wrapper for users who already run `setup-agent-toolkit.sh`.
@@ -44,7 +45,7 @@ skills and already present destinations before installation starts.
 | Graphify | Queryable knowledge graphs for codebases, docs and project context |
 | GSD | Phase-based planning, execution, verification and project control |
 | Improve | shadcn advisor skill for codebase audits and execution plans |
-| Frontend Skills | Third-party design skills installed through Agent Skills CLI |
+| Frontend Skills | Third-party frontend skills installed through Agent Skills CLI: Impeccable, Taste Skill and React Doctor |
 | Custom Skills | Bundled skills from this repository, selected by package, scope and exact skill |
 
 ## Supported Runtimes
@@ -391,7 +392,8 @@ The installer validates:
 
 Other third-party frontend design skills such as Impeccable and Taste Skill are
 not vendored as bundled Custom Skills. The `frontend-skills` tool installs them
-externally through the Agent Skills CLI from pinned public sources.
+externally through the Agent Skills CLI from pinned public sources. React
+Doctor is installed as an agent skill integration, not automatic CI setup.
 
 ## CLI Reference
 
@@ -526,7 +528,7 @@ Current external sources:
 | Graphify | `graphifyy==0.8.51` | Blocks unpinned package overrides |
 | GSD | `@opengsd/gsd-core@1.6.1` | Blocks `@latest` unless explicitly allowed |
 | Improve | `shadcn/improve` at commit `03369ee6d7cafbfcecc4346539b05b3dc0a603bb` | Clones the pinned ref before Agent Skills CLI install |
-| Frontend Skills | `skills@1.5.13`, `pbakaus/impeccable` and `Leonxlnx/taste-skill` at pinned commits | Clones pinned refs before install |
+| Frontend Skills | `skills@1.5.13`, `pbakaus/impeccable`, `Leonxlnx/taste-skill` and `millionco/react-doctor` at pinned commits | Clones pinned refs before install |
 | Runtime CLIs | Exact npm versions for Claude, Codex, OpenCode and Gemini | Installed or updated only when `--install-missing-clis` is enabled; Antigravity uses the official `agy` installer instead of npm |
 
 Bundled third-party skills preserve upstream attribution and license files:
@@ -546,6 +548,10 @@ Bundled third-party skills preserve upstream attribution and license files:
 | `python-testing` | `affaan-m/ECC@0f84c0e2796703fbda87d577b2636351418c7442` | MIT |
 | `kotlin-patterns` | `affaan-m/ECC@2bc924faf2f8e893bfe0af86b1931283693c30ae` | MIT |
 | `kotlin-testing` | `affaan-m/ECC@2bc924faf2f8e893bfe0af86b1931283693c30ae` | MIT |
+
+React Doctor is installed externally from `millionco/react-doctor` at a pinned
+commit and is documented upstream under a Modified MIT License; it is not
+copied into this repository.
 
 Releases use npm trusted publishing through GitHub Actions OIDC. The npm
 package is published without a long-lived npm token, and npm automatically
