@@ -47,6 +47,12 @@ describe("external tool lock", () => {
     expect(lock.tools.frontendSkills.tasteSkill.ref).toBe(
       "06d6028b5c623016c59ce8536f578e5a1127b499",
     );
+    expect(lock.tools.frontendSkills.reactDoctor).toEqual({
+      source: "github",
+      repository: "millionco/react-doctor",
+      ref: "aa519e5f5505105ef8c00e1b1972c98514f7577a",
+      skill: "react-doctor",
+    });
     expect(lock.runtimeClis.gemini.version).toBe("0.49.0");
   });
 

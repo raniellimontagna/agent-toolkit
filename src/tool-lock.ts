@@ -53,6 +53,12 @@ export type ToolLock = {
         ref: string;
         skill: string;
       };
+      reactDoctor?: {
+        source: "github";
+        repository: string;
+        ref: string;
+        skill: string;
+      };
     };
   };
   runtimeClis: Record<
@@ -197,19 +203,23 @@ function validateToolLock(lock: ToolLock): ToolLock {
     lock.tools.frontendSkills.skillsCli.version,
     "tools.frontendSkills.skillsCli.version",
   );
-  for (const skillName of ["impeccable", "tasteSkill"] as const) {
+  for (const skillName of [
+    "impeccable",
+    "tasteSkill",
+    "reactDoctor",
+  ] as const) {
+    const skill = lock.tools.frontendSkills[skillName];
+    if (!skill) {
+      throw new Error(
+        `Invalid tools.lock.json: tools.frontendSkills.${skillName} must be defined.`,
+      );
+    }
     assertString(
-      lock.tools.frontendSkills[skillName].repository,
+      skill.repository,
       `tools.frontendSkills.${skillName}.repository`,
     );
-    assertGitSha(
-      lock.tools.frontendSkills[skillName].ref,
-      `tools.frontendSkills.${skillName}.ref`,
-    );
-    assertString(
-      lock.tools.frontendSkills[skillName].skill,
-      `tools.frontendSkills.${skillName}.skill`,
-    );
+    assertGitSha(skill.ref, `tools.frontendSkills.${skillName}.ref`);
+    assertString(skill.skill, `tools.frontendSkills.${skillName}.skill`);
   }
 
   for (const runtime of ["claude", "codex", "opencode", "gemini"] as const) {
