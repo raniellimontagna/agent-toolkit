@@ -79,9 +79,7 @@ function installSource(
 
 export function installFrontendSkills(): boolean {
   step("Frontend Skills");
-  console.log(
-    "   Third-party frontend design skills installed via Agent Skills CLI",
-  );
+  console.log("   Third-party frontend skills installed via Agent Skills CLI");
 
   requireNode(18);
   requireCommand("git");
