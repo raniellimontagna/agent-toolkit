@@ -5,6 +5,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { runClackMenu } from "../../src/menu.js";
 import { runtimeNames, state, toolNames } from "../../src/state.js";
 
+const { captureMock, findCommandMock } = vi.hoisted(() => ({
+  captureMock: vi.fn(() => ({
+    ok: true,
+    status: 0,
+    stdout: "",
+    stderr: "",
+  })),
+  findCommandMock: vi.fn(() => null),
+}));
+
+vi.mock("../../src/system.js", () => ({
+  capture: captureMock,
+  findCommand: findCommandMock,
+}));
+
 type ClackFake = Parameters<typeof runClackMenu>[0];
 type StatusClackFake = ClackFake & {
   note: (message: string, title?: string) => void;
@@ -66,10 +81,12 @@ afterEach(() => {
   state.tools = originalTools;
   state.runtimes = originalRuntimes;
   fs.rmSync(tempDir, { recursive: true, force: true });
+  captureMock.mockClear();
+  findCommandMock.mockClear();
   vi.restoreAllMocks();
 });
 
-describe("clack menu", { timeout: 20_000 }, () => {
+describe("clack menu", () => {
   it("applies visual prompt selections to installer state", async () => {
     writeSkill("backend/node/fastify-patterns");
     writeSkill("backend/node/express-patterns");

@@ -128,3 +128,62 @@ tests/unit/installers.test.ts | 6 +++++-
 tests/unit/menu.test.ts       | 2 +-
 2 files changed, 6 insertions(+), 2 deletions(-)
 ```
+
+## Follow-up review fix
+
+- Removed the suite-level `20_000` ms timeout from `tests/unit/menu.test.ts`.
+- Added a hoisted `vi.mock("../../src/system.js", ...)` in `tests/unit/menu.test.ts` so `detectInstallerStatus()` no longer shells out during unit tests.
+- The mock returns `null` from `findCommand()` and an inert result from `capture()`, which keeps status formatting deterministic while avoiding subprocess probes entirely.
+
+### Follow-up commands and outputs
+
+Command:
+
+```bash
+rtk pnpm exec vitest run tests/unit/menu.test.ts
+```
+
+Output:
+
+```text
+Test Files  1 passed (1)
+Tests       5 passed (5)
+Duration    343ms
+```
+
+Command:
+
+```bash
+rtk pnpm exec vitest run tests/unit/installers.test.ts
+```
+
+Output:
+
+```text
+Test Files  1 passed (1)
+Tests       2 passed (2)
+Duration    245ms
+```
+
+Command:
+
+```bash
+rtk pnpm run check
+```
+
+Output:
+
+```text
+$ pnpm run lint && pnpm run typecheck && pnpm run test:unit && pnpm run build && find dist/bin dist/src -name '*.js' -print0 | xargs -0 -n1 node --check && bash -n setup-agent-toolkit.sh && pnpm run test:integration
+$ biome check .
+Checked 49 files in 51ms. No fixes applied.
+$ tsc -p tsconfig.test.json --noEmit
+$ vitest run
+Test Files  12 passed (12)
+Tests       35 passed (35)
+Duration    730ms
+$ tsc -p tsconfig.json
+$ pnpm run build && bash tests/test-agent-toolkit.sh
+$ tsc -p tsconfig.json
+Exit code: 0
+```
