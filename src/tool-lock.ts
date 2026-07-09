@@ -134,6 +134,29 @@ export function isMutableExternalSource(spec: string): boolean {
   return isMutableVersion(npmVersionFromSpec(spec));
 }
 
+export function externalSourceIdentity(spec: string): string {
+  // github:owner/repo#ref -> github:owner/repo
+  if (spec.startsWith("github:")) {
+    const refIndex = spec.lastIndexOf("#");
+    return refIndex === -1 ? spec : spec.slice(0, refIndex);
+  }
+
+  // pypi name==version -> name
+  if (spec.includes("==")) {
+    return spec.split("==")[0] ?? spec;
+  }
+
+  // npm name@version (scoped or bare) -> name
+  if (spec.startsWith("@")) {
+    const slashIndex = spec.indexOf("/");
+    const versionIndex = slashIndex === -1 ? -1 : spec.indexOf("@", slashIndex);
+    return versionIndex === -1 ? spec : spec.slice(0, versionIndex);
+  }
+
+  const versionIndex = spec.lastIndexOf("@");
+  return versionIndex <= 0 ? spec : spec.slice(0, versionIndex);
+}
+
 function assertString(value: unknown, label: string): asserts value is string {
   if (typeof value !== "string" || value.trim() === "") {
     throw new Error(`Invalid tools.lock.json: ${label} must be a string.`);

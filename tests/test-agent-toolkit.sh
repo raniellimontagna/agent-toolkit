@@ -1692,3 +1692,194 @@ if ! grep -Fxq -- "status:1" <<<"$SHA_MISMATCH_OUTPUT"; then
   echo "$SHA_MISMATCH_OUTPUT" >&2
   exit 1
 fi
+
+IDENTITY_OUTPUT="$(
+  set +e
+  HOME="$INSTALL_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  GSD_PACKAGE="@attacker/evil@1.0.0" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --gsd-only --codex 2>&1
+  printf 'status:%s\n' "$?"
+)"
+
+if ! grep -Fq -- "identity differs from tools.lock.json" <<<"$IDENTITY_OUTPUT" || \
+  ! grep -Fxq -- "status:1" <<<"$IDENTITY_OUTPUT"; then
+  echo "Expected a pinned-looking package with a different identity to be rejected" >&2
+  echo "$IDENTITY_OUTPUT" >&2
+  exit 1
+fi
+
+: > "$MUTABLE_ALLOWED_LOG"
+HOME="$INSTALL_HOME" \
+PATH="$FAKE_BIN:/usr/bin:/bin" \
+GSD_PACKAGE="@attacker/evil@1.0.0" \
+bash "$ROOT_DIR/setup-agent-toolkit.sh" --gsd-only --codex --allow-mutable-sources >/dev/null
+
+if ! grep -Fxq -- "-y @attacker/evil@1.0.0 --global --codex" "$MUTABLE_ALLOWED_LOG"; then
+  echo "Expected --allow-mutable-sources to permit an explicit identity override" >&2
+  cat "$MUTABLE_ALLOWED_LOG" >&2
+  exit 1
+fi
+
+ANTIGRAVITY_HTTP_OUTPUT="$(
+  set +e
+  HOME="$INSTALL_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  ANTIGRAVITY_INSTALL_SCRIPT="http://attacker.example/install.sh" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" \
+    --skills-only --skills-package core --antigravity --allow-mutable-sources 2>&1
+  printf 'status:%s\n' "$?"
+)"
+
+if ! grep -Fq -- "must be an HTTPS URL" <<<"$ANTIGRAVITY_HTTP_OUTPUT" || \
+  ! grep -Fxq -- "status:1" <<<"$ANTIGRAVITY_HTTP_OUTPUT"; then
+  echo "Expected a plain-HTTP Antigravity install script to be rejected even with the override flag" >&2
+  echo "$ANTIGRAVITY_HTTP_OUTPUT" >&2
+  exit 1
+fi
+
+cp "$ROOT_DIR/tools.lock.json" "$TMP_DIR/alt-lock.json"
+LOCKPATH_OUTPUT="$(
+  set +e
+  HOME="$INSTALL_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  TOOLS_LOCK_PATH="$TMP_DIR/alt-lock.json" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-only --skills-package core --claude 2>&1
+  printf 'status:%s\n' "$?"
+)"
+
+if ! grep -Fq -- "TOOLS_LOCK_PATH replaces the pinned tools.lock.json" <<<"$LOCKPATH_OUTPUT" || \
+  ! grep -Fxq -- "status:1" <<<"$LOCKPATH_OUTPUT"; then
+  echo "Expected TOOLS_LOCK_PATH to require an explicit override flag" >&2
+  echo "$LOCKPATH_OUTPUT" >&2
+  exit 1
+fi
+
+RTK_ASSET_NAME="$("$REAL_NODE" -e 'const p=process.platform,a=process.arch;const m={"linux:x64":"rtk-x86_64-unknown-linux-musl.tar.gz","linux:arm64":"rtk-aarch64-unknown-linux-gnu.tar.gz","darwin:arm64":"rtk-aarch64-apple-darwin.tar.gz","darwin:x64":"rtk-x86_64-apple-darwin.tar.gz"};console.log(m[`${p}:${a}`]||"")')"
+
+if [[ -z "$RTK_ASSET_NAME" ]]; then
+  echo "Skipping RTK download scenario: unsupported test platform" >&2
+else
+  RTK_DL_DIR="$TMP_DIR/rtk-download"
+  NODE_DIR="$(dirname "$REAL_NODE")"
+  mkdir -p "$RTK_DL_DIR/payload" "$RTK_DL_DIR/home"
+  cat > "$RTK_DL_DIR/payload/rtk" <<'EOF'
+#!/usr/bin/env bash
+case "${1:-}" in
+  --version) echo "rtk 9.9.9-test" ;;
+esac
+exit 0
+EOF
+  chmod +x "$RTK_DL_DIR/payload/rtk"
+  tar -czf "$RTK_DL_DIR/asset.tar.gz" -C "$RTK_DL_DIR/payload" rtk
+
+  RTK_ASSET_SHA="$("$REAL_NODE" -e 'const {createHash} = require("node:crypto"); const fs = require("node:fs"); console.log(createHash("sha256").update(fs.readFileSync(process.argv[1])).digest("hex"));' "$RTK_DL_DIR/asset.tar.gz")"
+
+  "$REAL_NODE" -e '
+const fs = require("node:fs");
+const [, src, dest, asset, sha] = process.argv;
+const lock = JSON.parse(fs.readFileSync(src, "utf8"));
+lock.tools.rtk.assets[asset] = { sha256: sha };
+fs.writeFileSync(dest, `${JSON.stringify(lock, null, 2)}\n`);
+' "$ROOT_DIR/tools.lock.json" "$RTK_DL_DIR/tools.lock.json" "$RTK_ASSET_NAME" "$RTK_ASSET_SHA"
+
+  cat > "$RTK_DL_DIR/server.mjs" <<'EOF'
+import http from "node:http";
+import fs from "node:fs";
+const [assetPath, assetName, portFile] = process.argv.slice(2);
+const server = http.createServer((req, res) => {
+  if (req.url === "/release") {
+    res.setHeader("content-type", "application/json");
+    res.end(
+      JSON.stringify({
+        assets: [
+          {
+            name: assetName,
+            browser_download_url: `http://127.0.0.1:${server.address().port}/asset`,
+          },
+        ],
+      }),
+    );
+    return;
+  }
+  if (req.url === "/asset") {
+    res.end(fs.readFileSync(assetPath));
+    return;
+  }
+  res.statusCode = 404;
+  res.end();
+});
+server.listen(0, "127.0.0.1", () => {
+  fs.writeFileSync(portFile, String(server.address().port));
+});
+EOF
+  "$REAL_NODE" "$RTK_DL_DIR/server.mjs" "$RTK_DL_DIR/asset.tar.gz" "$RTK_ASSET_NAME" "$RTK_DL_DIR/port" &
+  RTK_SERVER_PID=$!
+  trap 'kill "$RTK_SERVER_PID" 2>/dev/null || true; rm -rf "$TMP_DIR"' EXIT
+
+  for _ in $(seq 1 100); do
+    [[ -s "$RTK_DL_DIR/port" ]] && break
+    sleep 0.1
+  done
+  RTK_PORT="$(cat "$RTK_DL_DIR/port")"
+
+  RTK_DL_OUTPUT="$(
+    set +e
+    HOME="$RTK_DL_DIR/home" \
+    PATH="$NODE_DIR:/usr/bin:/bin" \
+    TOOLS_LOCK_PATH="$RTK_DL_DIR/tools.lock.json" \
+    RTK_GITHUB="http://127.0.0.1:$RTK_PORT/release" \
+    RTK_INSTALL_DIR="$RTK_DL_DIR/install-bin" \
+    ALLOW_MUTABLE_SOURCES=1 \
+    bash "$ROOT_DIR/setup-agent-toolkit.sh" --rtk-only --claude 2>&1
+    printf 'status:%s\n' "$?"
+  )"
+
+  if ! grep -Fq -- "Verified RTK asset checksum: $RTK_ASSET_NAME" <<<"$RTK_DL_OUTPUT" || \
+    ! grep -Fq -- "rtk 9.9.9-test" <<<"$RTK_DL_OUTPUT" || \
+    ! grep -Fxq -- "status:0" <<<"$RTK_DL_OUTPUT"; then
+    echo "Expected the RTK download pipeline to verify and install the served asset" >&2
+    echo "$RTK_DL_OUTPUT" >&2
+    exit 1
+  fi
+
+  if [[ ! -x "$RTK_DL_DIR/install-bin/rtk" ]]; then
+    echo "Expected the RTK binary to be installed into RTK_INSTALL_DIR" >&2
+    exit 1
+  fi
+
+  "$REAL_NODE" -e '
+const fs = require("node:fs");
+const [, src, dest, asset] = process.argv;
+const lock = JSON.parse(fs.readFileSync(src, "utf8"));
+lock.tools.rtk.assets[asset] = { sha256: "a".repeat(64) };
+fs.writeFileSync(dest, `${JSON.stringify(lock, null, 2)}\n`);
+' "$ROOT_DIR/tools.lock.json" "$RTK_DL_DIR/bad-lock.json" "$RTK_ASSET_NAME"
+
+  RTK_BAD_OUTPUT="$(
+    set +e
+    HOME="$RTK_DL_DIR/home" \
+    PATH="$NODE_DIR:/usr/bin:/bin" \
+    TOOLS_LOCK_PATH="$RTK_DL_DIR/bad-lock.json" \
+    RTK_GITHUB="http://127.0.0.1:$RTK_PORT/release" \
+    RTK_INSTALL_DIR="$RTK_DL_DIR/bad-install" \
+    ALLOW_MUTABLE_SOURCES=1 \
+    bash "$ROOT_DIR/setup-agent-toolkit.sh" --rtk-only --claude 2>&1
+    printf 'status:%s\n' "$?"
+  )"
+
+  if ! grep -Fq -- "RTK checksum verification failed" <<<"$RTK_BAD_OUTPUT" || \
+    ! grep -Fxq -- "status:1" <<<"$RTK_BAD_OUTPUT"; then
+    echo "Expected a checksum mismatch to reject the downloaded RTK asset" >&2
+    echo "$RTK_BAD_OUTPUT" >&2
+    exit 1
+  fi
+
+  if [[ -e "$RTK_DL_DIR/bad-install/rtk" ]]; then
+    echo "Expected no RTK binary to be installed after a checksum failure" >&2
+    exit 1
+  fi
+
+  kill "$RTK_SERVER_PID" 2>/dev/null || true
+  wait "$RTK_SERVER_PID" 2>/dev/null || true
+fi

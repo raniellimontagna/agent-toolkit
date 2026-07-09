@@ -63,6 +63,7 @@ Other:
 
 Environment:
   RTK_INSTALL_DIR       RTK binary install directory
+  RTK_GITHUB            RTK release metadata URL (identity-gated)
   CAVEMAN_PACKAGE       Caveman package source
   CAVEMAN_MODE          minimal or all
   GRAPHIFY_PACKAGE      Python package used to install Graphify
@@ -70,8 +71,8 @@ Environment:
   GSD_PACKAGE           GSD package source
   SKILLS_CLI_PACKAGE    npm package used for third-party skill installs
   GSD_SCOPE             global or local
-  TOOLS_LOCK_PATH       External tool provenance lock path
-  ALLOW_MUTABLE_SOURCES Set to 1 to allow mutable source overrides
+  TOOLS_LOCK_PATH       External tool provenance lock path (requires --allow-mutable-sources)
+  ALLOW_MUTABLE_SOURCES Set to 1 to allow mutable or re-identified source overrides
   AGENT_TOOLKIT_MENU    Set to plain to force the line-based interactive menu
   CUSTOM_SKILLS_DIR     Source directory for custom skills
   SKILLS_PACKAGE        Comma-separated first-level skill package filters

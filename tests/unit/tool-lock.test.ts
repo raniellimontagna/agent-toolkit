@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
+  externalSourceIdentity,
   formatGithubPackageSpec,
   formatNpmPackageSpec,
   formatPythonPackageSpec,
@@ -95,5 +96,24 @@ describe("external tool lock", () => {
         "github:JuliusBrussee/caveman#25d22f864ad68cc447a4cb93aefde918aa4aec9f",
       ),
     ).toBe(false);
+  });
+
+  it("extracts the identity of an external source spec", () => {
+    expect(externalSourceIdentity("@opengsd/gsd-core@1.6.1")).toBe(
+      "@opengsd/gsd-core",
+    );
+    expect(externalSourceIdentity("@opengsd/gsd-core@latest")).toBe(
+      "@opengsd/gsd-core",
+    );
+    expect(externalSourceIdentity("skills@1.5.13")).toBe("skills");
+    expect(externalSourceIdentity("graphifyy==0.8.51")).toBe("graphifyy");
+    expect(
+      externalSourceIdentity(
+        "github:JuliusBrussee/caveman#25d22f864ad68cc447a4cb93aefde918aa4aec9f",
+      ),
+    ).toBe("github:JuliusBrussee/caveman");
+    expect(externalSourceIdentity("@attacker/evil@1.6.1")).not.toBe(
+      externalSourceIdentity("@opengsd/gsd-core@1.6.1"),
+    );
   });
 });

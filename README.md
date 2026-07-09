@@ -502,6 +502,13 @@ Mutable overrides like `@latest`, unpinned npm packages or GitHub package
 sources without a full commit SHA are blocked unless you pass
 `--allow-mutable-sources` or set `ALLOW_MUTABLE_SOURCES=1`.
 
+The same explicit flag is required when an override changes the *identity* of
+a source (a different npm package name, GitHub repository, PyPI package or RTK
+release repository than the one pinned in `tools.lock.json`), and when
+`TOOLS_LOCK_PATH` points at an alternate lock file. `ANTIGRAVITY_INSTALL_SCRIPT`
+must always be an HTTPS URL — the script is piped to bash, so plain HTTP is
+rejected even with the flag.
+
 ## Security Model
 
 This project has two supply-chain boundaries:

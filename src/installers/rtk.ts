@@ -162,11 +162,12 @@ export async function installRtk(): Promise<boolean> {
     fs.copyFileSync(rtkBinary, installedPath);
     fs.chmodSync(installedPath, 0o755);
 
-    const rtkCommand =
-      process.platform === "win32"
-        ? path.join(state.rtkInstallDir, "rtk")
-        : installedPath;
-    if (process.platform === "win32") writeWindowsRtkShim(rtkCommand);
+    // On Windows the extensionless bash shim exists only for Git Bash users;
+    // verification and hook setup must run the real executable.
+    if (process.platform === "win32") {
+      writeWindowsRtkShim(path.join(state.rtkInstallDir, "rtk"));
+    }
+    const rtkCommand = installedPath;
 
     if (
       !(process.env.PATH || "")

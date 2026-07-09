@@ -47,16 +47,64 @@ export function commandExists(command: string): boolean {
   return Boolean(findCommand(command));
 }
 
+type SpawnPlan = {
+  command: string;
+  args: string[];
+  verbatim: boolean;
+};
+
+function escapeCmdArg(arg: string): string {
+  // cmd.exe quoting in the cross-spawn style: double backslashes that precede
+  // a quote, double trailing backslashes, escape quotes, wrap in quotes.
+  let result = arg.replace(/(\\*)"/g, '$1$1\\"');
+  result = result.replace(/(\\*)$/, "$1$1");
+  return `"${result}"`;
+}
+
+export function windowsSpawnPlan(
+  command: string,
+  args: string[],
+  resolve: (command: string) => string | null = findCommand,
+): SpawnPlan {
+  // Node >= 18.20 refuses to spawn .cmd/.bat shims directly (CVE-2024-27980),
+  // so npm/npx-style shims must be routed through cmd.exe explicitly.
+  const hasBatchExtension = (value: string) =>
+    value.toLowerCase().endsWith(".cmd") ||
+    value.toLowerCase().endsWith(".bat");
+
+  const resolved = hasBatchExtension(command)
+    ? command
+    : (resolve(command) ?? command);
+  if (!hasBatchExtension(resolved)) {
+    return { command, args, verbatim: false };
+  }
+
+  const commandLine = [escapeCmdArg(resolved), ...args.map(escapeCmdArg)].join(
+    " ",
+  );
+  return {
+    command: process.env.comspec || "cmd.exe",
+    args: ["/d", "/s", "/c", `"${commandLine}"`],
+    verbatim: true,
+  };
+}
+
 export function run(
   command: string,
   args: string[] = [],
   options: RunOptions = {},
 ): RunResult {
-  const result = spawnSync(command, args, {
+  const plan =
+    process.platform === "win32"
+      ? windowsSpawnPlan(command, args)
+      : { command, args, verbatim: false };
+
+  const result = spawnSync(plan.command, plan.args, {
     cwd: options.cwd || process.cwd(),
     env: options.env || process.env,
     encoding: "utf8",
     stdio: options.capture ? ["ignore", "pipe", "pipe"] : "inherit",
+    windowsVerbatimArguments: plan.verbatim || undefined,
   });
 
   if (result.error) {

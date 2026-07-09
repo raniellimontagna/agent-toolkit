@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.1.25
+
+- Environment overrides that change a source's identity (different npm package,
+  GitHub repository, PyPI package or RTK release repository than the lock) now
+  require `--allow-mutable-sources`, closing a silent redirection vector.
+- `TOOLS_LOCK_PATH` now requires `--allow-mutable-sources`, since an alternate
+  lock bypasses every pinned checksum and ref.
+- `ANTIGRAVITY_INSTALL_SCRIPT` must be HTTPS (always) and any non-default URL
+  requires the explicit override flag — the script is piped to bash.
+- Fixed Windows support: npm/npx `.cmd` shims are now routed through `cmd.exe`
+  with cross-spawn-style escaping (Node >= 18.20 refuses to spawn them
+  directly), and RTK post-install verification runs the real `rtk.exe` instead
+  of the bash shim.
+- Added integration coverage for the full RTK download pipeline (release
+  metadata, asset download, sha256 verification, install) against a local HTTP
+  server, including checksum-mismatch rejection.
+
 ## 0.1.24
 
 - Fixed `--uninstall --dry-run` deleting files instead of previewing the removal plan.

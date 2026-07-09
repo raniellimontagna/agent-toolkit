@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isInsecureRedirect } from "../../src/system.js";
+import { isInsecureRedirect, windowsSpawnPlan } from "../../src/system.js";
 
 describe("isInsecureRedirect", () => {
   it("flags https to http downgrades", () => {
@@ -27,5 +27,54 @@ describe("isInsecureRedirect", () => {
         "http://internal.example/next",
       ),
     ).toBe(false);
+  });
+});
+
+describe("windowsSpawnPlan", () => {
+  it("routes cmd shims through cmd.exe with an escaped command line", () => {
+    const plan = windowsSpawnPlan(
+      "npx",
+      ["-y", "@opengsd/gsd-core@1.6.1", "--global"],
+      () => "C:\\nodejs\\npx.CMD",
+    );
+
+    expect(plan.command.toLowerCase()).toContain("cmd");
+    expect(plan.verbatim).toBe(true);
+    expect(plan.args.slice(0, 3)).toEqual(["/d", "/s", "/c"]);
+    expect(plan.args[3]).toBe(
+      '""C:\\nodejs\\npx.CMD" "-y" "@opengsd/gsd-core@1.6.1" "--global""',
+    );
+  });
+
+  it("escapes quotes and trailing backslashes in arguments", () => {
+    const plan = windowsSpawnPlan(
+      "npm.cmd",
+      ['say "hi"', "C:\\path with space\\"],
+      () => null,
+    );
+
+    expect(plan.args[3]).toBe(
+      '""npm.cmd" "say \\"hi\\"" "C:\\path with space\\\\""',
+    );
+  });
+
+  it("leaves executables untouched", () => {
+    const plan = windowsSpawnPlan("git", ["status"], () => "C:\\git\\git.EXE");
+
+    expect(plan).toEqual({
+      command: "git",
+      args: ["status"],
+      verbatim: false,
+    });
+  });
+
+  it("leaves unresolved commands untouched", () => {
+    const plan = windowsSpawnPlan("missing-tool", ["--version"], () => null);
+
+    expect(plan).toEqual({
+      command: "missing-tool",
+      args: ["--version"],
+      verbatim: false,
+    });
   });
 });
