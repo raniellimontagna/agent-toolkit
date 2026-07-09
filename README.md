@@ -677,8 +677,8 @@ Release a new npm version by updating `package.json`, pushing the change to
 `main`, then pushing a matching tag:
 
 ```bash
-git tag v0.1.25
-git push origin v0.1.25
+git tag v0.1.26
+git push origin v0.1.26
 ```
 
 For normal releases, prefer the scripted flow. It bumps `package.json`, updates
