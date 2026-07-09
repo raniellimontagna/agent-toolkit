@@ -125,9 +125,13 @@ export async function runInstaller(
     console.log("  Repair mode: selected installs will be re-run.");
     console.log("");
   }
-  checkPrerequisites();
+  const prerequisitesOk = checkPrerequisites();
 
   let hadError = false;
+  if (!prerequisitesOk) {
+    err("One or more selected runtime CLIs could not be installed.");
+    hadError = true;
+  }
   if (state.tools.rtk) {
     if (!(await installRtk())) {
       err("RTK install failed.");

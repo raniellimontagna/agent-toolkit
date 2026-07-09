@@ -200,6 +200,18 @@ function runtimeVersionOutput(commandPath: string): string {
   return [version.stdout, version.stderr].join("\n").trim();
 }
 
+export function versionOutputMatchesPin(
+  output: string,
+  expectedVersion: string,
+): boolean {
+  // Substring matching ("2.0.1" in "2.0.10") produces false positives, so the
+  // pinned version must appear as a whole token (optionally "v"-prefixed).
+  const escaped = expectedVersion.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|[^0-9A-Za-z.-])v?${escaped}([^0-9A-Za-z.-]|$)`).test(
+    output,
+  );
+}
+
 function ensureRuntimeCli(runtime: RuntimeName): boolean {
   const command = runtimeCommand(runtime);
   const label = runtimeLabel(runtime);
@@ -209,7 +221,10 @@ function ensureRuntimeCli(runtime: RuntimeName): boolean {
   if (commandPath) {
     const expectedVersion = npmPackageVersion(packageName);
     const versionOutput = runtimeVersionOutput(commandPath);
-    if (!expectedVersion || versionOutput.includes(expectedVersion)) {
+    if (
+      !expectedVersion ||
+      versionOutputMatchesPin(versionOutput, expectedVersion)
+    ) {
       ok(`${label} found`);
       return true;
     }
@@ -238,7 +253,7 @@ function ensureRuntimeCli(runtime: RuntimeName): boolean {
   return true;
 }
 
-export function checkPrerequisites(): void {
+export function checkPrerequisites(): boolean {
   step("Checking prerequisites");
 
   if (state.tools.rtk && commandExists("rtk")) {
@@ -291,9 +306,13 @@ export function checkPrerequisites(): void {
     ok("npm found");
   }
 
+  let allOk = true;
   for (const runtime of runtimeNames) {
-    if (state.runtimes[runtime]) ensureRuntimeCli(runtime);
+    if (state.runtimes[runtime] && !ensureRuntimeCli(runtime)) {
+      allOk = false;
+    }
   }
 
   console.log("");
+  return allOk;
 }

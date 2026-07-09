@@ -4,7 +4,7 @@ import path from "node:path";
 import { err, info, ok, step } from "../logger.js";
 import { selectedSkillsAgentArgs } from "../runtimes.js";
 import { state } from "../state.js";
-import { requireCommand, requireNode, run } from "../system.js";
+import { capture, requireCommand, requireNode, run } from "../system.js";
 
 function cloneImproveSource(parentDir: string): string {
   const source = state.improveSkillSource;
@@ -33,6 +33,17 @@ function cloneImproveSource(parentDir: string): string {
 
   if (!run("git", ["-C", repoDir, "checkout", "--detach", "FETCH_HEAD"]).ok) {
     throw new Error(`Failed to checkout ${source.repository}@${source.ref}.`);
+  }
+
+  // FETCH_HEAD is whatever the remote decided to serve; confirm it is the
+  // pinned commit before trusting the checked-out content.
+  const head = capture("git", ["-C", repoDir, "rev-parse", "HEAD"])
+    .stdout.trim()
+    .toLowerCase();
+  if (head !== source.ref.toLowerCase()) {
+    throw new Error(
+      `Fetched commit for ${source.repository} does not match pinned ref: expected ${source.ref}, got ${head || "unknown"}.`,
+    );
   }
 
   return path.join(repoDir, "skills", source.skill);

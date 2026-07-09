@@ -87,4 +87,26 @@ describe("install manifest", () => {
     expect(manifest.entries).toHaveLength(1);
     expect(manifest.entries[0]?.runtime).toBe("claude");
   });
+
+  it("reports removals without deleting anything in dry-run mode", () => {
+    const codexSkill = path.join(tempDir, "project/.codex/skills/sample-skill");
+    fs.mkdirSync(codexSkill, { recursive: true });
+
+    const manifest = createManifest("local");
+    upsertManifestEntry(manifest, {
+      kind: "skill",
+      runtime: "codex",
+      source: "/repo/skills/sample-skill",
+      destination: codexSkill,
+    });
+
+    const removed = removeManifestEntries(manifest, {
+      runtimes: ["codex"],
+      includeSkills: true,
+      dryRun: true,
+    });
+
+    expect(removed).toEqual([codexSkill]);
+    expect(fs.existsSync(codexSkill)).toBe(true);
+  });
 });

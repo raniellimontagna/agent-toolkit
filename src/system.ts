@@ -92,6 +92,10 @@ export function requireNode(requiredMajor: number): void {
   }
 }
 
+export function isInsecureRedirect(fromUrl: string, toUrl: string): boolean {
+  return fromUrl.startsWith("https:") && !toUrl.startsWith("https:");
+}
+
 function requestBuffer(url: string, redirects = 0): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     if (redirects > 5) {
@@ -116,6 +120,12 @@ function requestBuffer(url: string, redirects = 0): Promise<Buffer> {
         ) {
           response.resume();
           const nextUrl = new URL(headers.location, url).toString();
+          if (isInsecureRedirect(url, nextUrl)) {
+            reject(
+              new Error(`Refusing insecure redirect from ${url} to ${nextUrl}`),
+            );
+            return;
+          }
           requestBuffer(nextUrl, redirects + 1).then(resolve, reject);
           return;
         }

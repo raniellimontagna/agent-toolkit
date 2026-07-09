@@ -56,7 +56,7 @@ jobs:
             fi
 
             echo "Publishing ${package_name}@${package_version} (attempt ${attempt}/3)."
-            if npm publish --access public; then
+            if npm publish --provenance --access public; then
               exit 0
             fi
 

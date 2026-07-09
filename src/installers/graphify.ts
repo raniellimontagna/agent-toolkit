@@ -48,22 +48,29 @@ function graphifySupportsRuntime(runtime: RuntimeName): boolean {
 
 function installGraphifyPackage(): boolean {
   const graphify = findGraphifyCommand();
-  if (graphify) {
+  if (graphify && !state.repair) {
     const version =
       capture(graphify, ["--version"]).stdout.trim().split("\n")[0] ||
       "installed";
     ok(`Graphify already installed - ${version} (${graphify})`);
     return true;
   }
+  if (graphify && state.repair) {
+    info(`Repair mode: reinstalling Graphify over ${graphify}...`);
+  }
+
+  // In repair mode force a reinstall even when the tool is already present.
+  const forceArgs = state.repair ? ["--force"] : [];
 
   if (state.graphifyInstaller === "uv") {
     info(`Installing Graphify via uv tool package ${state.graphifyPackage}...`);
-    return run("uv", ["tool", "install", state.graphifyPackage]).ok;
+    return run("uv", ["tool", "install", ...forceArgs, state.graphifyPackage])
+      .ok;
   }
 
   if (state.graphifyInstaller === "pipx") {
     info(`Installing Graphify via pipx package ${state.graphifyPackage}...`);
-    return run("pipx", ["install", state.graphifyPackage]).ok;
+    return run("pipx", ["install", ...forceArgs, state.graphifyPackage]).ok;
   }
 
   err("GRAPHIFY_INSTALLER must be uv or pipx.");

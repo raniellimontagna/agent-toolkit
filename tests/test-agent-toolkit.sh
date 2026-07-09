@@ -231,6 +231,12 @@ if [[ "\${1:-}" == "clone" ]]; then
   destination="\${@: -1}"
   mkdir -p "\$destination"
 fi
+if [[ "\${1:-}" == "-C" && "\${3:-}" == "fetch" ]]; then
+  printf '%s\n' "\${@: -1}" > "\$2/.fake-fetch-head"
+fi
+if [[ "\${1:-}" == "-C" && "\${3:-}" == "rev-parse" ]]; then
+  cat "\$2/.fake-fetch-head" 2>/dev/null
+fi
 exit 0
 EOF
 chmod +x "$FAKE_BIN/git"
@@ -648,6 +654,26 @@ fi
 
 if [[ ! -f "$CUSTOM_PROJECT/.agent-toolkit/install-manifest.json" ]]; then
   echo "Expected local custom skill install to write an Agent Toolkit manifest" >&2
+  find "$CUSTOM_PROJECT" -maxdepth 5 -type f -print >&2 || true
+  exit 1
+fi
+
+UNINSTALL_DRY_RUN_OUTPUT="$(
+  cd "$CUSTOM_PROJECT"
+  HOME="$CUSTOM_SKILLS_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --uninstall --dry-run --skills-only --codex --local 2>&1
+)"
+
+if ! grep -Fq -- "Dry run: no changes were made." <<<"$UNINSTALL_DRY_RUN_OUTPUT" || \
+  ! grep -Fq -- "Would remove" <<<"$UNINSTALL_DRY_RUN_OUTPUT"; then
+  echo "Expected --uninstall --dry-run to report the removal plan without acting" >&2
+  echo "$UNINSTALL_DRY_RUN_OUTPUT" >&2
+  exit 1
+fi
+
+if [[ ! -f "$CUSTOM_PROJECT/.codex/skills/sample-skill/SKILL.md" ]]; then
+  echo "Expected --uninstall --dry-run to leave installed skills untouched" >&2
   find "$CUSTOM_PROJECT" -maxdepth 5 -type f -print >&2 || true
   exit 1
 fi
@@ -1496,6 +1522,12 @@ if ! grep -Fq -- "Mutable external tool source is not allowed" <<<"$MUTABLE_OUTP
   exit 1
 fi
 
+if ! grep -Fxq -- "status:1" <<<"$MUTABLE_OUTPUT"; then
+  echo "Expected mutable external tool source rejection to exit with status 1" >&2
+  echo "$MUTABLE_OUTPUT" >&2
+  exit 1
+fi
+
 MUTABLE_ALLOWED_LOG="$TMP_DIR/mutable-allowed-npm.log"
 cat > "$FAKE_BIN/npx" <<EOF
 #!/usr/bin/env bash
@@ -1533,10 +1565,12 @@ EOF
 chmod +x "$EACCES_BIN/npm"
 
 EACCES_OUTPUT="$(
+  set +e
   HOME="$EACCES_HOME" \
   PATH="$EACCES_BIN:/usr/bin:/bin" \
   bash "$ROOT_DIR/setup-agent-toolkit.sh" \
     --skills-only --skills-package core --gemini --install-missing-clis 2>&1
+  printf 'status:%s\n' "$?"
 )"
 
 if ! grep -Fxq -- "install -g @google/gemini-cli@0.49.0" "$EACCES_NPM_LOG"; then
@@ -1553,6 +1587,12 @@ fi
 
 if ! grep -Fq -- "npm config set prefix" <<<"$EACCES_OUTPUT"; then
   echo "Expected EACCES guidance to suggest a prefix or version-manager fix" >&2
+  echo "$EACCES_OUTPUT" >&2
+  exit 1
+fi
+
+if ! grep -Fxq -- "status:1" <<<"$EACCES_OUTPUT"; then
+  echo "Expected runtime CLI install failure to propagate exit code 1" >&2
   echo "$EACCES_OUTPUT" >&2
   exit 1
 fi
@@ -1581,5 +1621,74 @@ TOOL_OVERRIDE_OUTPUT="$(
 if ! grep -Fq -- "--rtk-only was overridden by --caveman-only" <<<"$TOOL_OVERRIDE_OUTPUT"; then
   echo "Expected stacking \"-only\" tool flags to warn about the silent override" >&2
   echo "$TOOL_OVERRIDE_OUTPUT" >&2
+  exit 1
+fi
+
+REPAIR_HOME="$TMP_DIR/repair-home"
+REPAIR_GRAPHIFY_LOG="$TMP_DIR/repair-graphify.log"
+mkdir -p "$REPAIR_HOME"
+: > "$REPAIR_GRAPHIFY_LOG"
+cat > "$FAKE_BIN/uv" <<EOF
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "$REPAIR_GRAPHIFY_LOG"
+exit 0
+EOF
+chmod +x "$FAKE_BIN/uv"
+# Do not depend on earlier scenarios having created the graphify fake.
+cat > "$FAKE_BIN/graphify" <<EOF
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "$REPAIR_GRAPHIFY_LOG"
+case "\${1:-}" in
+  --version) echo "graphify 0.0.0-test" ;;
+esac
+exit 0
+EOF
+chmod +x "$FAKE_BIN/graphify"
+
+HOME="$REPAIR_HOME" \
+PATH="$FAKE_BIN:/usr/bin:/bin" \
+bash "$ROOT_DIR/setup-agent-toolkit.sh" --repair --graphify-only --claude >/dev/null
+
+if ! grep -Fxq -- "tool install --force graphifyy==0.8.51" "$REPAIR_GRAPHIFY_LOG"; then
+  echo "Expected --repair to force-reinstall Graphify even when already on PATH" >&2
+  cat "$REPAIR_GRAPHIFY_LOG" >&2
+  exit 1
+fi
+
+SHA_MISMATCH_BIN="$TMP_DIR/sha-mismatch-bin"
+SHA_MISMATCH_HOME="$TMP_DIR/sha-mismatch-home"
+mkdir -p "$SHA_MISMATCH_BIN" "$SHA_MISMATCH_HOME"
+cp "$FAKE_BIN/node" "$SHA_MISMATCH_BIN/node"
+cp "$FAKE_BIN/npx" "$SHA_MISMATCH_BIN/npx"
+cat > "$SHA_MISMATCH_BIN/git" <<'EOF'
+#!/usr/bin/env bash
+if [[ "${1:-}" == "clone" ]]; then
+  destination="${@: -1}"
+  mkdir -p "$destination"
+fi
+if [[ "${1:-}" == "-C" && "${3:-}" == "rev-parse" ]]; then
+  echo "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+fi
+exit 0
+EOF
+chmod +x "$SHA_MISMATCH_BIN/git"
+
+SHA_MISMATCH_OUTPUT="$(
+  set +e
+  HOME="$SHA_MISMATCH_HOME" \
+  PATH="$SHA_MISMATCH_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --improve-only --claude 2>&1
+  printf 'status:%s\n' "$?"
+)"
+
+if ! grep -Fq -- "does not match pinned ref" <<<"$SHA_MISMATCH_OUTPUT"; then
+  echo "Expected a fetched commit that differs from the pinned ref to be rejected" >&2
+  echo "$SHA_MISMATCH_OUTPUT" >&2
+  exit 1
+fi
+
+if ! grep -Fxq -- "status:1" <<<"$SHA_MISMATCH_OUTPUT"; then
+  echo "Expected pinned ref mismatch to fail the install with exit code 1" >&2
+  echo "$SHA_MISMATCH_OUTPUT" >&2
   exit 1
 fi

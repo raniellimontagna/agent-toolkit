@@ -27,6 +27,7 @@ export type InstallManifest = {
 type RemoveOptions = {
   runtimes: RuntimeName[];
   includeSkills: boolean;
+  dryRun?: boolean;
 };
 
 let pendingManifest: InstallManifest | null = null;
@@ -139,7 +140,9 @@ export function removeManifestEntries(
       continue;
     }
 
-    fs.rmSync(entry.destination, { recursive: true, force: true });
+    if (!options.dryRun) {
+      fs.rmSync(entry.destination, { recursive: true, force: true });
+    }
     removed.push(entry.destination);
   }
 
@@ -161,7 +164,21 @@ export function uninstallFromManifest(): boolean {
   const removed = removeManifestEntries(manifest, {
     runtimes: selectedRuntimes,
     includeSkills: state.tools.skills,
+    dryRun: state.dryRun,
   });
+
+  if (state.dryRun) {
+    if (removed.length === 0) {
+      warn("No matching manifest entries found to uninstall.");
+    } else {
+      ok(`Would remove ${removed.length} manifest-recorded item(s):`);
+      for (const destination of removed) {
+        console.log(`   - ${destination}`);
+      }
+    }
+    console.log("Dry run: no changes were made.");
+    return true;
+  }
 
   writeManifest(manifest, filePath);
 

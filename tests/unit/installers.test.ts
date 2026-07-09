@@ -3,25 +3,38 @@ import { installFrontendSkills } from "../../src/installers/frontend-skills.js";
 import { installImprove } from "../../src/installers/improve.js";
 import type { RunResult } from "../../src/system.js";
 
-const { runMock } = vi.hoisted(() => ({
-  runMock: vi.fn(
-    (_command: string, _args: string[] = []): RunResult => ({
-      ok: true,
-      status: 0,
-      stdout: "",
-      stderr: "",
-    }),
-  ),
-}));
+const { runMock, captureMock } = vi.hoisted(() => {
+  // Track which ref each clone directory fetched so the capture mock can
+  // answer `git rev-parse HEAD` with the pinned SHA, like an honest remote.
+  const fetchedRefs = new Map<string, string>();
+  const runMock = vi.fn((command: string, args: string[] = []): RunResult => {
+    if (command === "git" && args[0] === "-C" && args[2] === "fetch") {
+      fetchedRefs.set(args[1] ?? "", args.at(-1) ?? "");
+    }
+    return { ok: true, status: 0, stdout: "", stderr: "" };
+  });
+  const captureMock = vi.fn(
+    (command: string, args: string[] = []): RunResult => {
+      let stdout = "";
+      if (command === "git" && args[0] === "-C" && args[2] === "rev-parse") {
+        stdout = `${fetchedRefs.get(args[1] ?? "") ?? ""}\n`;
+      }
+      return { ok: true, status: 0, stdout, stderr: "" };
+    },
+  );
+  return { runMock, captureMock };
+});
 
 vi.mock("../../src/system.js", () => ({
   requireCommand: vi.fn(),
   requireNode: vi.fn(),
   run: runMock,
+  capture: captureMock,
 }));
 
 afterEach(() => {
   runMock.mockClear();
+  captureMock.mockClear();
 });
 
 describe("third-party skill installers", () => {

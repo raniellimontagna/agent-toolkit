@@ -72,7 +72,7 @@ export async function installRtk(): Promise<boolean> {
   console.log("   Reduces token volume in coding-agent workflows");
 
   const existing = findCommand("rtk");
-  if (existing) {
+  if (existing && !state.repair) {
     const version =
       capture(existing, ["--version"]).stdout.trim().split("\n")[0] ||
       "installed";
@@ -84,6 +84,9 @@ export async function installRtk(): Promise<boolean> {
       );
     }
     return true;
+  }
+  if (existing && state.repair) {
+    info(`Repair mode: reinstalling RTK over ${existing}...`);
   }
 
   const assetName = detectRtkAsset();
