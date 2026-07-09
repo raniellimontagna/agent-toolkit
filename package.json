@@ -3,6 +3,9 @@
   "version": "0.1.23",
   "description": "Personal AI agent toolkit installer for Claude Code, Codex CLI, OpenCode, Gemini CLI, Antigravity and graph-aware workflows.",
   "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "packageManager": "pnpm@11.8.0",
   "bin": {
     "agent-toolkit": "dist/bin/agent-toolkit.js",

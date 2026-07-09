@@ -1,5 +1,47 @@
 # Changelog
 
+## 0.1.24
+
+- Fixed `--uninstall --dry-run` deleting files instead of previewing the removal plan.
+- Fixed runtime CLI version pinning matching by substring (`2.0.1` matched `2.0.10`).
+- Runtime CLI install failures now propagate to the exit code instead of being swallowed.
+- Verified that git-cloned pinned skills (Improve, frontend skills) match the pinned commit SHA after checkout.
+- Refused HTTPS-to-HTTP downgrades when following download redirects.
+- Published to npm with `--provenance` attestation.
+- `--repair` now force-reinstalls RTK and Graphify instead of skipping them as "already installed".
+- Listed Frontend Skills in the selected-tools output.
+- Removed 31 unreferenced media assets (~33 MB), shrinking the npm package by roughly 80%.
+- Declared the supported Node.js range in `package.json` (`engines`).
+
+## 0.1.23
+
+- Corrected RTK hook wiring (`rtk init --global --auto-patch`), guided EACCES npm failures, and warned on silently overridden flags.
+- Installed and reported the React Doctor frontend skill.
+- Generalized the frontend skills installer copy and stabilized related verification.
+
+## 0.1.22
+
+- Switched GSD to the official `@opengsd/gsd-core` package (old package deprecated).
+- Fixed the integration test suite on macOS (BSD `sed`).
+- Failed clearly when a skills target path exists as a file.
+
+## 0.1.21
+
+- Added the design-to-code skill (generation, verification, interaction/responsive rules) hardened through dogfood rounds.
+- Adopted taste-skill analysis and anti-drift heuristics in design-to-code.
+
+## 0.1.20
+
+- Added the revenue-centric design skill.
+
+## 0.1.19
+
+- Updated toolkit pins and bundled skills.
+
+## 0.1.18
+
+- Added the thermonuclear review skill and toolkit operations commands.
+
 ## 0.1.17
 
 - Added shadcn Improve installation from a pinned source.
