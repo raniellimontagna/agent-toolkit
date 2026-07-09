@@ -1,16 +1,41 @@
 import path from "node:path";
-import { die } from "./logger.js";
+import { die, warn } from "./logger.js";
 import {
+  type RuntimeName,
   selectOnlyRuntime,
   selectOnlyTool,
   setAllRuntimes,
   setAllTools,
   splitList,
   state,
+  type ToolName,
 } from "./state.js";
 import { usage } from "./usage.js";
 
 export function parseArgs(argv: string[]): boolean {
+  let lastOnlyTool: ToolName | null = null;
+  let lastOnlyRuntime: RuntimeName | null = null;
+
+  function applyOnlyTool(flag: string, tool: ToolName): void {
+    if (lastOnlyTool && lastOnlyTool !== tool) {
+      warn(
+        `--${lastOnlyTool}-only was overridden by ${flag}; only ${tool} will be installed. These flags are mutually exclusive - use --all (with --no-<tool>) to combine tools instead of stacking "-only" flags.`,
+      );
+    }
+    lastOnlyTool = tool;
+    selectOnlyTool(tool);
+  }
+
+  function applyOnlyRuntime(flag: string, runtime: RuntimeName): void {
+    if (lastOnlyRuntime && lastOnlyRuntime !== runtime) {
+      warn(
+        `--${lastOnlyRuntime} was overridden by ${flag}; only ${runtime} will be targeted. These flags are mutually exclusive - use --all-runtimes (with --no-<runtime>) to combine runtimes instead of stacking bare runtime flags.`,
+      );
+    }
+    lastOnlyRuntime = runtime;
+    selectOnlyRuntime(runtime);
+  }
+
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (!arg) continue;
@@ -20,35 +45,35 @@ export function parseArgs(argv: string[]): boolean {
         state.nonInteractive = true;
         break;
       case "--rtk-only":
-        selectOnlyTool("rtk");
+        applyOnlyTool(arg, "rtk");
         state.nonInteractive = true;
         break;
       case "--caveman-only":
-        selectOnlyTool("caveman");
+        applyOnlyTool(arg, "caveman");
         state.nonInteractive = true;
         break;
       case "--superpowers-only":
-        selectOnlyTool("superpowers");
+        applyOnlyTool(arg, "superpowers");
         state.nonInteractive = true;
         break;
       case "--graphify-only":
-        selectOnlyTool("graphify");
+        applyOnlyTool(arg, "graphify");
         state.nonInteractive = true;
         break;
       case "--gsd-only":
-        selectOnlyTool("gsd");
+        applyOnlyTool(arg, "gsd");
         state.nonInteractive = true;
         break;
       case "--improve-only":
-        selectOnlyTool("improve");
+        applyOnlyTool(arg, "improve");
         state.nonInteractive = true;
         break;
       case "--frontend-skills-only":
-        selectOnlyTool("frontend-skills");
+        applyOnlyTool(arg, "frontend-skills");
         state.nonInteractive = true;
         break;
       case "--skills-only":
-        selectOnlyTool("skills");
+        applyOnlyTool(arg, "skills");
         state.nonInteractive = true;
         break;
       case "--no-rtk":
@@ -88,23 +113,23 @@ export function parseArgs(argv: string[]): boolean {
         state.nonInteractive = true;
         break;
       case "--claude":
-        selectOnlyRuntime("claude");
+        applyOnlyRuntime(arg, "claude");
         state.nonInteractive = true;
         break;
       case "--codex":
-        selectOnlyRuntime("codex");
+        applyOnlyRuntime(arg, "codex");
         state.nonInteractive = true;
         break;
       case "--opencode":
-        selectOnlyRuntime("opencode");
+        applyOnlyRuntime(arg, "opencode");
         state.nonInteractive = true;
         break;
       case "--gemini":
-        selectOnlyRuntime("gemini");
+        applyOnlyRuntime(arg, "gemini");
         state.nonInteractive = true;
         break;
       case "--antigravity":
-        selectOnlyRuntime("antigravity");
+        applyOnlyRuntime(arg, "antigravity");
         state.nonInteractive = true;
         break;
       case "--no-claude":

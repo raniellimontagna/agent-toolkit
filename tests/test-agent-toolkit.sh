@@ -1514,3 +1514,72 @@ if ! grep -Fxq -- "-y @opengsd/gsd-core@latest --global --codex" "$MUTABLE_ALLOW
   cat "$MUTABLE_ALLOWED_LOG" >&2
   exit 1
 fi
+
+EACCES_BIN="$TMP_DIR/eacces-bin"
+EACCES_HOME="$TMP_DIR/eacces-home"
+EACCES_NPM_LOG="$TMP_DIR/eacces-npm.log"
+mkdir -p "$EACCES_BIN" "$EACCES_HOME"
+cp "$FAKE_BIN/node" "$EACCES_BIN/node"
+cat > "$EACCES_BIN/npm" <<EOF
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "$EACCES_NPM_LOG"
+echo "npm error code EACCES" >&2
+echo "npm error syscall mkdir" >&2
+echo "npm error path /opt/homebrew/lib/node_modules/@google/gemini-cli" >&2
+echo "npm error errno -13" >&2
+echo "npm error Error: EACCES: permission denied, mkdir '/opt/homebrew/lib/node_modules/@google/gemini-cli'" >&2
+exit 1
+EOF
+chmod +x "$EACCES_BIN/npm"
+
+EACCES_OUTPUT="$(
+  HOME="$EACCES_HOME" \
+  PATH="$EACCES_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" \
+    --skills-only --skills-package core --gemini --install-missing-clis 2>&1
+)"
+
+if ! grep -Fxq -- "install -g @google/gemini-cli@0.49.0" "$EACCES_NPM_LOG"; then
+  echo "Expected --install-missing-clis to attempt installing missing Gemini CLI" >&2
+  cat "$EACCES_NPM_LOG" >&2
+  exit 1
+fi
+
+if ! grep -Fq -- "npm does not have permission to write to its global directory" <<<"$EACCES_OUTPUT"; then
+  echo "Expected EACCES npm failure to surface actionable permission guidance" >&2
+  echo "$EACCES_OUTPUT" >&2
+  exit 1
+fi
+
+if ! grep -Fq -- "npm config set prefix" <<<"$EACCES_OUTPUT"; then
+  echo "Expected EACCES guidance to suggest a prefix or version-manager fix" >&2
+  echo "$EACCES_OUTPUT" >&2
+  exit 1
+fi
+
+FLAG_WARN_HOME="$TMP_DIR/flag-warn-home"
+mkdir -p "$FLAG_WARN_HOME"
+
+RUNTIME_OVERRIDE_OUTPUT="$(
+  HOME="$FLAG_WARN_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-only --claude --codex --dry-run 2>&1
+)"
+
+if ! grep -Fq -- "--claude was overridden by --codex" <<<"$RUNTIME_OVERRIDE_OUTPUT"; then
+  echo "Expected stacking bare runtime flags to warn about the silent override" >&2
+  echo "$RUNTIME_OVERRIDE_OUTPUT" >&2
+  exit 1
+fi
+
+TOOL_OVERRIDE_OUTPUT="$(
+  HOME="$FLAG_WARN_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --rtk-only --caveman-only --claude --dry-run 2>&1
+)"
+
+if ! grep -Fq -- "--rtk-only was overridden by --caveman-only" <<<"$TOOL_OVERRIDE_OUTPUT"; then
+  echo "Expected stacking \"-only\" tool flags to warn about the silent override" >&2
+  echo "$TOOL_OVERRIDE_OUTPUT" >&2
+  exit 1
+fi

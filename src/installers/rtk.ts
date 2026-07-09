@@ -192,10 +192,12 @@ export async function installRtk(): Promise<boolean> {
     }
 
     info("Checking RTK integration hooks...");
-    const hook = capture(rtkCommand, ["hook", "install"]);
-    if (hook.ok) ok("RTK hooks installed for AI agent integration");
+    const hookInit = capture(rtkCommand, ["init", "--global", "--auto-patch"]);
+    if (hookInit.ok) ok("RTK hooks installed for AI agent integration");
     else
-      warn("RTK hook install failed; restarting the terminal may be required.");
+      warn(
+        "RTK hook setup did not complete automatically. Run 'rtk init --global --auto-patch' manually to enable RTK-aware hooks.",
+      );
 
     return true;
   } finally {

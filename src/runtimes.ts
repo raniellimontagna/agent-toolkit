@@ -1,4 +1,4 @@
-import { die, err, info, ok, step, warn } from "./logger.js";
+import { color, die, err, info, ok, step, warn } from "./logger.js";
 import { type RuntimeName, runtimeMeta, runtimeNames, state } from "./state.js";
 import {
   capture,
@@ -91,9 +91,38 @@ function installRuntimeCli(runtime: RuntimeName): boolean {
   requireCommand("npm");
 
   info(`Installing ${label} via npm package ${packageName}...`);
-  const result = run("npm", ["install", "-g", packageName]);
+  const result = capture("npm", ["install", "-g", packageName]);
   if (!result.ok) {
-    err(`${label} install failed.`);
+    const output = `${result.stdout}\n${result.stderr}`;
+    if (/EACCES|permission denied/i.test(output)) {
+      err(
+        `${label} install failed: npm does not have permission to write to its global directory.`,
+      );
+      console.log(
+        "     This is common when Node.js was installed via Homebrew (or the system) without a version manager.",
+      );
+      console.log("     Fix: use a Node version manager, for example:");
+      console.log(
+        `     ${color.cyan}brew install fnm && fnm install --lts${color.reset}`,
+      );
+      console.log(
+        "     Or keep the current Node install and redirect npm's global prefix:",
+      );
+      console.log(
+        `     ${color.cyan}npm config set prefix ~/.npm-global && export PATH="$HOME/.npm-global/bin:$PATH"${color.reset}`,
+      );
+      console.log(
+        "     See: https://docs.npmjs.com/resolving-eacces-permissions-errors-when-installing-packages-globally",
+      );
+    } else {
+      err(`${label} install failed.`);
+      const detail = result.stderr.trim() || result.stdout.trim();
+      if (detail) {
+        for (const line of detail.split("\n").slice(-5)) {
+          console.log(`     ${line}`);
+        }
+      }
+    }
     return false;
   }
 
