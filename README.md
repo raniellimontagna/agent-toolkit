@@ -487,7 +487,7 @@ Defaults come from `tools.lock.json`:
 
 ```text
 CAVEMAN_PACKAGE=github:JuliusBrussee/caveman#25d22f864ad68cc447a4cb93aefde918aa4aec9f
-GRAPHIFY_PACKAGE=graphifyy==0.8.51
+GRAPHIFY_PACKAGE=graphifyy==0.9.11
 GRAPHIFY_INSTALLER=uv
 GSD_PACKAGE=@opengsd/gsd-core@1.6.1
 SKILLS_CLI_PACKAGE=skills@1.5.13
@@ -530,7 +530,7 @@ Current external sources:
 |---|---|---|
 | RTK | GitHub release `rtk-ai/rtk@v0.43.0` | Verifies the selected asset SHA-256 before extraction |
 | Caveman | `JuliusBrussee/caveman` at commit `25d22f864ad68cc447a4cb93aefde918aa4aec9f` | Immutable GitHub npm spec |
-| Graphify | `graphifyy==0.8.51` | Blocks unpinned package overrides |
+| Graphify | `graphifyy==0.9.11` | Blocks unpinned package overrides |
 | GSD | `@opengsd/gsd-core@1.6.1` | Blocks `@latest` unless explicitly allowed |
 | Improve | `shadcn/improve` at commit `03369ee6d7cafbfcecc4346539b05b3dc0a603bb` | Clones the pinned ref before Agent Skills CLI install |
 | Frontend Skills | `skills@1.5.13`, `pbakaus/impeccable`, `Leonxlnx/taste-skill` and `millionco/react-doctor` at pinned commits | Clones pinned refs before install |

@@ -31,7 +31,7 @@
     "graphify": {
       "source": "pypi",
       "package": "graphifyy",
-      "version": "0.8.51"
+      "version": "0.9.11"
     },
     "gsd": {
       "source": "npm",

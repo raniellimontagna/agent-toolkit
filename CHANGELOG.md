@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.26
+
+- Bumped the pinned Graphify version from `graphifyy==0.8.51` to `graphifyy==0.9.11`.
+
 ## 0.1.25
 
 - Environment overrides that change a source's identity (different npm package,
