@@ -60,6 +60,33 @@ export type ToolLock = {
         skill: string;
       };
     };
+    planningSkills: {
+      source: "skills-cli";
+      grillMe: {
+        source: "github";
+        repository: string;
+        ref: string;
+        skill: string;
+      };
+      grilling: {
+        source: "github";
+        repository: string;
+        ref: string;
+        skill: string;
+      };
+      grillWithDocs: {
+        source: "github";
+        repository: string;
+        ref: string;
+        skill: string;
+      };
+      domainModeling: {
+        source: "github";
+        repository: string;
+        ref: string;
+        skill: string;
+      };
+    };
   };
   runtimeClis: Record<
     RuntimeCliLockName,
@@ -243,6 +270,26 @@ function validateToolLock(lock: ToolLock): ToolLock {
     );
     assertGitSha(skill.ref, `tools.frontendSkills.${skillName}.ref`);
     assertString(skill.skill, `tools.frontendSkills.${skillName}.skill`);
+  }
+
+  for (const skillName of [
+    "grillMe",
+    "grilling",
+    "grillWithDocs",
+    "domainModeling",
+  ] as const) {
+    const skill = lock.tools.planningSkills[skillName];
+    if (!skill) {
+      throw new Error(
+        `Invalid tools.lock.json: tools.planningSkills.${skillName} must be defined.`,
+      );
+    }
+    assertString(
+      skill.repository,
+      `tools.planningSkills.${skillName}.repository`,
+    );
+    assertGitSha(skill.ref, `tools.planningSkills.${skillName}.ref`);
+    assertString(skill.skill, `tools.planningSkills.${skillName}.skill`);
   }
 
   for (const runtime of ["claude", "codex", "opencode", "gemini"] as const) {

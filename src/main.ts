@@ -6,6 +6,7 @@ import { installFrontendSkills } from "./installers/frontend-skills.js";
 import { installGraphify } from "./installers/graphify.js";
 import { installGsd } from "./installers/gsd.js";
 import { installImprove } from "./installers/improve.js";
+import { installPlanningSkills } from "./installers/planning-skills.js";
 import { installRtk } from "./installers/rtk.js";
 import { installSuperpowers } from "./installers/superpowers.js";
 import {
@@ -193,6 +194,15 @@ export async function runInstaller(
     }
   } else {
     skip("Frontend Skills");
+  }
+
+  if (state.tools["planning-skills"]) {
+    if (!installPlanningSkills()) {
+      err("Planning Skills install failed.");
+      hadError = true;
+    }
+  } else {
+    skip("Planning Skills");
   }
 
   if (state.tools.skills) {

@@ -46,6 +46,7 @@ skills and already present destinations before installation starts.
 | GSD | Phase-based planning, execution, verification and project control |
 | Improve | shadcn advisor skill for codebase audits and execution plans |
 | Frontend Skills | Third-party frontend skills installed through Agent Skills CLI: Impeccable, Taste Skill and React Doctor |
+| Planning Skills | Third-party planning skills installed through Agent Skills CLI: Grill Me, Grilling, Grill With Docs and Domain Modeling (mattpocock/skills) |
 | Custom Skills | Bundled skills from this repository, selected by package, scope and exact skill |
 
 ## Supported Runtimes
@@ -64,9 +65,9 @@ install flow is not a stable single command. Antigravity Superpowers support is
 not automated yet because there is not a pinned supported plugin package in this
 toolkit.
 
-Caveman, GSD, Improve, Frontend Skills and Custom Skills can target Claude
-Code, Codex CLI, OpenCode and Gemini CLI. Improve, Frontend Skills and Custom
-Skills can also target Antigravity. Graphify is installed through the official
+Caveman, GSD, Improve, Frontend Skills, Planning Skills and Custom Skills can
+target Claude Code, Codex CLI, OpenCode and Gemini CLI. Improve, Frontend
+Skills, Planning Skills and Custom Skills can also target Antigravity. Graphify is installed through the official
 `graphifyy` package and registers itself for selected runtimes that Graphify
 supports.
 
@@ -111,6 +112,13 @@ Install only third-party frontend design skills for Codex CLI:
 
 ```bash
 npx -y @ranimontagna/agent-toolkit --frontend-skills-only --codex
+```
+
+Install only third-party planning skills (grilling interviews and domain
+modeling) for Claude Code:
+
+```bash
+npx -y @ranimontagna/agent-toolkit --planning-skills-only --claude
 ```
 
 Install only bundled Custom Skills into the current project:
@@ -405,6 +413,7 @@ Tools:
   --gsd-only             Install only GSD
   --improve-only         Install only shadcn Improve
   --frontend-skills-only Install only third-party frontend skills
+  --planning-skills-only Install only third-party planning skills
   --skills-only          Install only Custom Skills
   --no-rtk               Skip RTK
   --no-caveman           Skip Caveman
@@ -413,6 +422,7 @@ Tools:
   --no-gsd               Skip GSD
   --no-improve           Skip shadcn Improve
   --no-frontend-skills   Skip third-party frontend skills
+  --no-planning-skills   Skip third-party planning skills
   --no-skills            Skip Custom Skills
 
 Runtimes:
@@ -534,6 +544,7 @@ Current external sources:
 | GSD | `@opengsd/gsd-core@1.6.1` | Blocks `@latest` unless explicitly allowed |
 | Improve | `shadcn/improve` at commit `03369ee6d7cafbfcecc4346539b05b3dc0a603bb` | Clones the pinned ref before Agent Skills CLI install |
 | Frontend Skills | `skills@1.5.13`, `pbakaus/impeccable`, `Leonxlnx/taste-skill` and `millionco/react-doctor` at pinned commits | Clones pinned refs before install |
+| Planning Skills | `mattpocock/skills` at commit `391a2701dd948f94f56a39f7533f8eea9a859c87` (grill-me, grilling, grill-with-docs, domain-modeling) | Clones the pinned ref before install |
 | Runtime CLIs | Exact npm versions for Claude, Codex, OpenCode and Gemini | Installed or updated only when `--install-missing-clis` is enabled; Antigravity uses the official `agy` installer instead of npm |
 
 Bundled third-party skills preserve upstream attribution and license files:

@@ -6,12 +6,14 @@ import { selectedSkillsAgentArgs } from "../runtimes.js";
 import { state } from "../state.js";
 import { capture, requireCommand, requireNode, run } from "../system.js";
 
-type FrontendSkillSource = (typeof state.frontendSkillSources)[number];
+export type SkillsCliSource = {
+  label: string;
+  repository: string;
+  ref: string;
+  skill: string;
+};
 
-function cloneLockedSource(
-  source: FrontendSkillSource,
-  parentDir: string,
-): string {
+function cloneLockedSource(source: SkillsCliSource, parentDir: string): string {
   const repoUrl = `https://github.com/${source.repository}.git`;
   const sourceDir = path.join(parentDir, source.skill);
 
@@ -60,10 +62,7 @@ function cloneLockedSource(
   return sourceDir;
 }
 
-function installSource(
-  source: FrontendSkillSource,
-  sourceDir: string,
-): boolean {
+function installSource(source: SkillsCliSource, sourceDir: string): boolean {
   const args = [
     "-y",
     state.frontendSkillsCliPackage,
@@ -88,9 +87,13 @@ function installSource(
   return false;
 }
 
-export function installFrontendSkills(): boolean {
-  step("Frontend Skills");
-  console.log("   Third-party frontend skills installed via Agent Skills CLI");
+export function installSkillsCliSources(
+  stepLabel: string,
+  description: string,
+  sources: SkillsCliSource[],
+): boolean {
+  step(stepLabel);
+  console.log(`   ${description}`);
 
   requireNode(18);
   requireCommand("git");
@@ -100,7 +103,7 @@ export function installFrontendSkills(): boolean {
     path.join(os.tmpdir(), "agent-toolkit-skills-"),
   );
   try {
-    for (const source of state.frontendSkillSources) {
+    for (const source of sources) {
       const sourceDir = cloneLockedSource(source, tempDir);
       if (!installSource(source, sourceDir)) return false;
     }
@@ -112,4 +115,12 @@ export function installFrontendSkills(): boolean {
   }
 
   return true;
+}
+
+export function installFrontendSkills(): boolean {
+  return installSkillsCliSources(
+    "Frontend Skills",
+    "Third-party frontend skills installed via Agent Skills CLI",
+    state.frontendSkillSources,
+  );
 }

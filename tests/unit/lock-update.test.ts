@@ -58,6 +58,33 @@ const lock: ToolLock = {
         skill: "react-doctor",
       },
     },
+    planningSkills: {
+      source: "skills-cli",
+      grillMe: {
+        source: "github",
+        repository: "mattpocock/skills",
+        ref: "a".repeat(40),
+        skill: "grill-me",
+      },
+      grilling: {
+        source: "github",
+        repository: "mattpocock/skills",
+        ref: "a".repeat(40),
+        skill: "grilling",
+      },
+      grillWithDocs: {
+        source: "github",
+        repository: "mattpocock/skills",
+        ref: "a".repeat(40),
+        skill: "grill-with-docs",
+      },
+      domainModeling: {
+        source: "github",
+        repository: "mattpocock/skills",
+        ref: "a".repeat(40),
+        skill: "domain-modeling",
+      },
+    },
   },
   runtimeClis: {
     claude: {

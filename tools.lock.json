@@ -69,6 +69,33 @@
         "ref": "aa519e5f5505105ef8c00e1b1972c98514f7577a",
         "skill": "react-doctor"
       }
+    },
+    "planningSkills": {
+      "source": "skills-cli",
+      "grillMe": {
+        "source": "github",
+        "repository": "mattpocock/skills",
+        "ref": "391a2701dd948f94f56a39f7533f8eea9a859c87",
+        "skill": "grill-me"
+      },
+      "grilling": {
+        "source": "github",
+        "repository": "mattpocock/skills",
+        "ref": "391a2701dd948f94f56a39f7533f8eea9a859c87",
+        "skill": "grilling"
+      },
+      "grillWithDocs": {
+        "source": "github",
+        "repository": "mattpocock/skills",
+        "ref": "391a2701dd948f94f56a39f7533f8eea9a859c87",
+        "skill": "grill-with-docs"
+      },
+      "domainModeling": {
+        "source": "github",
+        "repository": "mattpocock/skills",
+        "ref": "391a2701dd948f94f56a39f7533f8eea9a859c87",
+        "skill": "domain-modeling"
+      }
     }
   },
   "runtimeClis": {

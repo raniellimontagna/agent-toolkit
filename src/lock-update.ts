@@ -228,6 +228,18 @@ export async function buildLockUpdateReport(
           resolvedClients,
         ),
     ),
+    collectItem(
+      {
+        name: "Planning Skills (mattpocock/skills)",
+        source: "github",
+        current: lock.tools.planningSkills.grillMe.ref,
+      },
+      () =>
+        latestGitHubCommit(
+          lock.tools.planningSkills.grillMe.repository,
+          resolvedClients,
+        ),
+    ),
     ...(["claude", "codex", "opencode", "gemini"] as const).map((runtime) =>
       collectItem(
         {

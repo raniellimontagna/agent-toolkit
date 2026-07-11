@@ -48,6 +48,8 @@ function toolLabel(tool: ToolName): string {
       return "Improve";
     case "frontend-skills":
       return "Frontend Skills";
+    case "planning-skills":
+      return "Planning Skills";
     case "skills":
       return "Custom Skills";
   }

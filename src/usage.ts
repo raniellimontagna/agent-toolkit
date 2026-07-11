@@ -14,6 +14,7 @@ Tools:
   --gsd-only            Install only GSD
   --improve-only        Install only shadcn Improve
   --frontend-skills-only Install only third-party frontend skills
+  --planning-skills-only Install only third-party planning skills
   --skills-only         Install only Custom Skills
   --no-rtk              Skip RTK
   --no-caveman          Skip Caveman
@@ -22,6 +23,7 @@ Tools:
   --no-gsd              Skip GSD
   --no-improve          Skip shadcn Improve
   --no-frontend-skills  Skip third-party frontend skills
+  --no-planning-skills  Skip third-party planning skills
   --no-skills           Skip Custom Skills
 
 Runtimes:

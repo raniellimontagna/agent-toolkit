@@ -137,6 +137,7 @@ for module in \
   ui.ts \
   installers/caveman.ts \
   installers/frontend-skills.ts \
+  installers/planning-skills.ts \
   installers/graphify.ts \
   installers/gsd.ts \
   installers/improve.ts \
@@ -343,6 +344,7 @@ for expected in \
   "--gsd-only" \
   "--improve-only" \
   "--frontend-skills-only" \
+  "--planning-skills-only" \
   "--graphify-only" \
   "--skills-only" \
   "--superpowers-only" \
@@ -350,6 +352,7 @@ for expected in \
   "--no-graphify" \
   "--no-improve" \
   "--no-frontend-skills" \
+  "--no-planning-skills" \
   "--no-skills" \
   "--skills-dir" \
   "--skills-list" \

@@ -151,7 +151,11 @@ export function checkExternalToolProvenance(): void {
     checkSource("GSD", state.gsdPackage);
   }
 
-  if (state.tools["frontend-skills"] || state.tools.improve) {
+  if (
+    state.tools["frontend-skills"] ||
+    state.tools["planning-skills"] ||
+    state.tools.improve
+  ) {
     const lockSpec = formatNpmPackageSpec(
       lock.tools.frontendSkills.skillsCli.package,
       lock.tools.frontendSkills.skillsCli.version,

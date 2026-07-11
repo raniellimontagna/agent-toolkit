@@ -47,6 +47,8 @@ export function toolDisplayName(tool: ToolName): string {
       return "Improve";
     case "frontend-skills":
       return "Frontend Skills";
+    case "planning-skills":
+      return "Planning Skills";
     case "skills":
       return "Custom Skills";
   }
@@ -112,6 +114,11 @@ export function detectInstallerStatus(): InstallerStatus {
       "frontend-skills": {
         state: "external",
         summary: `${state.frontendSkillSources.length} pinned source skill(s)`,
+        detail: "installed through Agent Skills CLI",
+      },
+      "planning-skills": {
+        state: "external",
+        summary: `${state.planningSkillSources.length} pinned source skill(s)`,
         detail: "installed through Agent Skills CLI",
       },
       skills: customSkillsDetection(),

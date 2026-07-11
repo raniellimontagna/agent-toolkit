@@ -11,6 +11,7 @@ const status: InstallerStatus = {
     gsd: { state: "external", summary: "checked by installer" },
     improve: { state: "external", summary: "pinned skill" },
     "frontend-skills": { state: "external", summary: "2 pinned skills" },
+    "planning-skills": { state: "external", summary: "4 pinned skills" },
     skills: { state: "available", summary: "3 source skill(s) found" },
   },
   runtimes: {

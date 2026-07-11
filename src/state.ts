@@ -16,6 +16,7 @@ export const toolNames = [
   "gsd",
   "improve",
   "frontend-skills",
+  "planning-skills",
   "skills",
 ] as const;
 
@@ -55,6 +56,12 @@ type State = {
   };
   frontendSkillsCliPackage: string;
   frontendSkillSources: Array<{
+    label: string;
+    repository: string;
+    ref: string;
+    skill: string;
+  }>;
+  planningSkillSources: Array<{
     label: string;
     repository: string;
     ref: string;
@@ -174,6 +181,32 @@ export const state: State = {
       skill: toolLock.tools.frontendSkills.reactDoctor.skill,
     },
   ],
+  planningSkillSources: [
+    {
+      label: "Grill Me",
+      repository: toolLock.tools.planningSkills.grillMe.repository,
+      ref: toolLock.tools.planningSkills.grillMe.ref,
+      skill: toolLock.tools.planningSkills.grillMe.skill,
+    },
+    {
+      label: "Grilling",
+      repository: toolLock.tools.planningSkills.grilling.repository,
+      ref: toolLock.tools.planningSkills.grilling.ref,
+      skill: toolLock.tools.planningSkills.grilling.skill,
+    },
+    {
+      label: "Grill With Docs",
+      repository: toolLock.tools.planningSkills.grillWithDocs.repository,
+      ref: toolLock.tools.planningSkills.grillWithDocs.ref,
+      skill: toolLock.tools.planningSkills.grillWithDocs.skill,
+    },
+    {
+      label: "Domain Modeling",
+      repository: toolLock.tools.planningSkills.domainModeling.repository,
+      ref: toolLock.tools.planningSkills.domainModeling.ref,
+      skill: toolLock.tools.planningSkills.domainModeling.skill,
+    },
+  ],
   gsdScope: envInstallScope(process.env.GSD_SCOPE),
   customSkillsDir:
     process.env.CUSTOM_SKILLS_DIR || path.join(REPO_ROOT, "skills"),
@@ -219,6 +252,7 @@ export const state: State = {
     gsd: true,
     improve: true,
     "frontend-skills": true,
+    "planning-skills": true,
     skills: true,
   },
   runtimes: {

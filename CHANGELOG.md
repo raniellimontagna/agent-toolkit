@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.27
+
+- Added the `planning-skills` tool: installs Matt Pocock's grilling skills
+  (`grill-me`, `grilling`, `grill-with-docs`, `domain-modeling`) from
+  `mattpocock/skills` at a pinned commit through the Agent Skills CLI.
+  New flags: `--planning-skills-only` and `--no-planning-skills`.
+
 ## 0.1.26
 
 - Bumped the pinned Graphify version from `graphifyy==0.8.51` to `graphifyy==0.9.11`.

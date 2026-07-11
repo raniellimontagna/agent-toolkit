@@ -116,6 +116,7 @@ describe("clack menu", () => {
       gsd: false,
       improve: false,
       "frontend-skills": false,
+      "planning-skills": false,
       skills: true,
     });
     expect(state.runtimes).toEqual({
