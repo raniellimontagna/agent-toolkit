@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.29
+
+- Added the bundled `onboard-repo` skill (`core` package): detects a
+  repository's stack, installs the matching toolkit skills, and organizes the
+  agent docs (canonical `AGENTS.md`, pointer `CLAUDE.md`, optional MCP
+  config), ending with a report of what was installed and skipped.
+
 ## 0.1.28
 
 - Frontend Skills: replaced Taste Skill with Vercel's Web Design Guidelines

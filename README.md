@@ -178,6 +178,8 @@ skills/
   core/
     agent-toolkit-maintainer/
       SKILL.md
+    onboard-repo/
+      SKILL.md
   backend/
     api/
       api-design/
@@ -355,6 +357,7 @@ Follow these steps...
 | Package | Skill | Source |
 |---|---|---|
 | `core` | `agent-toolkit-maintainer` | Maintained in this repository |
+| `core` | `onboard-repo` | Maintained in this repository |
 | `backend` | `api-design` | Copied from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/skills/api-design) under the MIT license |
 | `backend` | `postgres-patterns` | Adapted from Affaan Mustafa's [`ECC`](https://github.com/affaan-m/ECC/tree/main/.kiro/skills/postgres-patterns) and [`sickn33/antigravity-awesome-skills`](https://github.com/sickn33/antigravity-awesome-skills/tree/main/skills/postgresql), both under the MIT license |
 | `backend` | `fastify-best-practices` | Copied from Matteo Collina's [`mcollina/skills`](https://github.com/mcollina/skills/tree/main/skills/fastify) under the MIT license |
@@ -598,6 +601,8 @@ docs/
 skills/
   core/
     agent-toolkit-maintainer/
+      SKILL.md
+    onboard-repo/
       SKILL.md
   backend/
     fastify-best-practices/
