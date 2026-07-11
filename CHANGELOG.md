@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.30
+
+- onboard-repo: fixed the runtime-selection guidance — bare runtime flags
+  are mutually exclusive, so the skill now instructs
+  `--all-runtimes --no-gemini --no-antigravity` for multi-runtime installs.
+
 ## 0.1.29
 
 - Added the bundled `onboard-repo` skill (`core` package): detects a

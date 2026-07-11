@@ -45,8 +45,10 @@ Agent Toolkit run using only the flags that apply:
 Notes:
 
 - Combine selections into as few toolkit invocations as possible; each
-  invocation is `npx -y @ranimontagna/agent-toolkit <flags>` plus the runtime
-  flags the user works with (default: `--claude --codex --opencode`).
+  invocation is `npx -y @ranimontagna/agent-toolkit <flags>` plus runtime
+  selection. Bare runtime flags are mutually exclusive - to target several
+  runtimes use `--all-runtimes` with `--no-<runtime>` exclusions (default:
+  `--all-runtimes --no-gemini --no-antigravity`).
 - Skip anything already installed (check the runtime skill directories first).
 - Do not install skills for stacks the repo does not use; fewer, sharper
   skills beat a pile of unused ones.
