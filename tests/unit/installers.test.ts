@@ -91,7 +91,7 @@ describe("third-party skill installers", () => {
 
     expect(cloneUrls.flat()).toEqual([
       "https://github.com/pbakaus/impeccable.git",
-      "https://github.com/Leonxlnx/taste-skill.git",
+      "https://github.com/vercel-labs/agent-skills.git",
       "https://github.com/millionco/react-doctor.git",
     ]);
     expect(npxCalls).toHaveLength(3);
@@ -99,7 +99,7 @@ describe("third-party skill installers", () => {
       expect.arrayContaining(["--skill", "impeccable", "--copy"]),
     );
     expect(npxCalls[1]?.[1]).toEqual(
-      expect.arrayContaining(["--skill", "design-taste-frontend", "--copy"]),
+      expect.arrayContaining(["--skill", "web-design-guidelines", "--copy"]),
     );
     expect(npxCalls[2]?.[1]).toEqual(
       expect.arrayContaining(["--skill", "react-doctor", "--copy"]),

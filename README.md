@@ -45,7 +45,7 @@ skills and already present destinations before installation starts.
 | Graphify | Queryable knowledge graphs for codebases, docs and project context |
 | GSD | Phase-based planning, execution, verification and project control |
 | Improve | shadcn advisor skill for codebase audits and execution plans |
-| Frontend Skills | Third-party frontend skills installed through Agent Skills CLI: Impeccable, Taste Skill and React Doctor |
+| Frontend Skills | Third-party frontend skills installed through Agent Skills CLI: Impeccable, Web Design Guidelines and React Doctor |
 | Planning Skills | Third-party planning skills installed through Agent Skills CLI: Grill Me, Grilling, Grill With Docs and Domain Modeling (mattpocock/skills) |
 | Custom Skills | Bundled skills from this repository, selected by package, scope and exact skill |
 
@@ -398,7 +398,7 @@ The installer validates:
 - `name` uses lowercase letters, numbers and hyphens;
 - `description` is non-empty and under 1024 characters.
 
-Other third-party frontend skills such as Impeccable, Taste Skill and React
+Other third-party frontend skills such as Impeccable, Web Design Guidelines and React
 Doctor are not vendored as bundled Custom Skills. The `frontend-skills` tool installs them externally through the Agent Skills CLI from pinned public sources. React Doctor is installed as an agent skill integration, not automatic CI setup.
 
 ## CLI Reference
@@ -543,7 +543,7 @@ Current external sources:
 | Graphify | `graphifyy==0.9.11` | Blocks unpinned package overrides |
 | GSD | `@opengsd/gsd-core@1.6.1` | Blocks `@latest` unless explicitly allowed |
 | Improve | `shadcn/improve` at commit `03369ee6d7cafbfcecc4346539b05b3dc0a603bb` | Clones the pinned ref before Agent Skills CLI install |
-| Frontend Skills | `skills@1.5.13`, `pbakaus/impeccable`, `Leonxlnx/taste-skill` and `millionco/react-doctor` at pinned commits | Clones pinned refs before install |
+| Frontend Skills | `skills@1.5.13`, `pbakaus/impeccable`, `vercel-labs/agent-skills` and `millionco/react-doctor` at pinned commits | Clones pinned refs before install |
 | Planning Skills | `mattpocock/skills` at commit `391a2701dd948f94f56a39f7533f8eea9a859c87` (grill-me, grilling, grill-with-docs, domain-modeling) | Clones the pinned ref before install |
 | Runtime CLIs | Exact npm versions for Claude, Codex, OpenCode and Gemini | Installed or updated only when `--install-missing-clis` is enabled; Antigravity uses the official `agy` installer instead of npm |
 

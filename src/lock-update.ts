@@ -206,13 +206,13 @@ export async function buildLockUpdateReport(
     ),
     collectItem(
       {
-        name: "Taste Skill",
+        name: "Web Design Guidelines",
         source: "github",
-        current: lock.tools.frontendSkills.tasteSkill.ref,
+        current: lock.tools.frontendSkills.webDesignGuidelines.ref,
       },
       () =>
         latestGitHubCommit(
-          lock.tools.frontendSkills.tasteSkill.repository,
+          lock.tools.frontendSkills.webDesignGuidelines.repository,
           resolvedClients,
         ),
     ),

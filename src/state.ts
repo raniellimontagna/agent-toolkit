@@ -169,10 +169,10 @@ export const state: State = {
       skill: toolLock.tools.frontendSkills.impeccable.skill,
     },
     {
-      label: "Taste Skill",
-      repository: toolLock.tools.frontendSkills.tasteSkill.repository,
-      ref: toolLock.tools.frontendSkills.tasteSkill.ref,
-      skill: toolLock.tools.frontendSkills.tasteSkill.skill,
+      label: "Web Design Guidelines",
+      repository: toolLock.tools.frontendSkills.webDesignGuidelines.repository,
+      ref: toolLock.tools.frontendSkills.webDesignGuidelines.ref,
+      skill: toolLock.tools.frontendSkills.webDesignGuidelines.skill,
     },
     {
       label: "React Doctor",

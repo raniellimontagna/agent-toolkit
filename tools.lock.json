@@ -57,11 +57,11 @@
         "ref": "3590bf9e37c84ecbc92f9c205ce1aebf2185a971",
         "skill": "impeccable"
       },
-      "tasteSkill": {
+      "webDesignGuidelines": {
         "source": "github",
-        "repository": "Leonxlnx/taste-skill",
-        "ref": "06d6028b5c623016c59ce8536f578e5a1127b499",
-        "skill": "design-taste-frontend"
+        "repository": "vercel-labs/agent-skills",
+        "ref": "f8a72b9603728bb92a217a879b7e62e43ad76c81",
+        "skill": "web-design-guidelines"
       },
       "reactDoctor": {
         "source": "github",

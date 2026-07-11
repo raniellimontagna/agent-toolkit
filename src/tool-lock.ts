@@ -47,7 +47,7 @@ export type ToolLock = {
         ref: string;
         skill: string;
       };
-      tasteSkill: {
+      webDesignGuidelines: {
         source: "github";
         repository: string;
         ref: string;
@@ -255,7 +255,7 @@ function validateToolLock(lock: ToolLock): ToolLock {
   );
   for (const skillName of [
     "impeccable",
-    "tasteSkill",
+    "webDesignGuidelines",
     "reactDoctor",
   ] as const) {
     const skill = lock.tools.frontendSkills[skillName];

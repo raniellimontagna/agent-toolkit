@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.28
+
+- Frontend Skills: replaced Taste Skill with Vercel's Web Design Guidelines
+  (`vercel-labs/agent-skills`, skill `web-design-guidelines`) — an objective
+  UI-code auditor that complements Impeccable (design direction) instead of
+  overlapping with it. Taste Skill v2 is marked experimental upstream and
+  competes with Impeccable for the same role.
+
 ## 0.1.27
 
 - Added the `planning-skills` tool: installs Matt Pocock's grilling skills

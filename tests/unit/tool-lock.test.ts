@@ -45,8 +45,8 @@ describe("external tool lock", () => {
     expect(lock.tools.frontendSkills.impeccable.ref).toBe(
       "3590bf9e37c84ecbc92f9c205ce1aebf2185a971",
     );
-    expect(lock.tools.frontendSkills.tasteSkill.ref).toBe(
-      "06d6028b5c623016c59ce8536f578e5a1127b499",
+    expect(lock.tools.frontendSkills.webDesignGuidelines.ref).toBe(
+      "f8a72b9603728bb92a217a879b7e62e43ad76c81",
     );
     expect(lock.tools.frontendSkills.reactDoctor).toEqual({
       source: "github",

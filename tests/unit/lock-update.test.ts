@@ -45,11 +45,11 @@ const lock: ToolLock = {
         ref: "c".repeat(40),
         skill: "impeccable",
       },
-      tasteSkill: {
+      webDesignGuidelines: {
         source: "github",
-        repository: "Leonxlnx/taste-skill",
+        repository: "vercel-labs/agent-skills",
         ref: "d".repeat(40),
-        skill: "design-taste-frontend",
+        skill: "web-design-guidelines",
       },
       reactDoctor: {
         source: "github",
