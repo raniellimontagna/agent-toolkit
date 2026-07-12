@@ -46,6 +46,8 @@ function toolLabel(tool: ToolName): string {
       return "GSD";
     case "improve":
       return "Improve";
+    case "agent-browser":
+      return "Agent Browser";
     case "frontend-skills":
       return "Frontend Skills";
     case "planning-skills":

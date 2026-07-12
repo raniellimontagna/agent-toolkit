@@ -3,8 +3,9 @@
 ## Goal
 
 Add Agent Browser as an explicitly selected installer tool. It must install a
-pinned CLI and its matching Agent Skill, make its readiness visible through
-`--doctor`, and remain outside the `--all` selection.
+pinned CLI and its matching Agent Skill, make its executable availability
+visible through `--doctor`, and remain outside the `--all` selection. The
+toolkit's global Node.js requirement moves from 22 to 24.
 
 ## User Flow
 
@@ -25,9 +26,10 @@ installers. Extend the tool lock schema, CLI argument state, menu, status and
 doctor report with the Agent Browser entry. Reuse the existing immutable-source
 validation and Agent Skills CLI installation path for the skill source.
 
-The doctor check distinguishes a missing CLI from a CLI whose Chrome/browser
-setup has not completed. It uses the command's JSON diagnostic mode and reports
-a remediation command without changing the system.
+The doctor check distinguishes a missing CLI from an installed executable, but
+does not invoke Agent Browser's `doctor` command because that command can clean
+stale files. It reports the installed version and the exact upstream command
+the user can run to validate Chrome/browser setup.
 
 ## Failure Handling
 
@@ -38,8 +40,9 @@ non-mutating.
 
 ## Tests and Verification
 
-Unit tests cover lock parsing, flags, selection defaults, installer command
-wiring, status/doctor outcomes, and immutable source validation. The shell
+Unit tests cover lock parsing, the Node 24 version floor, flags, selection
+defaults, installer command wiring, status/doctor outcomes, and immutable
+source validation. The shell
 integration test covers dry-run, a successful mocked installation and the
 missing-browser diagnostic. Its existing Custom Skill assertion is repaired so
 the complete release gate has a stable baseline.

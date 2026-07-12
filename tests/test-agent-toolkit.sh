@@ -28,6 +28,7 @@ GEMINI_LOG="$LOG_DIR/gemini.log"
 ANTIGRAVITY_LOG="$LOG_DIR/antigravity.log"
 GRAPHIFY_LOG="$LOG_DIR/graphify.log"
 GIT_LOG="$LOG_DIR/git.log"
+AGENT_BROWSER_LOG="$LOG_DIR/agent-browser.log"
 export GRAPHIFY_LOG
 
 if [[ ! -f "$ROOT_DIR/bin/agent-toolkit.ts" ]]; then
@@ -140,6 +141,7 @@ for module in \
   usage.ts \
   ui.ts \
   installers/caveman.ts \
+  installers/agent-browser.ts \
   installers/frontend-skills.ts \
   installers/planning-skills.ts \
   installers/graphify.ts \
@@ -207,8 +209,8 @@ cat > "$FAKE_BIN/node" <<'EOF'
 #!/usr/bin/env bash
 REAL_NODE_PLACEHOLDER
 case "${1:-}" in
-  --version) echo "v22.21.1" ;;
-  -p) echo "22" ;;
+  --version) echo "v24.18.0" ;;
+  -p) echo "24" ;;
   *) exec "$REAL_NODE_FOR_TEST" "$@" ;;
 esac
 EOF
@@ -221,6 +223,16 @@ printf '%s\n' "\$*" >> "$NPM_LOG"
 exit 0
 EOF
 chmod +x "$FAKE_BIN/npm"
+
+cat > "$FAKE_BIN/agent-browser" <<EOF
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "$AGENT_BROWSER_LOG"
+case "\${1:-}" in
+  --version) echo "agent-browser 0.31.1" ;;
+esac
+exit 0
+EOF
+chmod +x "$FAKE_BIN/agent-browser"
 
 cat > "$FAKE_BIN/npx" <<EOF
 #!/usr/bin/env bash
@@ -235,6 +247,9 @@ printf '%s\n' "\$*" >> "$GIT_LOG"
 if [[ "\${1:-}" == "clone" ]]; then
   destination="\${@: -1}"
   mkdir -p "\$destination"
+  if [[ "\$destination" == */agent-browser ]]; then
+    mkdir -p "\$destination/skills/agent-browser"
+  fi
 fi
 if [[ "\${1:-}" == "-C" && "\${3:-}" == "fetch" ]]; then
   printf '%s\n' "\${@: -1}" > "\$2/.fake-fetch-head"
@@ -341,12 +356,36 @@ if [[ "$HELP_OUTPUT" != "$WRAPPER_HELP_OUTPUT" ]]; then
   exit 1
 fi
 
+NODE_22_BIN="$TMP_DIR/node-22-bin"
+mkdir -p "$NODE_22_BIN"
+cat > "$NODE_22_BIN/node" <<EOF
+#!/usr/bin/env bash
+case "\${1:-}" in
+  --version) echo "v22.0.0" ;;
+  -p) echo "22" ;;
+  *) exec "$REAL_NODE" "\$@" ;;
+esac
+EOF
+chmod +x "$NODE_22_BIN/node"
+
+if PATH="$NODE_22_BIN:/usr/bin:/bin" bash "$ROOT_DIR/setup-agent-toolkit.sh" --help >"$TMP_DIR/node-22.out" 2>&1; then
+  echo "Expected wrapper to reject Node.js 22" >&2
+  exit 1
+fi
+
+if ! grep -Fq -- "Node.js 24+ is required" "$TMP_DIR/node-22.out"; then
+  echo "Expected Node.js 24 minimum-version guidance" >&2
+  cat "$TMP_DIR/node-22.out" >&2
+  exit 1
+fi
+
 for expected in \
   "Agent Toolkit" \
   "npx -y @ranimontagna/agent-toolkit" \
   "--caveman-only" \
   "--gsd-only" \
   "--improve-only" \
+  "--agent-browser-only" \
   "--frontend-skills-only" \
   "--planning-skills-only" \
   "--graphify-only" \
@@ -355,6 +394,7 @@ for expected in \
   "--rtk-only" \
   "--no-graphify" \
   "--no-improve" \
+  "--no-agent-browser" \
   "--no-frontend-skills" \
   "--no-planning-skills" \
   "--no-skills" \
@@ -374,6 +414,7 @@ for expected in \
   "--skills-audit" \
   "--install-missing-clis" \
   "--allow-mutable-sources" \
+  "AGENT_BROWSER_PACKAGE" \
   "--claude" \
   "--codex" \
   "--opencode" \
@@ -393,9 +434,36 @@ if ! grep -Fq -- "npx -y @ranimontagna/agent-toolkit --all --codex" "$ROOT_DIR/R
   exit 1
 fi
 
+: > "$NPM_LOG"
+: > "$GIT_LOG"
+: > "$AGENT_BROWSER_LOG"
+HOME="$HOME_DIR" \
+PATH="$FAKE_BIN:/usr/bin:/bin" \
+bash "$ROOT_DIR/setup-agent-toolkit.sh" --agent-browser-only --codex >/dev/null
+
+if ! grep -Fxq -- "install --global agent-browser@0.31.1" "$NPM_LOG"; then
+  echo "Expected Agent Browser package install through npm" >&2
+  cat "$NPM_LOG" >&2
+  exit 1
+fi
+
+if ! grep -Fxq -- "install" "$AGENT_BROWSER_LOG"; then
+  echo "Expected Agent Browser to provision Chrome without system dependencies" >&2
+  cat "$AGENT_BROWSER_LOG" >&2
+  exit 1
+fi
+
+if ! grep -Eq -- "-y skills@1\\.5\\.13 add .+/skills/agent-browser --skill agent-browser --agent codex --global -y --copy" "$NPM_LOG"; then
+  echo "Expected Agent Browser skill install for Codex" >&2
+  cat "$NPM_LOG" >&2
+  exit 1
+fi
+
 for expected_readme in \
   "React Doctor" \
   "millionco/react-doctor" \
+  "Remotion Best Practices" \
+  "remotion-dev/skills" \
   "Modified MIT License" \
   "agent skill integration, not automatic CI setup"; do
   if ! grep -Fq -- "$expected_readme" "$ROOT_DIR/README.md"; then
@@ -406,6 +474,7 @@ done
 
 : > "$NPM_LOG"
 : > "$GIT_LOG"
+: > "$AGENT_BROWSER_LOG"
 DRY_RUN_HOME="$TMP_DIR/dry-run-home"
 DRY_RUN_PROJECT="$TMP_DIR/dry-run-project"
 mkdir -p "$DRY_RUN_HOME" "$DRY_RUN_PROJECT"
@@ -446,7 +515,16 @@ const report = JSON.parse(process.env.DOCTOR_JSON);
 if (report.command !== "doctor" || !report.status || !Array.isArray(report.issues)) {
   throw new Error("Expected --doctor --json to emit a machine-readable doctor report");
 }
+if (!report.status.tools["agent-browser"].detail?.includes("Run agent-browser doctor")) {
+  throw new Error("Expected Agent Browser status to provide a non-mutating Chrome validation hint");
+}
 NODE
+
+if grep -Fxq -- "doctor" "$AGENT_BROWSER_LOG"; then
+  echo "Expected Agent Toolkit doctor to avoid Agent Browser's mutating doctor command" >&2
+  cat "$AGENT_BROWSER_LOG" >&2
+  exit 1
+fi
 
 SKILLS_AUDIT_OUTPUT="$(
   HOME="$DRY_RUN_HOME" \
@@ -465,6 +543,13 @@ XDG_CONFIG_HOME="$HOME_DIR/.config" \
 PATH="$FAKE_BIN:/usr/bin:/bin" \
 RTK_INSTALL_DIR="$TMP_DIR/install-bin" \
 bash "$ROOT_DIR/setup-agent-toolkit.sh" --all --all-runtimes >/dev/null
+
+if grep -Fq -- "agent-browser@" "$NPM_LOG" || grep -Fxq -- "install" "$AGENT_BROWSER_LOG"; then
+  echo "Agent Browser must remain excluded from --all" >&2
+  cat "$NPM_LOG" >&2
+  cat "$AGENT_BROWSER_LOG" >&2
+  exit 1
+fi
 
 if ! grep -Fxq -- "-y github:JuliusBrussee/caveman#25d22f864ad68cc447a4cb93aefde918aa4aec9f --only claude --only codex --only opencode --only gemini --minimal --non-interactive" "$NPM_LOG"; then
   echo "Expected Caveman installer to target Claude, Codex, OpenCode and Gemini" >&2
@@ -504,6 +589,12 @@ fi
 
 if ! grep -Eq -- "-y skills@1\\.5\\.13 add .+ --skill react-doctor --agent claude-code --agent codex --agent opencode --agent gemini-cli --agent antigravity --global -y --copy" "$NPM_LOG"; then
   echo "Expected external frontend skill installer to install React Doctor for selected runtimes" >&2
+  cat "$NPM_LOG" >&2
+  exit 1
+fi
+
+if ! grep -Eq -- "-y skills@1\\.5\\.13 add .+ --skill remotion-best-practices --agent claude-code --agent codex --agent opencode --agent gemini-cli --agent antigravity --global -y --copy" "$NPM_LOG"; then
+  echo "Expected Remotion Best Practices installer for selected runtimes" >&2
   cat "$NPM_LOG" >&2
   exit 1
 fi
@@ -551,6 +642,12 @@ fi
 
 if ! grep -Fq -- "https://github.com/millionco/react-doctor.git" "$GIT_LOG"; then
   echo "Expected React Doctor source to be cloned before CLI installation" >&2
+  cat "$GIT_LOG" >&2
+  exit 1
+fi
+
+if ! grep -Fq -- "https://github.com/remotion-dev/skills.git" "$GIT_LOG"; then
+  echo "Expected Remotion Best Practices source to be cloned before CLI installation" >&2
   cat "$GIT_LOG" >&2
   exit 1
 fi
@@ -1384,8 +1481,8 @@ cat > "$INSTALL_BIN/node" <<'EOF'
 #!/usr/bin/env bash
 REAL_NODE_PLACEHOLDER
 case "${1:-}" in
-  --version) echo "v22.21.1" ;;
-  -p) echo "22" ;;
+  --version) echo "v24.18.0" ;;
+  -p) echo "24" ;;
   *) exec "$REAL_NODE_FOR_TEST" "$@" ;;
 esac
 EOF

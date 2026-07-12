@@ -7,7 +7,7 @@ export function installCaveman(): boolean {
   step("Caveman");
   console.log("   Ultra-compressed communication mode for coding agents");
 
-  requireNode(18);
+  requireNode(24);
   requireCommand("npx");
 
   if (!hasSelectedCavemanRuntime()) {

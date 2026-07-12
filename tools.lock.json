@@ -44,6 +44,18 @@
       "ref": "03369ee6d7cafbfcecc4346539b05b3dc0a603bb",
       "skill": "improve"
     },
+    "agentBrowser": {
+      "source": "npm",
+      "package": "agent-browser",
+      "version": "0.31.1",
+      "skill": {
+        "source": "github",
+        "repository": "vercel-labs/agent-browser",
+        "ref": "afae698a51242166170b6fe4809dd57fe9f75798",
+        "path": "skills/agent-browser",
+        "skill": "agent-browser"
+      }
+    },
     "frontendSkills": {
       "source": "skills-cli",
       "skillsCli": {
@@ -68,6 +80,12 @@
         "repository": "millionco/react-doctor",
         "ref": "aa519e5f5505105ef8c00e1b1972c98514f7577a",
         "skill": "react-doctor"
+      },
+      "remotionBestPractices": {
+        "source": "github",
+        "repository": "remotion-dev/skills",
+        "ref": "8b1d51ade295b2d9bd22a8f07047d13c0740f275",
+        "skill": "remotion-best-practices"
       }
     },
     "planningSkills": {

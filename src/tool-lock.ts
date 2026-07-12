@@ -34,6 +34,18 @@ export type ToolLock = {
       ref: string;
       skill: string;
     };
+    agentBrowser: {
+      source: "npm";
+      package: string;
+      version: string;
+      skill: {
+        source: "github";
+        repository: string;
+        ref: string;
+        path: string;
+        skill: string;
+      };
+    };
     frontendSkills: {
       source: "skills-cli";
       skillsCli: {
@@ -54,6 +66,12 @@ export type ToolLock = {
         skill: string;
       };
       reactDoctor: {
+        source: "github";
+        repository: string;
+        ref: string;
+        skill: string;
+      };
+      remotionBestPractices: {
         source: "github";
         repository: string;
         ref: string;
@@ -245,6 +263,27 @@ function validateToolLock(lock: ToolLock): ToolLock {
   assertString(lock.tools.improve.repository, "tools.improve.repository");
   assertGitSha(lock.tools.improve.ref, "tools.improve.ref");
   assertString(lock.tools.improve.skill, "tools.improve.skill");
+  assertString(lock.tools.agentBrowser.package, "tools.agentBrowser.package");
+  assertExactVersion(
+    lock.tools.agentBrowser.version,
+    "tools.agentBrowser.version",
+  );
+  assertString(
+    lock.tools.agentBrowser.skill.repository,
+    "tools.agentBrowser.skill.repository",
+  );
+  assertGitSha(
+    lock.tools.agentBrowser.skill.ref,
+    "tools.agentBrowser.skill.ref",
+  );
+  assertString(
+    lock.tools.agentBrowser.skill.path,
+    "tools.agentBrowser.skill.path",
+  );
+  assertString(
+    lock.tools.agentBrowser.skill.skill,
+    "tools.agentBrowser.skill.skill",
+  );
   assertString(
     lock.tools.frontendSkills.skillsCli.package,
     "tools.frontendSkills.skillsCli.package",
@@ -257,6 +296,7 @@ function validateToolLock(lock: ToolLock): ToolLock {
     "impeccable",
     "webDesignGuidelines",
     "reactDoctor",
+    "remotionBestPractices",
   ] as const) {
     const skill = lock.tools.frontendSkills[skillName];
     if (!skill) {

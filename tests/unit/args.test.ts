@@ -54,6 +54,17 @@ afterEach(() => {
 });
 
 describe("argument parsing for operational commands", () => {
+  it("keeps Agent Browser out of --all and selects it explicitly", () => {
+    expect(parseArgs(["--all"])).toBe(true);
+    expect(state.tools["agent-browser"]).toBe(false);
+
+    expect(parseArgs(["--agent-browser-only"])).toBe(true);
+    expect(state.tools["agent-browser"]).toBe(true);
+    for (const tool of toolNames) {
+      if (tool !== "agent-browser") expect(state.tools[tool]).toBe(false);
+    }
+  });
+
   it("supports dry-run aliases without entering the menu", () => {
     expect(parseArgs(["--all", "--codex", "--dry-run"])).toBe(true);
     expect(state.dryRun).toBe(true);

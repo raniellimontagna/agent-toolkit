@@ -9,7 +9,7 @@ export function installGsd(): boolean {
     "   Get-shit-done workflows for planning, execution and verification",
   );
 
-  requireNode(22);
+  requireNode(24);
   requireCommand("npx");
 
   if (!hasSelectedGsdRuntime()) {

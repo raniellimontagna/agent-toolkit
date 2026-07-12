@@ -174,6 +174,14 @@ export async function buildLockUpdateReport(
     ),
     collectItem(
       {
+        name: "Agent Browser",
+        source: "npm",
+        current: lock.tools.agentBrowser.version,
+      },
+      () => latestNpmVersion(lock.tools.agentBrowser.package, resolvedClients),
+    ),
+    collectItem(
+      {
         name: "Improve",
         source: "github",
         current: lock.tools.improve.ref,
@@ -225,6 +233,18 @@ export async function buildLockUpdateReport(
       () =>
         latestGitHubCommit(
           lock.tools.frontendSkills.reactDoctor.repository,
+          resolvedClients,
+        ),
+    ),
+    collectItem(
+      {
+        name: "Remotion Best Practices",
+        source: "github",
+        current: lock.tools.frontendSkills.remotionBestPractices.ref,
+      },
+      () =>
+        latestGitHubCommit(
+          lock.tools.frontendSkills.remotionBestPractices.repository,
           resolvedClients,
         ),
     ),

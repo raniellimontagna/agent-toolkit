@@ -45,7 +45,8 @@ skills and already present destinations before installation starts.
 | Graphify | Queryable knowledge graphs for codebases, docs and project context |
 | GSD | Phase-based planning, execution, verification and project control |
 | Improve | shadcn advisor skill for codebase audits and execution plans |
-| Frontend Skills | Third-party frontend skills installed through Agent Skills CLI: Impeccable, Web Design Guidelines and React Doctor |
+| Agent Browser | Optional pinned browser automation CLI, Chrome for Testing and matching agent skill |
+| Frontend Skills | Third-party frontend skills installed through Agent Skills CLI: Impeccable, Web Design Guidelines, React Doctor and Remotion Best Practices |
 | Planning Skills | Third-party planning skills installed through Agent Skills CLI: Grill Me, Grilling, Grill With Docs and Domain Modeling (mattpocock/skills) |
 | Custom Skills | Bundled skills from this repository, selected by package, scope and exact skill |
 
@@ -107,6 +108,18 @@ Install only shadcn Improve for Codex CLI:
 ```bash
 npx -y @ranimontagna/agent-toolkit --improve-only --codex
 ```
+
+Install Agent Browser for Codex CLI:
+
+```bash
+npx -y @ranimontagna/agent-toolkit --agent-browser-only --codex
+```
+
+Agent Browser is deliberately excluded from `--all`: it installs a browser
+automation executable, downloads Chrome for Testing and copies its pinned skill.
+The toolkit never runs `agent-browser install --with-deps`, configures plugins,
+cloud browsers or credentials. Run `agent-browser doctor` directly when you
+want to validate its local Chrome setup.
 
 Install only third-party frontend design skills for Codex CLI:
 
@@ -401,8 +414,10 @@ The installer validates:
 - `name` uses lowercase letters, numbers and hyphens;
 - `description` is non-empty and under 1024 characters.
 
-Other third-party frontend skills such as Impeccable, Web Design Guidelines and React
-Doctor are not vendored as bundled Custom Skills. The `frontend-skills` tool installs them externally through the Agent Skills CLI from pinned public sources. React Doctor is installed as an agent skill integration, not automatic CI setup.
+Other third-party frontend skills such as Impeccable, Web Design Guidelines, React
+Doctor and Remotion Best Practices are not vendored as bundled Custom Skills. The
+`frontend-skills` tool installs them externally through the Agent Skills CLI from
+pinned public sources. React Doctor is installed as an agent skill integration, not automatic CI setup.
 
 ## CLI Reference
 
@@ -415,6 +430,7 @@ Tools:
   --graphify-only        Install only Graphify
   --gsd-only             Install only GSD
   --improve-only         Install only shadcn Improve
+  --agent-browser-only   Install only Agent Browser
   --frontend-skills-only Install only third-party frontend skills
   --planning-skills-only Install only third-party planning skills
   --skills-only          Install only Custom Skills
@@ -424,6 +440,7 @@ Tools:
   --no-graphify          Skip Graphify
   --no-gsd               Skip GSD
   --no-improve           Skip shadcn Improve
+  --no-agent-browser     Skip Agent Browser
   --no-frontend-skills   Skip third-party frontend skills
   --no-planning-skills   Skip third-party planning skills
   --no-skills            Skip Custom Skills
@@ -483,6 +500,7 @@ GSD_SCOPE             global or local
 TOOLS_LOCK_PATH       External tool provenance lock path
 ALLOW_MUTABLE_SOURCES Set to 1 to allow mutable source overrides
 AGENT_TOOLKIT_MENU    Set to plain to force the line-based interactive menu
+AGENT_BROWSER_PACKAGE npm package used to install Agent Browser
 CUSTOM_SKILLS_DIR     Source directory for Custom Skills
 SKILLS_PACKAGE        Comma-separated first-level skill package filters
 SKILLS_SCOPE          Comma-separated skill scope filters
@@ -503,6 +521,7 @@ CAVEMAN_PACKAGE=github:JuliusBrussee/caveman#25d22f864ad68cc447a4cb93aefde918aa4
 GRAPHIFY_PACKAGE=graphifyy==0.9.11
 GRAPHIFY_INSTALLER=uv
 GSD_PACKAGE=@opengsd/gsd-core@1.6.1
+AGENT_BROWSER_PACKAGE=agent-browser@0.31.1
 SKILLS_CLI_PACKAGE=skills@1.5.13
 ANTIGRAVITY_INSTALL_SCRIPT=https://antigravity.google/cli/install.sh
 CLAUDE_CLI_PACKAGE=@anthropic-ai/claude-code@2.1.204
@@ -546,7 +565,8 @@ Current external sources:
 | Graphify | `graphifyy==0.9.11` | Blocks unpinned package overrides |
 | GSD | `@opengsd/gsd-core@1.6.1` | Blocks `@latest` unless explicitly allowed |
 | Improve | `shadcn/improve` at commit `03369ee6d7cafbfcecc4346539b05b3dc0a603bb` | Clones the pinned ref before Agent Skills CLI install |
-| Frontend Skills | `skills@1.5.13`, `pbakaus/impeccable`, `vercel-labs/agent-skills` and `millionco/react-doctor` at pinned commits | Clones pinned refs before install |
+| Agent Browser | `agent-browser@0.31.1` and `vercel-labs/agent-browser` at commit `afae698a51242166170b6fe4809dd57fe9f75798` | Installs Chrome for Testing without automatic system dependencies, then copies the pinned skill |
+| Frontend Skills | `skills@1.5.13`, `pbakaus/impeccable`, `vercel-labs/agent-skills`, `millionco/react-doctor` and `remotion-dev/skills` at pinned commits | Clones pinned refs before install |
 | Planning Skills | `mattpocock/skills` at commit `391a2701dd948f94f56a39f7533f8eea9a859c87` (grill-me, grilling, grill-with-docs, domain-modeling) | Clones the pinned ref before install |
 | Runtime CLIs | Exact npm versions for Claude, Codex, OpenCode and Gemini | Installed or updated only when `--install-missing-clis` is enabled; Antigravity uses the official `agy` installer instead of npm |
 
@@ -571,6 +591,9 @@ Bundled third-party skills preserve upstream attribution and license files:
 React Doctor is installed externally from `millionco/react-doctor` at a pinned
 commit and is documented upstream under a Modified MIT License; it is not
 copied into this repository.
+
+Remotion Best Practices is installed externally from `remotion-dev/skills` at a
+pinned commit; it is not copied into this repository.
 
 Releases use npm trusted publishing through GitHub Actions OIDC. The npm
 package is published without a long-lived npm token, and npm automatically
@@ -626,7 +649,7 @@ tools.lock.json          Pinned external tool sources and RTK checksums
 
 Prerequisites:
 
-- Node.js 22+ for the full toolkit;
+- Node.js 24+ for the full toolkit;
 - `npx` for Caveman, GSD, Improve and third-party frontend skills;
 - `git` for pinned third-party Agent Skills sources;
 - `pnpm` 11.x for repository development;

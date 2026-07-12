@@ -87,6 +87,27 @@ afterEach(() => {
 });
 
 describe("clack menu", () => {
+  it("keeps Agent Browser out of the interactive all-tools selection", async () => {
+    const clack: ClackFake = {
+      intro: vi.fn(),
+      outro: vi.fn(),
+      cancel: vi.fn(),
+      isCancel: vi.fn(() => false),
+      multiselect: vi
+        .fn()
+        .mockResolvedValueOnce(["all"])
+        .mockResolvedValueOnce(["codex"])
+        .mockResolvedValueOnce(["all"]),
+      select: vi.fn().mockResolvedValue("global"),
+      confirm: vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true),
+    };
+
+    await runClackMenu(clack);
+
+    expect(state.tools["agent-browser"]).toBe(false);
+    expect(state.tools.rtk).toBe(true);
+  });
+
   it("applies visual prompt selections to installer state", async () => {
     writeSkill("backend/node/fastify-patterns");
     writeSkill("backend/node/express-patterns");
@@ -115,6 +136,7 @@ describe("clack menu", () => {
       graphify: false,
       gsd: false,
       improve: false,
+      "agent-browser": false,
       "frontend-skills": false,
       "planning-skills": false,
       skills: true,

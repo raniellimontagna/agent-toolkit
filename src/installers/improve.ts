@@ -80,7 +80,7 @@ export function installImprove(): boolean {
     "   shadcn advisor skill for auditing codebases and writing execution plans",
   );
 
-  requireNode(18);
+  requireNode(24);
   requireCommand("git");
   requireCommand("npx");
 

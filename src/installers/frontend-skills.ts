@@ -10,6 +10,7 @@ export type SkillsCliSource = {
   label: string;
   repository: string;
   ref: string;
+  path?: string;
   skill: string;
 };
 
@@ -59,7 +60,16 @@ function cloneLockedSource(source: SkillsCliSource, parentDir: string): string {
     );
   }
 
-  return sourceDir;
+  const skillDir = source.path ? path.join(sourceDir, source.path) : sourceDir;
+  if (
+    source.path &&
+    (!fs.existsSync(skillDir) || !fs.statSync(skillDir).isDirectory())
+  ) {
+    throw new Error(
+      `Missing ${source.skill} skill directory in ${source.repository}.`,
+    );
+  }
+  return skillDir;
 }
 
 function installSource(source: SkillsCliSource, sourceDir: string): boolean {
@@ -95,7 +105,7 @@ export function installSkillsCliSources(
   step(stepLabel);
   console.log(`   ${description}`);
 
-  requireNode(18);
+  requireNode(24);
   requireCommand("git");
   requireCommand("npx");
 
