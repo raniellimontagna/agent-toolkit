@@ -35,6 +35,7 @@ Thumbs.db
 .vscode/
 
 # Temporary files
+.worktrees/
 tmp/
 temp/*
 !temp/design-example-*.html
