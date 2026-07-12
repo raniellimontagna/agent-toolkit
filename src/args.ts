@@ -42,6 +42,7 @@ export function parseArgs(argv: string[]): boolean {
     switch (arg) {
       case "--all":
         setAllTools(true);
+        state.tools["agent-browser"] = false;
         state.nonInteractive = true;
         break;
       case "--rtk-only":
@@ -66,6 +67,10 @@ export function parseArgs(argv: string[]): boolean {
         break;
       case "--improve-only":
         applyOnlyTool(arg, "improve");
+        state.nonInteractive = true;
+        break;
+      case "--agent-browser-only":
+        applyOnlyTool(arg, "agent-browser");
         state.nonInteractive = true;
         break;
       case "--frontend-skills-only":
@@ -102,6 +107,10 @@ export function parseArgs(argv: string[]): boolean {
         break;
       case "--no-improve":
         state.tools.improve = false;
+        state.nonInteractive = true;
+        break;
+      case "--no-agent-browser":
+        state.tools["agent-browser"] = false;
         state.nonInteractive = true;
         break;
       case "--no-frontend-skills":

@@ -1,6 +1,7 @@
 import process from "node:process";
 import { parseArgs } from "./args.js";
 import { buildDoctorReport, formatDoctorReport } from "./doctor.js";
+import { installAgentBrowser } from "./installers/agent-browser.js";
 import { installCaveman } from "./installers/caveman.js";
 import { installFrontendSkills } from "./installers/frontend-skills.js";
 import { installGraphify } from "./installers/graphify.js";
@@ -185,6 +186,15 @@ export async function runInstaller(
     }
   } else {
     skip("Improve");
+  }
+
+  if (state.tools["agent-browser"]) {
+    if (!installAgentBrowser()) {
+      err("Agent Browser install failed.");
+      hadError = true;
+    }
+  } else {
+    skip("Agent Browser");
   }
 
   if (state.tools["frontend-skills"]) {

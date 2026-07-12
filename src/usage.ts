@@ -13,6 +13,7 @@ Tools:
   --graphify-only       Install only Graphify
   --gsd-only            Install only GSD
   --improve-only        Install only shadcn Improve
+  --agent-browser-only  Install only Agent Browser
   --frontend-skills-only Install only third-party frontend skills
   --planning-skills-only Install only third-party planning skills
   --skills-only         Install only Custom Skills
@@ -22,6 +23,7 @@ Tools:
   --no-graphify         Skip Graphify
   --no-gsd              Skip GSD
   --no-improve          Skip shadcn Improve
+  --no-agent-browser    Skip Agent Browser
   --no-frontend-skills  Skip third-party frontend skills
   --no-planning-skills  Skip third-party planning skills
   --no-skills           Skip Custom Skills
@@ -71,6 +73,7 @@ Environment:
   GRAPHIFY_PACKAGE      Python package used to install Graphify
   GRAPHIFY_INSTALLER    uv or pipx
   GSD_PACKAGE           GSD package source
+  AGENT_BROWSER_PACKAGE Agent Browser package source
   SKILLS_CLI_PACKAGE    npm package used for third-party skill installs
   GSD_SCOPE             global or local
   TOOLS_LOCK_PATH       External tool provenance lock path (requires --allow-mutable-sources)

@@ -10,6 +10,7 @@ const status: InstallerStatus = {
     graphify: { state: "installed", summary: "graphify 0.9.11" },
     gsd: { state: "external", summary: "checked by installer" },
     improve: { state: "external", summary: "pinned skill" },
+    "agent-browser": { state: "missing", summary: "missing from PATH" },
     "frontend-skills": { state: "external", summary: "2 pinned skills" },
     "planning-skills": { state: "external", summary: "4 pinned skills" },
     skills: { state: "available", summary: "3 source skill(s) found" },
@@ -47,6 +48,24 @@ describe("doctor report", () => {
         name: "Codex CLI",
         message:
           "Codex CLI is selected but missing from PATH. Re-run with --install-missing-clis or install it manually.",
+      },
+    ]);
+  });
+
+  it("reports a selected missing Agent Browser executable", () => {
+    const report = buildDoctorReport(status, {
+      selectedTools: ["agent-browser"],
+      selectedRuntimes: [],
+      scope: "global",
+      customSkillsDir: "/repo/skills",
+      installMissingClis: false,
+    });
+
+    expect(report.issues).toEqual([
+      {
+        kind: "tool",
+        name: "Agent Browser",
+        message: "Agent Browser is selected but missing from PATH.",
       },
     ]);
   });

@@ -87,7 +87,7 @@ function installRuntimeCli(runtime: RuntimeName): boolean {
     return false;
   }
 
-  requireNode(18);
+  requireNode(24);
   requireCommand("npm");
 
   info(`Installing ${label} via npm package ${packageName}...`);
@@ -261,21 +261,21 @@ export function checkPrerequisites(): boolean {
   }
 
   if (state.tools.caveman) {
-    requireNode(18);
+    requireNode(24);
     requireCommand("npx");
     ok(`node found: ${process.version}`);
     ok("npx found");
   }
 
   if (state.tools.gsd) {
-    requireNode(22);
+    requireNode(24);
     requireCommand("npx");
     ok(`node found: ${process.version}`);
     ok("npx found");
   }
 
   if (state.tools["frontend-skills"] || state.tools.improve) {
-    requireNode(18);
+    requireNode(24);
     requireCommand("git");
     requireCommand("npx");
     ok(`node found: ${process.version}`);
@@ -301,7 +301,7 @@ export function checkPrerequisites(): boolean {
       (runtime) => state.runtimes[runtime] && state.cliPackages[runtime],
     )
   ) {
-    requireNode(18);
+    requireNode(24);
     requireCommand("npm");
     ok("npm found");
   }

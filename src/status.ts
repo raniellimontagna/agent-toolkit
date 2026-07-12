@@ -45,6 +45,8 @@ export function toolDisplayName(tool: ToolName): string {
       return "GSD";
     case "improve":
       return "Improve";
+    case "agent-browser":
+      return "Agent Browser";
     case "frontend-skills":
       return "Frontend Skills";
     case "planning-skills":
@@ -68,6 +70,15 @@ function commandDetection(command: string): Detection {
     summary:
       firstLine(version.stdout) || firstLine(version.stderr) || "installed",
     detail: commandPath,
+  };
+}
+
+function agentBrowserDetection(): Detection {
+  const detection = commandDetection("agent-browser");
+  if (detection.state === "missing") return detection;
+  return {
+    ...detection,
+    detail: `${detection.detail}; Run agent-browser doctor to validate Chrome/browser setup.`,
   };
 }
 
@@ -111,6 +122,7 @@ export function detectInstallerStatus(): InstallerStatus {
         summary: "pinned shadcn advisor skill",
         detail: `${state.improveSkillSource.repository}@${state.improveSkillSource.ref}`,
       },
+      "agent-browser": agentBrowserDetection(),
       "frontend-skills": {
         state: "external",
         summary: `${state.frontendSkillSources.length} pinned source skill(s)`,

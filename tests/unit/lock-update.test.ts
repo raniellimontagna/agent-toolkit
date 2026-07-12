@@ -32,6 +32,18 @@ const lock: ToolLock = {
       ref: "b".repeat(40),
       skill: "improve",
     },
+    agentBrowser: {
+      source: "npm",
+      package: "agent-browser",
+      version: "1.0.0",
+      skill: {
+        source: "github",
+        repository: "vercel-labs/agent-browser",
+        ref: "e".repeat(40),
+        path: "skills/agent-browser",
+        skill: "agent-browser",
+      },
+    },
     frontendSkills: {
       source: "skills-cli",
       skillsCli: {
@@ -56,6 +68,12 @@ const lock: ToolLock = {
         repository: "millionco/react-doctor",
         ref: "f".repeat(40),
         skill: "react-doctor",
+      },
+      remotionBestPractices: {
+        source: "github",
+        repository: "remotion-dev/skills",
+        ref: "d".repeat(40),
+        skill: "remotion-best-practices",
       },
     },
     planningSkills: {

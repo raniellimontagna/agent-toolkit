@@ -151,6 +151,15 @@ export function checkExternalToolProvenance(): void {
     checkSource("GSD", state.gsdPackage);
   }
 
+  if (state.tools["agent-browser"]) {
+    const lockSpec = formatNpmPackageSpec(
+      lock.tools.agentBrowser.package,
+      lock.tools.agentBrowser.version,
+    );
+    checkIdentity("Agent Browser", state.agentBrowserPackage, lockSpec);
+    checkSource("Agent Browser", state.agentBrowserPackage);
+  }
+
   if (
     state.tools["frontend-skills"] ||
     state.tools["planning-skills"] ||

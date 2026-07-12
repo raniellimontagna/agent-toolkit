@@ -71,6 +71,7 @@ function selectTools(tools: string[]): void {
   for (const tool of tools) {
     if (tool === "all") {
       setAllTools(true);
+      state.tools["agent-browser"] = false;
       return;
     }
     if (!isToolName(tool)) die(`Unknown tool in menu selection: ${tool}`);
@@ -283,6 +284,14 @@ function toolOptions(status: InstallerStatus): ClackOption[] {
       hint: detectionHint(
         status.tools.improve,
         "codebase audit and planning advisor",
+      ),
+    },
+    {
+      value: "agent-browser",
+      label: "Agent Browser",
+      hint: detectionHint(
+        status.tools["agent-browser"],
+        "browser automation with a separate Chrome setup",
       ),
     },
     {

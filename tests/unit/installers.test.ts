@@ -1,4 +1,6 @@
+import fs from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { installAgentBrowser } from "../../src/installers/agent-browser.js";
 import { installFrontendSkills } from "../../src/installers/frontend-skills.js";
 import { installImprove } from "../../src/installers/improve.js";
 import type { RunResult } from "../../src/system.js";
@@ -38,6 +40,38 @@ afterEach(() => {
 });
 
 describe("third-party skill installers", () => {
+  it("installs the pinned Agent Browser CLI, Chrome and skill", () => {
+    vi.spyOn(fs, "existsSync").mockReturnValue(true);
+    vi.spyOn(fs, "statSync").mockReturnValue({
+      isDirectory: () => true,
+    } as never);
+    expect(installAgentBrowser()).toBe(true);
+
+    const calls = runMock.mock.calls.map(([command, args]) => [command, args]);
+
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        ["npm", ["install", "--global", "agent-browser@0.31.1"]],
+        ["agent-browser", ["install"]],
+        [
+          "git",
+          expect.arrayContaining([
+            "clone",
+            "https://github.com/vercel-labs/agent-browser.git",
+          ]),
+        ],
+        [
+          "git",
+          expect.arrayContaining([
+            "fetch",
+            "afae698a51242166170b6fe4809dd57fe9f75798",
+          ]),
+        ],
+        ["npx", expect.arrayContaining(["--skill", "agent-browser", "--copy"])],
+      ]),
+    );
+  });
+
   it("clones and installs the pinned shadcn Improve skill", () => {
     expect(installImprove()).toBe(true);
 
@@ -93,8 +127,9 @@ describe("third-party skill installers", () => {
       "https://github.com/pbakaus/impeccable.git",
       "https://github.com/vercel-labs/agent-skills.git",
       "https://github.com/millionco/react-doctor.git",
+      "https://github.com/remotion-dev/skills.git",
     ]);
-    expect(npxCalls).toHaveLength(3);
+    expect(npxCalls).toHaveLength(4);
     expect(npxCalls[0]?.[1]).toEqual(
       expect.arrayContaining(["--skill", "impeccable", "--copy"]),
     );
@@ -103,6 +138,9 @@ describe("third-party skill installers", () => {
     );
     expect(npxCalls[2]?.[1]).toEqual(
       expect.arrayContaining(["--skill", "react-doctor", "--copy"]),
+    );
+    expect(npxCalls[3]?.[1]).toEqual(
+      expect.arrayContaining(["--skill", "remotion-best-practices", "--copy"]),
     );
   });
 });

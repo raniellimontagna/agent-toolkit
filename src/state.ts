@@ -15,6 +15,7 @@ export const toolNames = [
   "graphify",
   "gsd",
   "improve",
+  "agent-browser",
   "frontend-skills",
   "planning-skills",
   "skills",
@@ -52,6 +53,14 @@ type State = {
     label: string;
     repository: string;
     ref: string;
+    skill: string;
+  };
+  agentBrowserPackage: string;
+  agentBrowserSkillSource: {
+    label: string;
+    repository: string;
+    ref: string;
+    path: string;
     skill: string;
   };
   frontendSkillsCliPackage: string;
@@ -155,6 +164,19 @@ export const state: State = {
     ref: toolLock.tools.improve.ref,
     skill: toolLock.tools.improve.skill,
   },
+  agentBrowserPackage:
+    process.env.AGENT_BROWSER_PACKAGE ||
+    formatNpmPackageSpec(
+      toolLock.tools.agentBrowser.package,
+      toolLock.tools.agentBrowser.version,
+    ),
+  agentBrowserSkillSource: {
+    label: "Agent Browser",
+    repository: toolLock.tools.agentBrowser.skill.repository,
+    ref: toolLock.tools.agentBrowser.skill.ref,
+    path: toolLock.tools.agentBrowser.skill.path,
+    skill: toolLock.tools.agentBrowser.skill.skill,
+  },
   frontendSkillsCliPackage:
     process.env.SKILLS_CLI_PACKAGE ||
     formatNpmPackageSpec(
@@ -179,6 +201,13 @@ export const state: State = {
       repository: toolLock.tools.frontendSkills.reactDoctor.repository,
       ref: toolLock.tools.frontendSkills.reactDoctor.ref,
       skill: toolLock.tools.frontendSkills.reactDoctor.skill,
+    },
+    {
+      label: "Remotion Best Practices",
+      repository:
+        toolLock.tools.frontendSkills.remotionBestPractices.repository,
+      ref: toolLock.tools.frontendSkills.remotionBestPractices.ref,
+      skill: toolLock.tools.frontendSkills.remotionBestPractices.skill,
     },
   ],
   planningSkillSources: [
@@ -251,6 +280,7 @@ export const state: State = {
     graphify: true,
     gsd: true,
     improve: true,
+    "agent-browser": false,
     "frontend-skills": true,
     "planning-skills": true,
     skills: true,
