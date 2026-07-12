@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# The test creates an isolated HOME. Remove host-level runtime config overrides
+# so each CLI invocation resolves its default paths beneath that temporary HOME.
+unset CODEX_HOME OPENCODE_CONFIG_DIR OPENCODE_CONFIG XDG_CONFIG_HOME
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
