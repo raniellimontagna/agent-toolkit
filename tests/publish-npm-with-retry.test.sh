@@ -120,10 +120,53 @@ run_scenario() {
   assert_eq "$expected_publish_count" "$matching_publish_calls" "$name exact publish arguments"
 }
 
+run_invalid_config() {
+  local name="$1"
+  local variable="$2"
+  local value="$3"
+  local output_file="$TMP_DIR/$name.out"
+  local failed=0
+
+  printf 'view=1\npublish=0\n' > "$SCENARIO_FILE"
+  printf '0\n' > "$VIEW_COUNTER_FILE"
+  printf '0\n' > "$PUBLISH_COUNTER_FILE"
+  : > "$NPM_LOG"
+
+  set +e
+  env PATH="$FAKE_BIN:$PATH" \
+    PUBLISH_MAX_ATTEMPTS=3 \
+    PUBLISH_RETRY_DELAY_SECONDS=0 \
+    "$variable=$value" \
+    bash "$SCRIPT" "@scope/example" "1.2.3" > "$output_file" 2>&1
+  local actual_status="$?"
+  set -e
+
+  if (( actual_status == 0 )); then
+    echo "FAIL: $name status: expected nonzero, got 0" >&2
+    failed=1
+  fi
+
+  local actual_publish_count
+  actual_publish_count="$(cat "$PUBLISH_COUNTER_FILE")"
+  if [[ "$actual_publish_count" != "0" ]]; then
+    echo "FAIL: $name publish call count: expected 0, got $actual_publish_count" >&2
+    failed=1
+  fi
+
+  return "$failed"
+}
+
 run_scenario "already-published" 0 1 0 "0" ""
 run_scenario "first-publish-success" 0 1 1 "1" "0"
 run_scenario "lost-publish-response" 0 2 1 "1,0" "41"
 run_scenario "third-attempt-success" 0 3 3 "1,1,1" "41,42,0"
 run_scenario "all-attempts-fail" 73 4 3 "1,1,1,1" "41,42,73"
+
+invalid_config_failed=0
+run_invalid_config "overflowing-attempts" PUBLISH_MAX_ATTEMPTS "9223372036854775808" || invalid_config_failed=1
+run_invalid_config "overflowing-delay" PUBLISH_RETRY_DELAY_SECONDS "9223372036854775808" || invalid_config_failed=1
+if (( invalid_config_failed != 0 )); then
+  exit 1
+fi
 
 echo "publish retry tests passed"
