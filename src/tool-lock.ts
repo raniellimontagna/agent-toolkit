@@ -4,6 +4,33 @@ import { REPO_ROOT } from "./context.js";
 
 export type RuntimeCliLockName = "claude" | "codex" | "opencode" | "gemini";
 
+export const agentSkillBundleIds = [
+  "improve",
+  "frontend-skills",
+  "planning-skills",
+  "agent-browser",
+] as const;
+
+export type AgentSkillBundleId = (typeof agentSkillBundleIds)[number];
+
+export type AgentSkillRepository = {
+  source: "github";
+  repository: string;
+  ref: string;
+};
+
+export type AgentSkillEntry = {
+  repository: string;
+  skill: string;
+  path?: string;
+};
+
+export type AgentSkillBundle = {
+  label: string;
+  description: string;
+  skills: AgentSkillEntry[];
+};
+
 export type ToolLock = {
   version: 1;
   tools: {
@@ -104,6 +131,28 @@ export type ToolLock = {
         ref: string;
         skill: string;
       };
+      codebaseDesign: {
+        source: "github";
+        repository: string;
+        ref: string;
+        skill: string;
+      };
+      improveCodebaseArchitecture: {
+        source: "github";
+        repository: string;
+        ref: string;
+        skill: string;
+      };
+    };
+    agentSkills: {
+      source: "skills-cli";
+      skillsCli: {
+        source: "npm";
+        package: string;
+        version: string;
+      };
+      repositories: Record<string, AgentSkillRepository>;
+      bundles: Record<AgentSkillBundleId, AgentSkillBundle>;
     };
   };
   runtimeClis: Record<
@@ -238,6 +287,122 @@ function assertSha256(value: unknown, label: string): asserts value is string {
   }
 }
 
+const catalogKeyPattern = /^[A-Za-z][A-Za-z0-9]*$/;
+const skillNamePattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+function assertSafeRelativePath(value: unknown, label: string): void {
+  assertString(value, label);
+  const normalized = value.replace(/\\/g, "/");
+  if (
+    path.posix.isAbsolute(normalized) ||
+    path.win32.isAbsolute(value) ||
+    normalized.split("/").includes("..")
+  ) {
+    throw new Error(
+      `Invalid tools.lock.json: ${label} must be a safe relative path.`,
+    );
+  }
+}
+
+function validateAgentSkillsCatalog(
+  catalog: ToolLock["tools"]["agentSkills"] | undefined,
+): void {
+  if (
+    !catalog ||
+    typeof catalog !== "object" ||
+    !catalog.skillsCli ||
+    typeof catalog.repositories !== "object" ||
+    !catalog.repositories ||
+    typeof catalog.bundles !== "object" ||
+    !catalog.bundles
+  ) {
+    throw new Error(
+      "Invalid tools.lock.json: tools.agentSkills must define skillsCli, repositories, and bundles.",
+    );
+  }
+  if (catalog.source !== "skills-cli" || catalog.skillsCli.source !== "npm") {
+    throw new Error(
+      "Invalid tools.lock.json: tools.agentSkills must use skills-cli with an npm CLI source.",
+    );
+  }
+  assertString(
+    catalog.skillsCli.package,
+    "tools.agentSkills.skillsCli.package",
+  );
+  assertExactVersion(
+    catalog.skillsCli.version,
+    "tools.agentSkills.skillsCli.version",
+  );
+
+  if (Object.keys(catalog.repositories).length === 0) {
+    throw new Error(
+      "Invalid tools.lock.json: tools.agentSkills.repositories must not be empty.",
+    );
+  }
+
+  for (const [repositoryId, repository] of Object.entries(
+    catalog.repositories,
+  )) {
+    if (!catalogKeyPattern.test(repositoryId)) {
+      throw new Error(
+        `Invalid tools.lock.json: tools.agentSkills.repositories key ${repositoryId} is invalid.`,
+      );
+    }
+    if (repository.source !== "github") {
+      throw new Error(
+        `Invalid tools.lock.json: tools.agentSkills.repositories.${repositoryId}.source must be github.`,
+      );
+    }
+    assertString(
+      repository.repository,
+      `tools.agentSkills.repositories.${repositoryId}.repository`,
+    );
+    assertGitSha(
+      repository.ref,
+      `tools.agentSkills.repositories.${repositoryId}.ref`,
+    );
+  }
+
+  const expectedBundles = new Set<string>(agentSkillBundleIds);
+  for (const bundleId of Object.keys(catalog.bundles)) {
+    if (!expectedBundles.has(bundleId)) {
+      throw new Error(
+        `Invalid tools.lock.json: unsupported Agent Skill bundle ${bundleId}.`,
+      );
+    }
+  }
+
+  for (const bundleId of agentSkillBundleIds) {
+    const bundle = catalog.bundles[bundleId];
+    if (!bundle || bundle.skills.length === 0) {
+      throw new Error(
+        `Invalid tools.lock.json: tools.agentSkills.bundles.${bundleId} must contain skills.`,
+      );
+    }
+    assertString(bundle.label, `tools.agentSkills.bundles.${bundleId}.label`);
+    assertString(
+      bundle.description,
+      `tools.agentSkills.bundles.${bundleId}.description`,
+    );
+    for (const [index, skill] of bundle.skills.entries()) {
+      const skillLabel = `tools.agentSkills.bundles.${bundleId}.skills.${index}`;
+      if (!catalog.repositories[skill.repository]) {
+        throw new Error(
+          `Invalid tools.lock.json: ${skillLabel}.repository references unknown repository ${skill.repository}.`,
+        );
+      }
+      if (!skillNamePattern.test(skill.skill)) {
+        throw new Error(
+          `Invalid tools.lock.json: ${skillLabel}.skill is invalid.`,
+        );
+      }
+      if (skill.path !== undefined) {
+        assertSafeRelativePath(skill.path, `${skillLabel}.path`);
+      }
+    }
+  }
+}
+
 function validateToolLock(lock: ToolLock): ToolLock {
   if (lock.version !== 1) {
     throw new Error("Invalid tools.lock.json: version must be 1.");
@@ -260,6 +425,7 @@ function validateToolLock(lock: ToolLock): ToolLock {
   assertExactVersion(lock.tools.graphify.version, "tools.graphify.version");
   assertString(lock.tools.gsd.package, "tools.gsd.package");
   assertExactVersion(lock.tools.gsd.version, "tools.gsd.version");
+  validateAgentSkillsCatalog(lock.tools.agentSkills);
   assertString(lock.tools.improve.repository, "tools.improve.repository");
   assertGitSha(lock.tools.improve.ref, "tools.improve.ref");
   assertString(lock.tools.improve.skill, "tools.improve.skill");
@@ -317,6 +483,8 @@ function validateToolLock(lock: ToolLock): ToolLock {
     "grilling",
     "grillWithDocs",
     "domainModeling",
+    "codebaseDesign",
+    "improveCodebaseArchitecture",
   ] as const) {
     const skill = lock.tools.planningSkills[skillName];
     if (!skill) {

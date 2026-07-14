@@ -113,6 +113,127 @@
         "repository": "mattpocock/skills",
         "ref": "391a2701dd948f94f56a39f7533f8eea9a859c87",
         "skill": "domain-modeling"
+      },
+      "codebaseDesign": {
+        "source": "github",
+        "repository": "mattpocock/skills",
+        "ref": "391a2701dd948f94f56a39f7533f8eea9a859c87",
+        "skill": "codebase-design"
+      },
+      "improveCodebaseArchitecture": {
+        "source": "github",
+        "repository": "mattpocock/skills",
+        "ref": "391a2701dd948f94f56a39f7533f8eea9a859c87",
+        "skill": "improve-codebase-architecture"
+      }
+    },
+    "agentSkills": {
+      "source": "skills-cli",
+      "skillsCli": {
+        "source": "npm",
+        "package": "skills",
+        "version": "1.5.13"
+      },
+      "repositories": {
+        "shadcnImprove": {
+          "source": "github",
+          "repository": "shadcn/improve",
+          "ref": "03369ee6d7cafbfcecc4346539b05b3dc0a603bb"
+        },
+        "agentBrowser": {
+          "source": "github",
+          "repository": "vercel-labs/agent-browser",
+          "ref": "afae698a51242166170b6fe4809dd57fe9f75798"
+        },
+        "impeccable": {
+          "source": "github",
+          "repository": "pbakaus/impeccable",
+          "ref": "3590bf9e37c84ecbc92f9c205ce1aebf2185a971"
+        },
+        "webDesignGuidelines": {
+          "source": "github",
+          "repository": "vercel-labs/agent-skills",
+          "ref": "f8a72b9603728bb92a217a879b7e62e43ad76c81"
+        },
+        "reactDoctor": {
+          "source": "github",
+          "repository": "millionco/react-doctor",
+          "ref": "aa519e5f5505105ef8c00e1b1972c98514f7577a"
+        },
+        "remotionBestPractices": {
+          "source": "github",
+          "repository": "remotion-dev/skills",
+          "ref": "8b1d51ade295b2d9bd22a8f07047d13c0740f275"
+        },
+        "mattPocockSkills": {
+          "source": "github",
+          "repository": "mattpocock/skills",
+          "ref": "391a2701dd948f94f56a39f7533f8eea9a859c87"
+        }
+      },
+      "bundles": {
+        "improve": {
+          "label": "Improve",
+          "description": "shadcn advisor skill for auditing codebases and writing execution plans",
+          "skills": [
+            {
+              "repository": "shadcnImprove",
+              "skill": "improve",
+              "path": "skills/improve"
+            }
+          ]
+        },
+        "frontend-skills": {
+          "label": "Frontend Skills",
+          "description": "Third-party frontend skills installed via Agent Skills CLI",
+          "skills": [
+            { "repository": "impeccable", "skill": "impeccable" },
+            {
+              "repository": "webDesignGuidelines",
+              "skill": "web-design-guidelines"
+            },
+            { "repository": "reactDoctor", "skill": "react-doctor" },
+            {
+              "repository": "remotionBestPractices",
+              "skill": "remotion-best-practices"
+            }
+          ]
+        },
+        "planning-skills": {
+          "label": "Planning Skills",
+          "description": "Third-party planning and architecture skills installed via Agent Skills CLI",
+          "skills": [
+            { "repository": "mattPocockSkills", "skill": "grill-me" },
+            { "repository": "mattPocockSkills", "skill": "grilling" },
+            {
+              "repository": "mattPocockSkills",
+              "skill": "grill-with-docs"
+            },
+            {
+              "repository": "mattPocockSkills",
+              "skill": "domain-modeling"
+            },
+            {
+              "repository": "mattPocockSkills",
+              "skill": "codebase-design"
+            },
+            {
+              "repository": "mattPocockSkills",
+              "skill": "improve-codebase-architecture"
+            }
+          ]
+        },
+        "agent-browser": {
+          "label": "Agent Browser",
+          "description": "Pinned browser automation skill installed via Agent Skills CLI",
+          "skills": [
+            {
+              "repository": "agentBrowser",
+              "skill": "agent-browser",
+              "path": "skills/agent-browser"
+            }
+          ]
+        }
       }
     }
   },

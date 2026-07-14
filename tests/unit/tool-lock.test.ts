@@ -1,7 +1,8 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   externalSourceIdentity,
   formatGithubPackageSpec,
@@ -17,6 +18,134 @@ const repoRoot = path.resolve(
   "..",
   "..",
 );
+
+const tempDirs: string[] = [];
+
+afterEach(() => {
+  for (const tempDir of tempDirs) {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+  tempDirs.length = 0;
+});
+
+type MutableCatalogLock = {
+  tools: {
+    agentSkills: {
+      repositories: Record<string, { ref: string }>;
+      bundles: Record<
+        string,
+        {
+          skills: Array<{
+            repository: string;
+            skill: string;
+            path?: string;
+          }>;
+        }
+      >;
+    };
+  };
+};
+
+function writeMutatedLock(mutate: (lock: MutableCatalogLock) => void): string {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "tool-lock-test-"));
+  const lock = JSON.parse(
+    fs.readFileSync(path.join(repoRoot, "tools.lock.json"), "utf8"),
+  ) as MutableCatalogLock;
+  mutate(lock);
+  const lockPath = path.join(tempDir, "tools.lock.json");
+  fs.writeFileSync(lockPath, JSON.stringify(lock));
+  tempDirs.push(tempDir);
+  return lockPath;
+}
+
+function getMutableRepository(lock: MutableCatalogLock, repositoryId: string) {
+  const repository = lock.tools.agentSkills.repositories[repositoryId];
+  if (!repository) {
+    throw new Error(`Missing test repository ${repositoryId}`);
+  }
+  return repository;
+}
+
+function getMutableBundle(lock: MutableCatalogLock, bundleId: string) {
+  const bundle = lock.tools.agentSkills.bundles[bundleId];
+  if (!bundle) {
+    throw new Error(`Missing test bundle ${bundleId}`);
+  }
+  return bundle;
+}
+
+function getFirstMutableSkill(lock: MutableCatalogLock, bundleId: string) {
+  const skill = getMutableBundle(lock, bundleId).skills[0];
+  if (!skill) {
+    throw new Error(`Missing test skill in bundle ${bundleId}`);
+  }
+  return skill;
+}
+
+const invalidCatalogCases: Array<[string, (lock: MutableCatalogLock) => void]> =
+  [
+    [
+      "unknown repository",
+      (lock) => {
+        getFirstMutableSkill(lock, "improve").repository = "missing";
+      },
+    ],
+    [
+      "mutable repository ref",
+      (lock) => {
+        getMutableRepository(lock, "shadcnImprove").ref = "main";
+      },
+    ],
+    [
+      "empty repositories",
+      (lock) => {
+        lock.tools.agentSkills.repositories = {};
+      },
+    ],
+    [
+      "malformed repository key",
+      (lock) => {
+        lock.tools.agentSkills.repositories["bad-key"] = getMutableRepository(
+          lock,
+          "shadcnImprove",
+        );
+        delete lock.tools.agentSkills.repositories.shadcnImprove;
+      },
+    ],
+    [
+      "empty bundle",
+      (lock) => {
+        getMutableBundle(lock, "planning-skills").skills = [];
+      },
+    ],
+    [
+      "unsupported bundle",
+      (lock) => {
+        lock.tools.agentSkills.bundles.unsupported = getMutableBundle(
+          lock,
+          "improve",
+        );
+      },
+    ],
+    [
+      "malformed skill name",
+      (lock) => {
+        getFirstMutableSkill(lock, "improve").skill = "Bad Skill";
+      },
+    ],
+    [
+      "absolute path",
+      (lock) => {
+        getFirstMutableSkill(lock, "improve").path = "/tmp/improve";
+      },
+    ],
+    [
+      "path traversal",
+      (lock) => {
+        getFirstMutableSkill(lock, "improve").path = "skills/../improve";
+      },
+    ],
+  ];
 
 describe("external tool lock", () => {
   it("loads pinned external tool sources from tools.lock.json", () => {
@@ -72,7 +201,48 @@ describe("external tool lock", () => {
       ref: "8b1d51ade295b2d9bd22a8f07047d13c0740f275",
       skill: "remotion-best-practices",
     });
+    expect(lock.tools.planningSkills.codebaseDesign).toEqual({
+      source: "github",
+      repository: "mattpocock/skills",
+      ref: "391a2701dd948f94f56a39f7533f8eea9a859c87",
+      skill: "codebase-design",
+    });
+    expect(lock.tools.planningSkills.improveCodebaseArchitecture).toEqual({
+      source: "github",
+      repository: "mattpocock/skills",
+      ref: "391a2701dd948f94f56a39f7533f8eea9a859c87",
+      skill: "improve-codebase-architecture",
+    });
+    expect(lock.tools.agentSkills.skillsCli).toEqual({
+      source: "npm",
+      package: "skills",
+      version: "1.5.13",
+    });
+    expect(lock.tools.agentSkills.repositories.mattPocockSkills).toEqual({
+      source: "github",
+      repository: "mattpocock/skills",
+      ref: "391a2701dd948f94f56a39f7533f8eea9a859c87",
+    });
+    expect(lock.tools.agentSkills.bundles["planning-skills"].skills).toEqual([
+      { repository: "mattPocockSkills", skill: "grill-me" },
+      { repository: "mattPocockSkills", skill: "grilling" },
+      { repository: "mattPocockSkills", skill: "grill-with-docs" },
+      { repository: "mattPocockSkills", skill: "domain-modeling" },
+      { repository: "mattPocockSkills", skill: "codebase-design" },
+      {
+        repository: "mattPocockSkills",
+        skill: "improve-codebase-architecture",
+      },
+    ]);
     expect(lock.runtimeClis.gemini.version).toBe("0.49.0");
+  });
+
+  it.each(
+    invalidCatalogCases,
+  )("rejects an Agent Skills catalog with %s", (_label, mutate) => {
+    expect(() => loadToolLock(writeMutatedLock(mutate))).toThrow(
+      "Invalid tools.lock.json",
+    );
   });
 
   it("formats immutable package specs from locked versions", () => {
