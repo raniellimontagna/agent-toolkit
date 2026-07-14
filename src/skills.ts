@@ -3,6 +3,7 @@ import path from "node:path";
 import { HOME } from "./context.js";
 import { err, ok, step, warn } from "./logger.js";
 import { recordSkillInstall } from "./manifest.js";
+import { resolveSkillTargetDirs } from "./skill-targets.js";
 import {
   normalizedSkillPackages,
   normalizedSkillPaths,
@@ -16,71 +17,19 @@ import { commandExists, findCommand, run } from "./system.js";
 type SkillMetadata = Record<string, string>;
 type SkillMetadataResult = { metadata: SkillMetadata } | { error: string };
 
-function opencodeConfigDir(): string {
-  if (process.env.OPENCODE_CONFIG_DIR) return process.env.OPENCODE_CONFIG_DIR;
-  if (process.env.OPENCODE_CONFIG)
-    return path.dirname(process.env.OPENCODE_CONFIG);
-  if (process.env.XDG_CONFIG_HOME)
-    return path.join(process.env.XDG_CONFIG_HOME, "opencode");
-  return path.join(HOME, ".config", "opencode");
-}
-
-function geminiConfigDir(): string {
-  return process.env.GEMINI_CONFIG_DIR || path.join(HOME, ".gemini");
-}
-
-function antigravityOfficialSkillsDir(): string {
-  return (
-    process.env.ANTIGRAVITY_SKILLS_DIR ||
-    path.join(HOME, ".gemini", "antigravity-cli", "skills")
-  );
-}
-
-function antigravityLegacySkillsDir(): string {
-  return (
-    process.env.ANTIGRAVITY_LEGACY_SKILLS_DIR ||
-    path.join(HOME, ".agents", "skills")
-  );
-}
-
 function skillsTargetDirs(runtime: RuntimeName): string[] {
-  if (state.gsdScope === "global" && runtime === "antigravity") {
-    return [
-      antigravityOfficialSkillsDir(),
-      antigravityLegacySkillsDir(),
-    ].filter((dir, index, dirs) => dirs.indexOf(dir) === index);
-  }
-
-  return [skillsTargetDir(runtime)];
+  return resolveSkillTargetDirs(runtime, {
+    scope: state.gsdScope,
+    cwd: process.cwd(),
+    home: HOME,
+    env: process.env,
+  });
 }
 
 export function skillsTargetDir(runtime: RuntimeName): string {
-  if (state.gsdScope === "local" && runtime === "antigravity") {
-    return path.join(process.cwd(), ".agents", "skills");
-  }
-
-  if (state.gsdScope === "local") {
-    return path.join(process.cwd(), `.${runtime}`, "skills");
-  }
-
-  switch (runtime) {
-    case "claude":
-      return path.join(
-        process.env.CLAUDE_CONFIG_DIR || path.join(HOME, ".claude"),
-        "skills",
-      );
-    case "codex":
-      return path.join(
-        process.env.CODEX_HOME || path.join(HOME, ".codex"),
-        "skills",
-      );
-    case "opencode":
-      return path.join(opencodeConfigDir(), "skills");
-    case "gemini":
-      return path.join(geminiConfigDir(), "skills");
-    case "antigravity":
-      return antigravityOfficialSkillsDir();
-  }
+  const target = skillsTargetDirs(runtime)[0];
+  if (!target) throw new Error(`No skills target configured for ${runtime}`);
+  return target;
 }
 
 export function parseSkillMetadata(filePath: string): SkillMetadataResult {
