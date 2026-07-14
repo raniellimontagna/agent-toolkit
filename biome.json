@@ -4,6 +4,7 @@
     "ignoreUnknown": true,
     "includes": [
       "**",
+      "!.worktrees",
       "!dist",
       "!graphify-out",
       "!node_modules",
