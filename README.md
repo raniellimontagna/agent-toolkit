@@ -94,6 +94,16 @@ pnpm install --frozen-lockfile
 rtk pnpm run check
 ```
 
-If RTK is not installed yet, run `pnpm run check` directly. The detailed workflows live in [Development](docs/DEVELOPMENT.md), [Testing](docs/TESTING.md), and [Deployment and Releases](docs/DEPLOYMENT.md). Releases are driven by Git tags and GitHub Actions; see the [Changelog](CHANGELOG.md) for the published history.
+If RTK is not installed yet, run `pnpm run check` directly. The detailed workflows live in [Development](docs/DEVELOPMENT.md), [Testing](docs/TESTING.md), and [Deployment and Releases](docs/DEPLOYMENT.md); see the [Changelog](CHANGELOG.md) for the published history.
+
+For normal releases, run the scripted patch flow:
+
+```bash
+pnpm run release:patch -- --push
+```
+
+`--push` performs the remote preflight before changing files, then runs the release checks and atomically pushes `main` and the new tag.
+
+The `Release` workflow runs from matching version tags in GitHub Actions and publishes the package to npm through trusted publishing. See [Deployment and Releases](docs/DEPLOYMENT.md) for the complete release and recovery procedures.
 
 Agent Toolkit is available under the [MIT License](LICENSE).
