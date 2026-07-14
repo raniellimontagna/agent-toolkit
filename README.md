@@ -44,10 +44,8 @@ skills and already present destinations before installation starts.
 | Superpowers | Planning, TDD, debugging, review and delivery workflows |
 | Graphify | Queryable knowledge graphs for codebases, docs and project context |
 | GSD | Phase-based planning, execution, verification and project control |
-| Improve | shadcn advisor skill for codebase audits and execution plans |
-| Agent Browser | Optional pinned browser automation CLI, Chrome for Testing and matching agent skill |
-| Frontend Skills | Third-party frontend skills installed through Agent Skills CLI: Impeccable, Web Design Guidelines, React Doctor and Remotion Best Practices |
-| Planning Skills | Third-party planning skills installed through Agent Skills CLI: Grill Me, Grilling, Grill With Docs and Domain Modeling (mattpocock/skills) |
+| Agent Browser | Optional pinned browser automation CLI and Chrome for Testing |
+| Agent Skills | Catalog-driven third-party bundles: Improve, Agent Browser, Frontend Skills and Planning Skills |
 | Custom Skills | Bundled skills from this repository, selected by package, scope and exact skill |
 
 ## Supported Runtimes
@@ -127,8 +125,8 @@ Install only third-party frontend design skills for Codex CLI:
 npx -y @ranimontagna/agent-toolkit --frontend-skills-only --codex
 ```
 
-Install only third-party planning skills (grilling interviews and domain
-modeling) for Claude Code:
+Install the Planning Skills bundle (grilling interviews, domain modeling and
+architecture reviews) for Claude Code:
 
 ```bash
 npx -y @ranimontagna/agent-toolkit --planning-skills-only --claude
@@ -564,10 +562,8 @@ Current external sources:
 | Caveman | `JuliusBrussee/caveman` at commit `25d22f864ad68cc447a4cb93aefde918aa4aec9f` | Immutable GitHub npm spec |
 | Graphify | `graphifyy==0.9.11` | Blocks unpinned package overrides |
 | GSD | `@opengsd/gsd-core@1.6.1` | Blocks `@latest` unless explicitly allowed |
-| Improve | `shadcn/improve` at commit `03369ee6d7cafbfcecc4346539b05b3dc0a603bb` | Clones the pinned ref before Agent Skills CLI install |
-| Agent Browser | `agent-browser@0.31.1` and `vercel-labs/agent-browser` at commit `afae698a51242166170b6fe4809dd57fe9f75798` | Installs Chrome for Testing without automatic system dependencies, then copies the pinned skill |
-| Frontend Skills | `skills@1.5.13`, `pbakaus/impeccable`, `vercel-labs/agent-skills`, `millionco/react-doctor` and `remotion-dev/skills` at pinned commits | Clones pinned refs before install |
-| Planning Skills | `mattpocock/skills` at commit `391a2701dd948f94f56a39f7533f8eea9a859c87` (grill-me, grilling, grill-with-docs, domain-modeling) | Clones the pinned ref before install |
+| Agent Browser | `agent-browser@0.31.1` | Installs Chrome for Testing without automatic system dependencies |
+| Agent Skills | `skills@1.5.13`; `shadcn/improve@03369ee6d7cafbfcecc4346539b05b3dc0a603bb`; `vercel-labs/agent-browser@afae698a51242166170b6fe4809dd57fe9f75798`; `pbakaus/impeccable@3590bf9e37c84ecbc92f9c205ce1aebf2185a971`; `vercel-labs/agent-skills@f8a72b9603728bb92a217a879b7e62e43ad76c81`; `millionco/react-doctor@aa519e5f5505105ef8c00e1b1972c98514f7577a`; `remotion-dev/skills@8b1d51ade295b2d9bd22a8f07047d13c0740f275`; `mattpocock/skills@391a2701dd948f94f56a39f7533f8eea9a859c87`; bundles: `improve`, `agent-browser`, `frontend-skills`, `planning-skills`; skills: `improve`, `agent-browser`, `impeccable`, `web-design-guidelines`, `react-doctor`, `remotion-best-practices`, `grill-me`, `grilling`, `grill-with-docs`, `domain-modeling`, `codebase-design`, `improve-codebase-architecture` | Verifies pins before use, clones each repository once per selected bundle and continues independent skills after individual failures |
 | Runtime CLIs | Exact npm versions for Claude, Codex, OpenCode and Gemini | Installed or updated only when `--install-missing-clis` is enabled; Antigravity uses the official `agy` installer instead of npm |
 
 Bundled third-party skills preserve upstream attribution and license files:

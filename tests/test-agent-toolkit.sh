@@ -142,11 +142,9 @@ for module in \
   ui.ts \
   installers/caveman.ts \
   installers/agent-browser.ts \
-  installers/frontend-skills.ts \
-  installers/planning-skills.ts \
+  installers/agent-skills.ts \
   installers/graphify.ts \
   installers/gsd.ts \
-  installers/improve.ts \
   installers/rtk.ts \
   installers/superpowers.ts; do
   if [[ ! -f "$ROOT_DIR/src/$module" ]]; then
@@ -247,8 +245,11 @@ printf '%s\n' "\$*" >> "$GIT_LOG"
 if [[ "\${1:-}" == "clone" ]]; then
   destination="\${@: -1}"
   mkdir -p "\$destination"
-  if [[ "\$destination" == */agent-browser ]]; then
+  if [[ "\$*" == *"https://github.com/vercel-labs/agent-browser.git"* ]]; then
     mkdir -p "\$destination/skills/agent-browser"
+  fi
+  if [[ "\$*" == *"https://github.com/shadcn/improve.git"* ]]; then
+    mkdir -p "\$destination/skills/improve"
   fi
 fi
 if [[ "\${1:-}" == "-C" && "\${3:-}" == "fetch" ]]; then
@@ -472,6 +473,35 @@ for expected_readme in \
   fi
 done
 
+ROOT_DIR="$ROOT_DIR" "$REAL_NODE" --input-type=module <<'NODE'
+import { readFile } from "node:fs/promises";
+
+const root = process.env.ROOT_DIR;
+const lock = JSON.parse(await readFile(`${root}/tools.lock.json`, "utf8"));
+const readme = await readFile(`${root}/README.md`, "utf8");
+const sectionStart = readme.indexOf("Current external sources:");
+const sectionEnd = readme.indexOf(
+  "Bundled third-party skills preserve upstream attribution",
+  sectionStart,
+);
+if (sectionStart === -1 || sectionEnd === -1) {
+  console.error("Expected README to contain the external source section");
+  process.exit(1);
+}
+const lockedSourceSection = readme.slice(sectionStart, sectionEnd);
+const missing = [];
+for (const [bundleId, bundle] of Object.entries(lock.tools.agentSkills.bundles)) {
+  if (!lockedSourceSection.includes(bundleId)) missing.push(bundleId);
+  for (const { skill } of bundle.skills) {
+    if (!lockedSourceSection.includes(skill)) missing.push(skill);
+  }
+}
+if (missing.length > 0) {
+  console.error(`Expected README to document catalog entries: ${missing.join(", ")}`);
+  process.exit(1);
+}
+NODE
+
 : > "$NPM_LOG"
 : > "$GIT_LOG"
 : > "$AGENT_BROWSER_LOG"
@@ -602,6 +632,33 @@ fi
 if ! grep -Eq -- "-y skills@1\\.5\\.13 add .+/skills/improve --skill improve --agent claude-code --agent codex --agent opencode --agent gemini-cli --agent antigravity --global -y --copy" "$NPM_LOG"; then
   echo "Expected Improve installer to install the pinned shadcn Improve skill for selected runtimes" >&2
   cat "$NPM_LOG" >&2
+  exit 1
+fi
+
+for planning_skill in grill-me grilling grill-with-docs domain-modeling; do
+  if ! grep -Eq -- "-y skills@1\\.5\\.13 add .+ --skill $planning_skill --agent claude-code --agent codex --agent opencode --agent gemini-cli --agent antigravity --global -y --copy" "$NPM_LOG"; then
+    echo "Expected Planning Skills installer to install $planning_skill for selected runtimes" >&2
+    cat "$NPM_LOG" >&2
+    exit 1
+  fi
+done
+
+if ! grep -Eq -- "-y skills@1\\.5\\.13 add .+ --skill codebase-design --agent claude-code --agent codex --agent opencode --agent gemini-cli --agent antigravity --global -y --copy" "$NPM_LOG"; then
+  echo "Expected Planning Skills installer to install Codebase Design for selected runtimes" >&2
+  cat "$NPM_LOG" >&2
+  exit 1
+fi
+
+if ! grep -Eq -- "-y skills@1\\.5\\.13 add .+ --skill improve-codebase-architecture --agent claude-code --agent codex --agent opencode --agent gemini-cli --agent antigravity --global -y --copy" "$NPM_LOG"; then
+  echo "Expected Planning Skills installer to install Improve Codebase Architecture for selected runtimes" >&2
+  cat "$NPM_LOG" >&2
+  exit 1
+fi
+
+MATT_POCOCK_CLONES="$(grep -Fc -- "clone --filter=blob:none --no-checkout https://github.com/mattpocock/skills.git" "$GIT_LOG")"
+if [[ "$MATT_POCOCK_CLONES" -ne 1 ]]; then
+  echo "Expected mattpocock/skills to be cloned exactly once per Planning Skills bundle" >&2
+  cat "$GIT_LOG" >&2
   exit 1
 fi
 
