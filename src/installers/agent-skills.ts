@@ -91,19 +91,30 @@ function installSkill(
   const skillRoot = entry.path
     ? path.resolve(checkoutDir, entry.path)
     : checkoutDir;
-  const relativeSkillRoot = path.relative(checkoutDir, skillRoot);
-  if (
-    relativeSkillRoot.startsWith("..") ||
-    path.isAbsolute(relativeSkillRoot) ||
-    !fs.existsSync(skillRoot) ||
-    !fs.statSync(skillRoot).isDirectory()
-  ) {
-    return {
-      repository: entry.repository,
-      skill: entry.skill,
-      status: "failed",
-      reason: `Missing ${entry.skill} skill directory: ${skillRoot}.`,
-    };
+  const failedOutcome: SkillInstallOutcome = {
+    repository: entry.repository,
+    skill: entry.skill,
+    status: "failed",
+    reason: `Missing ${entry.skill} skill directory: ${skillRoot}.`,
+  };
+  let canonicalSkillRoot: string;
+  try {
+    const canonicalCheckoutDir = fs.realpathSync(checkoutDir);
+    canonicalSkillRoot = fs.realpathSync(skillRoot);
+    const relativeSkillRoot = path.relative(
+      canonicalCheckoutDir,
+      canonicalSkillRoot,
+    );
+    if (
+      relativeSkillRoot === ".." ||
+      relativeSkillRoot.startsWith(`..${path.sep}`) ||
+      path.isAbsolute(relativeSkillRoot) ||
+      !fs.statSync(canonicalSkillRoot).isDirectory()
+    ) {
+      return failedOutcome;
+    }
+  } catch {
+    return failedOutcome;
   }
 
   info(`Installing ${entry.skill} through Agent Skills CLI...`);
@@ -111,7 +122,7 @@ function installSkill(
     "-y",
     state.agentSkillsCliPackage,
     "add",
-    skillRoot,
+    canonicalSkillRoot,
     "--skill",
     entry.skill,
     ...selectedSkillsAgentArgs(),

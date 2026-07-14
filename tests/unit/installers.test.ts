@@ -1,10 +1,13 @@
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { installAgentBrowser } from "../../src/installers/agent-browser.js";
 import { installAgentSkillBundle } from "../../src/installers/agent-skills.js";
 import { installFrontendSkills } from "../../src/installers/frontend-skills.js";
 import { installImprove } from "../../src/installers/improve.js";
 import { installPlanningSkills } from "../../src/installers/planning-skills.js";
+import { state } from "../../src/state.js";
 import type { RunResult } from "../../src/system.js";
 
 const { runMock, captureMock, failedSkills, pinMismatchRepositories } =
@@ -52,6 +55,7 @@ beforeEach(() => {
   vi.spyOn(fs, "statSync").mockReturnValue({
     isDirectory: () => true,
   } as never);
+  vi.spyOn(fs, "realpathSync").mockImplementation((value) => value as never);
 });
 
 afterEach(() => {
@@ -252,5 +256,102 @@ describe("third-party skill installers", () => {
     expect(
       runMock.mock.calls.filter(([command]) => command === "npx"),
     ).toHaveLength(3);
+  });
+
+  it("isolates skill-root resolution failures to their repository", () => {
+    vi.restoreAllMocks();
+    const tempDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "agent-toolkit-resolution-test-"),
+    );
+    for (const repositoryId of [
+      "webDesignGuidelines",
+      "reactDoctor",
+      "remotionBestPractices",
+    ]) {
+      fs.mkdirSync(path.join(tempDir, repositoryId), { recursive: true });
+    }
+    vi.spyOn(fs, "mkdtempSync").mockReturnValue(tempDir);
+
+    try {
+      let result: ReturnType<typeof installAgentSkillBundle> | undefined;
+      expect(() => {
+        result = installAgentSkillBundle("frontend-skills");
+      }).not.toThrow();
+
+      expect(result?.ok).toBe(false);
+      expect(result?.outcomes).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            repository: "impeccable",
+            status: "failed",
+          }),
+          expect.objectContaining({
+            repository: "reactDoctor",
+            status: "installed",
+          }),
+        ]),
+      );
+      expect(
+        runMock.mock.calls.filter(([command]) => command === "npx"),
+      ).toHaveLength(3);
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("isolates an escaping skill symlink to its repository", () => {
+    vi.restoreAllMocks();
+    const tempDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "agent-toolkit-symlink-test-"),
+    );
+    const externalSkillDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "agent-toolkit-external-skill-"),
+    );
+    for (const repositoryId of [
+      "impeccable",
+      "webDesignGuidelines",
+      "reactDoctor",
+      "remotionBestPractices",
+    ]) {
+      fs.mkdirSync(path.join(tempDir, repositoryId), { recursive: true });
+    }
+    fs.symlinkSync(
+      externalSkillDir,
+      path.join(tempDir, "impeccable", "skill-link"),
+      "dir",
+    );
+
+    const entry = state.agentSkillsCatalog.bundles["frontend-skills"].skills[0];
+    if (!entry) throw new Error("Missing Impeccable catalog entry.");
+    const originalPath = entry.path;
+    entry.path = "skill-link";
+    vi.spyOn(fs, "mkdtempSync").mockReturnValue(tempDir);
+
+    try {
+      const result = installAgentSkillBundle("frontend-skills");
+
+      expect(result.ok).toBe(false);
+      expect(result.outcomes).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            repository: "impeccable",
+            status: "failed",
+          }),
+          expect.objectContaining({
+            repository: "reactDoctor",
+            status: "installed",
+          }),
+        ]),
+      );
+      expect(
+        runMock.mock.calls.filter(([command]) => command === "npx"),
+      ).toHaveLength(3);
+      expect(fs.existsSync(externalSkillDir)).toBe(true);
+    } finally {
+      if (originalPath === undefined) delete entry.path;
+      else entry.path = originalPath;
+      fs.rmSync(tempDir, { recursive: true, force: true });
+      fs.rmSync(externalSkillDir, { recursive: true, force: true });
+    }
   });
 });
