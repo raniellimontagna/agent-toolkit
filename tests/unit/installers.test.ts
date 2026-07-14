@@ -1,31 +1,44 @@
 import fs from "node:fs";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { installAgentBrowser } from "../../src/installers/agent-browser.js";
+import { installAgentSkillBundle } from "../../src/installers/agent-skills.js";
 import { installFrontendSkills } from "../../src/installers/frontend-skills.js";
 import { installImprove } from "../../src/installers/improve.js";
+import { installPlanningSkills } from "../../src/installers/planning-skills.js";
 import type { RunResult } from "../../src/system.js";
 
-const { runMock, captureMock } = vi.hoisted(() => {
-  // Track which ref each clone directory fetched so the capture mock can
-  // answer `git rev-parse HEAD` with the pinned SHA, like an honest remote.
-  const fetchedRefs = new Map<string, string>();
-  const runMock = vi.fn((command: string, args: string[] = []): RunResult => {
-    if (command === "git" && args[0] === "-C" && args[2] === "fetch") {
-      fetchedRefs.set(args[1] ?? "", args.at(-1) ?? "");
-    }
-    return { ok: true, status: 0, stdout: "", stderr: "" };
-  });
-  const captureMock = vi.fn(
-    (command: string, args: string[] = []): RunResult => {
-      let stdout = "";
-      if (command === "git" && args[0] === "-C" && args[2] === "rev-parse") {
-        stdout = `${fetchedRefs.get(args[1] ?? "") ?? ""}\n`;
+const { runMock, captureMock, failedSkills, pinMismatchRepositories } =
+  vi.hoisted(() => {
+    const fetchedRefs = new Map<string, string>();
+    const failedSkills = new Set<string>();
+    const pinMismatchRepositories = new Set<string>();
+    const runMock = vi.fn((command: string, args: string[] = []): RunResult => {
+      if (command === "git" && args[0] === "-C" && args[2] === "fetch") {
+        fetchedRefs.set(args[1] ?? "", args.at(-1) ?? "");
       }
-      return { ok: true, status: 0, stdout, stderr: "" };
-    },
-  );
-  return { runMock, captureMock };
-});
+      if (command === "npx") {
+        const skillIndex = args.indexOf("--skill");
+        const skill = skillIndex === -1 ? "" : (args[skillIndex + 1] ?? "");
+        if (failedSkills.has(skill)) {
+          return { ok: false, status: 1, stdout: "", stderr: "failed" };
+        }
+      }
+      return { ok: true, status: 0, stdout: "", stderr: "" };
+    });
+    const captureMock = vi.fn(
+      (command: string, args: string[] = []): RunResult => {
+        let stdout = "";
+        if (command === "git" && args[0] === "-C" && args[2] === "rev-parse") {
+          const repositoryId = args[1]?.split(/[\\/]/).at(-1) ?? "";
+          stdout = pinMismatchRepositories.has(repositoryId)
+            ? `${"f".repeat(40)}\n`
+            : `${fetchedRefs.get(args[1] ?? "") ?? ""}\n`;
+        }
+        return { ok: true, status: 0, stdout, stderr: "" };
+      },
+    );
+    return { runMock, captureMock, failedSkills, pinMismatchRepositories };
+  });
 
 vi.mock("../../src/system.js", () => ({
   requireCommand: vi.fn(),
@@ -34,17 +47,23 @@ vi.mock("../../src/system.js", () => ({
   capture: captureMock,
 }));
 
+beforeEach(() => {
+  vi.spyOn(fs, "existsSync").mockReturnValue(true);
+  vi.spyOn(fs, "statSync").mockReturnValue({
+    isDirectory: () => true,
+  } as never);
+});
+
 afterEach(() => {
   runMock.mockClear();
   captureMock.mockClear();
+  failedSkills.clear();
+  pinMismatchRepositories.clear();
+  vi.restoreAllMocks();
 });
 
 describe("third-party skill installers", () => {
   it("installs the pinned Agent Browser CLI, Chrome and skill", () => {
-    vi.spyOn(fs, "existsSync").mockReturnValue(true);
-    vi.spyOn(fs, "statSync").mockReturnValue({
-      isDirectory: () => true,
-    } as never);
     expect(installAgentBrowser()).toBe(true);
 
     const calls = runMock.mock.calls.map(([command, args]) => [command, args]);
@@ -142,5 +161,96 @@ describe("third-party skill installers", () => {
     expect(npxCalls[3]?.[1]).toEqual(
       expect.arrayContaining(["--skill", "remotion-best-practices", "--copy"]),
     );
+  });
+
+  it("clones and installs the pinned architecture review skills", () => {
+    expect(installPlanningSkills()).toBe(true);
+
+    const npxCalls = runMock.mock.calls.filter(
+      ([command]) => command === "npx",
+    );
+
+    expect(npxCalls).toHaveLength(6);
+    expect(npxCalls[4]?.[1]).toEqual(
+      expect.arrayContaining(["--skill", "codebase-design", "--copy"]),
+    );
+    expect(npxCalls[5]?.[1]).toEqual(
+      expect.arrayContaining([
+        "--skill",
+        "improve-codebase-architecture",
+        "--copy",
+      ]),
+    );
+  });
+
+  it("clones a shared repository once and installs every Planning Skill", () => {
+    const result = installAgentSkillBundle("planning-skills");
+    const mattClones = runMock.mock.calls.filter(
+      ([command, args]) =>
+        command === "git" &&
+        args?.includes("clone") &&
+        args.includes("https://github.com/mattpocock/skills.git"),
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.outcomes).toHaveLength(6);
+    expect(result.outcomes.every(({ status }) => status === "installed")).toBe(
+      true,
+    );
+    expect(mattClones).toHaveLength(1);
+  });
+
+  it("continues after one skill fails", () => {
+    failedSkills.add("grilling");
+    const result = installAgentSkillBundle("planning-skills");
+
+    expect(result.ok).toBe(false);
+    expect(result.outcomes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ skill: "grilling", status: "failed" }),
+        expect.objectContaining({
+          skill: "improve-codebase-architecture",
+          status: "installed",
+        }),
+      ]),
+    );
+    expect(
+      runMock.mock.calls.filter(([command]) => command === "npx"),
+    ).toHaveLength(6);
+  });
+
+  it("blocks one repository after pin verification fails", () => {
+    pinMismatchRepositories.add("mattPocockSkills");
+    const result = installAgentSkillBundle("planning-skills");
+
+    expect(result.ok).toBe(false);
+    expect(result.outcomes.every(({ status }) => status === "blocked")).toBe(
+      true,
+    );
+    expect(
+      runMock.mock.calls.filter(([command]) => command === "npx"),
+    ).toHaveLength(0);
+  });
+
+  it("continues with independent repositories after one pin failure", () => {
+    pinMismatchRepositories.add("impeccable");
+    const result = installAgentSkillBundle("frontend-skills");
+
+    expect(result.ok).toBe(false);
+    expect(result.outcomes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          repository: "impeccable",
+          status: "blocked",
+        }),
+        expect.objectContaining({
+          repository: "reactDoctor",
+          status: "installed",
+        }),
+      ]),
+    );
+    expect(
+      runMock.mock.calls.filter(([command]) => command === "npx"),
+    ).toHaveLength(3);
   });
 });
