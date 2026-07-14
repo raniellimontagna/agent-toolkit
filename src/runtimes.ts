@@ -1,4 +1,5 @@
 import { color, die, err, info, ok, step, warn } from "./logger.js";
+import { normalizeAntigravityInstallUrl } from "./provenance.js";
 import { type RuntimeName, runtimeMeta, runtimeNames, state } from "./state.js";
 import {
   capture,
@@ -140,22 +141,61 @@ function shellQuote(value: string): string {
   return `'${value.replace(/'/g, "'\\''")}'`;
 }
 
+type AntigravityInstallPlan = {
+  command: string;
+  args: string[];
+  env?: NodeJS.ProcessEnv;
+};
+
+const ANTIGRAVITY_POWERSHELL_PROGRAM =
+  "& ([scriptblock]::Create((Invoke-RestMethod -Uri $env:AGENT_TOOLKIT_ANTIGRAVITY_INSTALL_URL)))";
+
+export function antigravityInstallPlan(
+  platform: NodeJS.Platform,
+  installScript: string,
+  baseEnv: NodeJS.ProcessEnv,
+): AntigravityInstallPlan {
+  if (platform === "win32") {
+    const childEnv = { ...baseEnv };
+    delete childEnv.ANTIGRAVITY_INSTALL_SCRIPT;
+
+    return {
+      command: "powershell.exe",
+      args: [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        ANTIGRAVITY_POWERSHELL_PROGRAM,
+      ],
+      env: {
+        ...childEnv,
+        AGENT_TOOLKIT_ANTIGRAVITY_INSTALL_URL: installScript,
+      },
+    };
+  }
+
+  return {
+    command: "bash",
+    args: ["-c", `curl -fsSL ${shellQuote(installScript)} | bash`],
+  };
+}
+
 function installAntigravityCli(): boolean {
   const label = runtimeLabel("antigravity");
-  const installScript =
+  const installScript = normalizeAntigravityInstallUrl(
     process.env.ANTIGRAVITY_INSTALL_SCRIPT ||
-    "https://antigravity.google/cli/install.sh";
+      "https://antigravity.google/cli/install.sh",
+  );
+  const plan = antigravityInstallPlan(
+    process.platform,
+    installScript,
+    process.env,
+  );
 
   if (process.platform === "win32") {
-    const installCommand = `irm ${installScript} | iex`;
     info(`Installing ${label} via official PowerShell installer...`);
-    const result = run("powershell.exe", [
-      "-NoProfile",
-      "-ExecutionPolicy",
-      "Bypass",
-      "-Command",
-      installCommand,
-    ]);
+    const result = run(plan.command, plan.args, { env: plan.env });
     if (!result.ok) {
       err(`${label} install failed.`);
       return false;
@@ -164,10 +204,7 @@ function installAntigravityCli(): boolean {
     requireCommand("bash");
     requireCommand("curl");
     info(`Installing ${label} via official installer ${installScript}...`);
-    const result = run("bash", [
-      "-c",
-      `curl -fsSL ${shellQuote(installScript)} | bash`,
-    ]);
+    const result = run(plan.command, plan.args);
     if (!result.ok) {
       err(`${label} install failed.`);
       return false;

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  antigravityInstallPlan,
   checkPrerequisites,
   versionOutputMatchesPin,
 } from "../../src/runtimes.js";
@@ -82,6 +83,59 @@ describe("versionOutputMatchesPin", () => {
   it("rejects unrelated output", () => {
     expect(versionOutputMatchesPin("codex-cli 0.125.0", "0.143.0")).toBe(false);
     expect(versionOutputMatchesPin("", "1.0.0")).toBe(false);
+  });
+});
+
+describe("Antigravity install plan", () => {
+  const installUrl =
+    "https://example.com/install.ps1?channel=stable&architecture=x64";
+
+  it("keeps the Windows URL only in a dedicated child environment value", () => {
+    const plan = antigravityInstallPlan("win32", installUrl, {
+      PATH: "C:\\tools",
+      EXISTING_KEY: "preserved",
+      ANTIGRAVITY_INSTALL_SCRIPT: installUrl,
+    });
+
+    expect(plan.command).toBe("powershell.exe");
+    expect(plan.args).toEqual([
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-Command",
+      expect.any(String),
+    ]);
+    expect(plan.args.join("\n")).not.toContain(installUrl);
+    expect(plan.args.at(-1)).toContain(
+      "$env:AGENT_TOOLKIT_ANTIGRAVITY_INSTALL_URL",
+    );
+    expect(plan.env).toEqual({
+      PATH: "C:\\tools",
+      EXISTING_KEY: "preserved",
+      AGENT_TOOLKIT_ANTIGRAVITY_INSTALL_URL: installUrl,
+    });
+  });
+
+  it("uses byte-for-byte constant PowerShell source across accepted URLs", () => {
+    const first = antigravityInstallPlan("win32", installUrl, {});
+    const second = antigravityInstallPlan(
+      "win32",
+      "https://cdn.example.org/agy.ps1?track=preview&arch=arm64",
+      {},
+    );
+
+    expect(second.args).toEqual(first.args);
+  });
+
+  it("preserves the quoted POSIX curl plan without adding a child env", () => {
+    const plan = antigravityInstallPlan("linux", installUrl, {
+      PATH: "/usr/bin:/bin",
+    });
+
+    expect(plan).toEqual({
+      command: "bash",
+      args: ["-c", `curl -fsSL '${installUrl}' | bash`],
+    });
   });
 });
 

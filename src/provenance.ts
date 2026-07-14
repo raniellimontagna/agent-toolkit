@@ -93,26 +93,51 @@ function checkToolsLockOverride(): void {
   );
 }
 
-function checkAntigravitySource(): void {
-  const script = process.env.ANTIGRAVITY_INSTALL_SCRIPT;
-  if (!script) return;
-
-  if (!script.startsWith("https:")) {
+export function normalizeAntigravityInstallUrl(input: string): string {
+  let url: URL;
+  try {
+    if (!/^https:\/\//i.test(input)) throw new TypeError("Not an HTTPS URL");
+    url = new URL(input);
+  } catch {
     die(
-      `ANTIGRAVITY_INSTALL_SCRIPT must be an HTTPS URL, got: ${script}. ` +
+      `ANTIGRAVITY_INSTALL_SCRIPT must be an HTTPS URL, got: ${input}. ` +
         "The script is piped to bash, so plain HTTP is never allowed.",
     );
   }
 
-  if (script === DEFAULT_ANTIGRAVITY_INSTALL_SCRIPT) return;
+  if (
+    url.protocol !== "https:" ||
+    !url.hostname ||
+    url.username !== "" ||
+    url.password !== ""
+  ) {
+    die(
+      `ANTIGRAVITY_INSTALL_SCRIPT must be an HTTPS URL, got: ${input}. ` +
+        "The script is piped to bash, so plain HTTP is never allowed.",
+    );
+  }
+
+  return url.toString();
+}
+
+export function checkAntigravitySource(): void {
+  const script = process.env.ANTIGRAVITY_INSTALL_SCRIPT;
+  if (!script) return;
+
+  const normalizedScript = normalizeAntigravityInstallUrl(script);
+  const normalizedDefault = normalizeAntigravityInstallUrl(
+    DEFAULT_ANTIGRAVITY_INSTALL_SCRIPT,
+  );
+
+  if (normalizedScript === normalizedDefault) return;
 
   if (state.allowMutableSources) {
-    warn(`Antigravity install script allowed explicitly: ${script}`);
+    warn(`Antigravity install script allowed explicitly: ${normalizedScript}`);
     return;
   }
 
   die(
-    `ANTIGRAVITY_INSTALL_SCRIPT overrides the official installer URL: ${script}. ` +
+    `ANTIGRAVITY_INSTALL_SCRIPT overrides the official installer URL: ${normalizedScript}. ` +
       "The script is piped to bash. Unset it or pass --allow-mutable-sources.",
   );
 }
