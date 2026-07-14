@@ -1,9 +1,12 @@
 import { spawnSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import fs from "node:fs";
-import http from "node:http";
+import http, { type ClientRequest, type IncomingMessage } from "node:http";
 import https from "node:https";
 import path from "node:path";
 import process from "node:process";
+import { Transform, Writable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import { die } from "./logger.js";
 
 type RunOptions = {
@@ -141,68 +144,309 @@ export function requireNode(requiredMajor: number): void {
 }
 
 export function isInsecureRedirect(fromUrl: string, toUrl: string): boolean {
-  return fromUrl.startsWith("https:") && !toUrl.startsWith("https:");
+  return (
+    new URL(fromUrl).protocol === "https:" &&
+    new URL(toUrl).protocol !== "https:"
+  );
 }
 
-function requestBuffer(url: string, redirects = 0): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
+export type HttpRequestOptions = {
+  timeoutMs?: number;
+  maxBytes?: number;
+};
+
+type ResolvedHttpRequestOptions = {
+  timeoutMs: number;
+  maxBytes: number;
+};
+
+const DEFAULT_HTTP_TIMEOUT_MS = 30_000;
+const DEFAULT_JSON_MAX_BYTES = 5 * 1024 * 1024;
+const DEFAULT_DOWNLOAD_MAX_BYTES = 512 * 1024 * 1024;
+const REDIRECT_STATUS_CODES = new Set([301, 302, 303, 307, 308]);
+
+class HttpTimeoutError extends Error {
+  constructor(timeoutMs: number) {
+    super(`HTTP request timed out after ${timeoutMs}ms`);
+    this.name = "HttpTimeoutError";
+  }
+}
+
+class HttpSizeLimitError extends Error {
+  constructor(maxBytes: number) {
+    super(`HTTP response exceeds the maximum size of ${maxBytes} bytes`);
+    this.name = "HttpSizeLimitError";
+  }
+}
+
+function assertPositiveFiniteInteger(name: string, value: number): void {
+  if (!Number.isFinite(value) || !Number.isInteger(value) || value <= 0) {
+    throw new TypeError(`${name} must be a positive finite integer`);
+  }
+}
+
+function resolveHttpRequestOptions(
+  options: HttpRequestOptions,
+  defaultMaxBytes: number,
+): ResolvedHttpRequestOptions {
+  const timeoutMs = options.timeoutMs ?? DEFAULT_HTTP_TIMEOUT_MS;
+  const maxBytes = options.maxBytes ?? defaultMaxBytes;
+  assertPositiveFiniteInteger("timeoutMs", timeoutMs);
+  assertPositiveFiniteInteger("maxBytes", maxBytes);
+  return { timeoutMs, maxBytes };
+}
+
+function parseHttpUrl(url: string | URL): URL {
+  const parsed = new URL(url);
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new TypeError(`Unsupported URL protocol: ${parsed.protocol}`);
+  }
+  return parsed;
+}
+
+function toError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
+}
+
+function destroyResponse(response: IncomingMessage): void {
+  response.on("error", () => undefined);
+  response.destroy();
+}
+
+function consumeHttpResponse<T>(
+  initialUrl: URL,
+  options: ResolvedHttpRequestOptions,
+  consumer: (response: IncomingMessage) => Promise<T>,
+): Promise<T> {
+  const deadline = Date.now() + options.timeoutMs;
+
+  const requestUrl = (url: URL, redirects: number): Promise<T> => {
     if (redirects > 5) {
-      reject(new Error("Too many redirects"));
-      return;
+      return Promise.reject(new Error("Too many redirects"));
     }
 
-    const client = url.startsWith("https:") ? https : http;
-    const request = client.get(
-      url,
-      {
-        headers: {
-          "User-Agent": "agent-toolkit",
-          Accept: "application/vnd.github+json, application/json",
-        },
-      },
-      (response) => {
-        const { statusCode = 0, headers } = response;
-        if (
-          [301, 302, 303, 307, 308].includes(statusCode) &&
-          headers.location
-        ) {
-          response.resume();
-          const nextUrl = new URL(headers.location, url).toString();
-          if (isInsecureRedirect(url, nextUrl)) {
-            reject(
-              new Error(`Refusing insecure redirect from ${url} to ${nextUrl}`),
-            );
-            return;
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) {
+      return Promise.reject(new HttpTimeoutError(options.timeoutMs));
+    }
+
+    return new Promise<T>((resolve, reject) => {
+      let request: ClientRequest | undefined;
+      let response: IncomingMessage | undefined;
+      let consumerPromise: Promise<T> | undefined;
+      let timer: NodeJS.Timeout | undefined;
+      let settlementStarted = false;
+
+      const clearTimer = () => {
+        if (timer) {
+          clearTimeout(timer);
+          timer = undefined;
+        }
+      };
+
+      const resolveOnce = (value: T) => {
+        if (settlementStarted) return;
+        settlementStarted = true;
+        clearTimer();
+        resolve(value);
+      };
+
+      const rejectOnce = (
+        error: unknown,
+        destroyActive = true,
+        waitForConsumer = true,
+      ) => {
+        if (settlementStarted) return;
+        settlementStarted = true;
+        clearTimer();
+        const normalizedError = toError(error);
+        if (destroyActive) {
+          if (response && !response.destroyed) {
+            response.destroy(normalizedError);
           }
-          requestBuffer(nextUrl, redirects + 1).then(resolve, reject);
+          if (request && !request.destroyed) request.destroy(normalizedError);
+        }
+        if (waitForConsumer && consumerPromise) {
+          void consumerPromise.then(
+            () => reject(normalizedError),
+            () => reject(normalizedError),
+          );
           return;
         }
+        reject(normalizedError);
+      };
 
-        if (statusCode < 200 || statusCode >= 300) {
-          response.resume();
-          reject(new Error(`HTTP ${statusCode}`));
-          return;
-        }
+      timer = setTimeout(() => {
+        rejectOnce(new HttpTimeoutError(options.timeoutMs));
+      }, remainingMs);
 
-        const chunks: Buffer[] = [];
-        response.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
-        response.on("end", () => resolve(Buffer.concat(chunks)));
-      },
-    );
+      const client = url.protocol === "https:" ? https : http;
+      try {
+        const activeRequest = client.get(
+          url,
+          {
+            headers: {
+              "User-Agent": "agent-toolkit",
+              Accept: "application/vnd.github+json, application/json",
+            },
+          },
+          (incomingResponse) => {
+            if (settlementStarted) {
+              incomingResponse.destroy();
+              return;
+            }
+            response = incomingResponse;
+            const onResponseError = (error: Error) => rejectOnce(error);
+            response.once("error", onResponseError);
 
-    request.on("error", reject);
+            const { statusCode = 0, headers } = response;
+            if (REDIRECT_STATUS_CODES.has(statusCode) && headers.location) {
+              let nextUrl: URL;
+              try {
+                nextUrl = parseHttpUrl(new URL(headers.location, url));
+              } catch (error) {
+                rejectOnce(error);
+                return;
+              }
+              if (isInsecureRedirect(url.toString(), nextUrl.toString())) {
+                rejectOnce(
+                  new Error(
+                    `Refusing insecure redirect from ${url} to ${nextUrl}`,
+                  ),
+                );
+                return;
+              }
+
+              const redirectResponse = response;
+              redirectResponse.off("error", onResponseError);
+              clearTimer();
+              request = undefined;
+              response = undefined;
+              destroyResponse(redirectResponse);
+              void requestUrl(nextUrl, redirects + 1).then(
+                resolveOnce,
+                rejectOnce,
+              );
+              return;
+            }
+
+            if (statusCode < 200 || statusCode >= 300) {
+              rejectOnce(new Error(`HTTP ${statusCode}`));
+              return;
+            }
+
+            const contentLength = headers["content-length"];
+            if (
+              contentLength !== undefined &&
+              Number(contentLength) > options.maxBytes
+            ) {
+              rejectOnce(new HttpSizeLimitError(options.maxBytes));
+              return;
+            }
+
+            try {
+              consumerPromise = consumer(response);
+              void consumerPromise.then(resolveOnce, (error) =>
+                rejectOnce(error, true, false),
+              );
+            } catch (error) {
+              rejectOnce(error, true, false);
+            }
+          },
+        );
+        request = activeRequest;
+        activeRequest.once("error", (error) => {
+          if (request === activeRequest) rejectOnce(error);
+        });
+      } catch (error) {
+        rejectOnce(error);
+      }
+    });
+  };
+
+  return requestUrl(initialUrl, 0);
+}
+
+function createByteLimitTransform(maxBytes: number): Transform {
+  let receivedBytes = 0;
+  return new Transform({
+    transform(chunk: Buffer, _encoding, callback) {
+      receivedBytes += chunk.byteLength;
+      if (receivedBytes > maxBytes) {
+        callback(new HttpSizeLimitError(maxBytes));
+        return;
+      }
+      callback(null, chunk);
+    },
   });
 }
 
-export async function fetchJson(url: string): Promise<unknown> {
-  const buffer = await requestBuffer(url);
-  return JSON.parse(buffer.toString("utf8"));
+export function fetchJson(
+  url: string,
+  options: HttpRequestOptions = {},
+): Promise<unknown> {
+  const resolvedOptions = resolveHttpRequestOptions(
+    options,
+    DEFAULT_JSON_MAX_BYTES,
+  );
+  const parsedUrl = parseHttpUrl(url);
+  const chunks: Buffer[] = [];
+
+  return consumeHttpResponse(parsedUrl, resolvedOptions, async (response) => {
+    const collector = new Writable({
+      write(chunk: Buffer, _encoding, callback) {
+        chunks.push(Buffer.from(chunk));
+        callback();
+      },
+    });
+    await pipeline(
+      response,
+      createByteLimitTransform(resolvedOptions.maxBytes),
+      collector,
+    );
+    return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  });
 }
 
-export async function downloadFile(
+export function downloadFile(
   url: string,
   destination: string,
+  options: HttpRequestOptions = {},
 ): Promise<void> {
-  const buffer = await requestBuffer(url);
-  fs.writeFileSync(destination, buffer);
+  const resolvedOptions = resolveHttpRequestOptions(
+    options,
+    DEFAULT_DOWNLOAD_MAX_BYTES,
+  );
+  const parsedUrl = parseHttpUrl(url);
+  const partialPath = path.join(
+    path.dirname(destination),
+    `.${path.basename(destination)}.${process.pid}.${randomUUID()}.partial`,
+  );
+
+  return (async () => {
+    try {
+      await consumeHttpResponse(
+        parsedUrl,
+        resolvedOptions,
+        async (response) => {
+          await pipeline(
+            response,
+            createByteLimitTransform(resolvedOptions.maxBytes),
+            fs.createWriteStream(partialPath, { flags: "wx" }),
+          );
+        },
+      );
+      await fs.promises.rename(partialPath, destination);
+    } catch (error) {
+      try {
+        await fs.promises.rm(partialPath, { force: true });
+      } catch (cleanupError) {
+        throw new AggregateError(
+          [error, cleanupError],
+          `Failed to remove partial download ${partialPath}`,
+        );
+      }
+      throw error;
+    }
+  })();
 }
