@@ -91,11 +91,16 @@ describe("Antigravity install plan", () => {
     "https://example.com/install.ps1?channel=stable&architecture=x64";
 
   it("keeps the Windows URL only in a dedicated child environment value", () => {
-    const plan = antigravityInstallPlan("win32", installUrl, {
+    const baseEnv = {
       PATH: "C:\\tools",
       EXISTING_KEY: "preserved",
       ANTIGRAVITY_INSTALL_SCRIPT: installUrl,
-    });
+      antigravity_install_script: installUrl,
+      AnTiGrAvItY_InStAlL_ScRiPt: installUrl,
+      agent_toolkit_antigravity_install_url: "stale transport value",
+    };
+    const originalBaseEnv = { ...baseEnv };
+    const plan = antigravityInstallPlan("win32", installUrl, baseEnv);
 
     expect(plan.command).toBe("powershell.exe");
     expect(plan.args).toEqual([
@@ -114,6 +119,10 @@ describe("Antigravity install plan", () => {
       EXISTING_KEY: "preserved",
       AGENT_TOOLKIT_ANTIGRAVITY_INSTALL_URL: installUrl,
     });
+    expect(
+      Object.values(plan.env ?? {}).filter((value) => value === installUrl),
+    ).toHaveLength(1);
+    expect(baseEnv).toEqual(originalBaseEnv);
   });
 
   it("uses byte-for-byte constant PowerShell source across accepted URLs", () => {

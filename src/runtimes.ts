@@ -149,6 +149,8 @@ type AntigravityInstallPlan = {
 
 const ANTIGRAVITY_POWERSHELL_PROGRAM =
   "& ([scriptblock]::Create((Invoke-RestMethod -Uri $env:AGENT_TOOLKIT_ANTIGRAVITY_INSTALL_URL)))";
+const ANTIGRAVITY_SOURCE_ENV_KEY = "ANTIGRAVITY_INSTALL_SCRIPT";
+const ANTIGRAVITY_TRANSPORT_ENV_KEY = "AGENT_TOOLKIT_ANTIGRAVITY_INSTALL_URL";
 
 export function antigravityInstallPlan(
   platform: NodeJS.Platform,
@@ -156,8 +158,16 @@ export function antigravityInstallPlan(
   baseEnv: NodeJS.ProcessEnv,
 ): AntigravityInstallPlan {
   if (platform === "win32") {
-    const childEnv = { ...baseEnv };
-    delete childEnv.ANTIGRAVITY_INSTALL_SCRIPT;
+    const replacedKeys = new Set([
+      ANTIGRAVITY_SOURCE_ENV_KEY.toLowerCase(),
+      ANTIGRAVITY_TRANSPORT_ENV_KEY.toLowerCase(),
+    ]);
+    const childEnv = Object.fromEntries(
+      Object.entries(baseEnv).filter(
+        ([key]) => !replacedKeys.has(key.toLowerCase()),
+      ),
+    );
+    childEnv[ANTIGRAVITY_TRANSPORT_ENV_KEY] = installScript;
 
     return {
       command: "powershell.exe",
@@ -168,10 +178,7 @@ export function antigravityInstallPlan(
         "-Command",
         ANTIGRAVITY_POWERSHELL_PROGRAM,
       ],
-      env: {
-        ...childEnv,
-        AGENT_TOOLKIT_ANTIGRAVITY_INSTALL_URL: installScript,
-      },
+      env: childEnv,
     };
   }
 
