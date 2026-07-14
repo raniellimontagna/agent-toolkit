@@ -708,8 +708,8 @@ GitHub Actions runs:
 - `Dependency review`: blocks PRs that add moderate-or-higher vulnerable
   dependencies.
 
-Release a new npm version by updating `package.json`, pushing the change to
-`main`, then pushing a matching tag:
+For a manual release, update `package.json`, push the change to `main`, then
+push a matching tag:
 
 ```bash
 git tag v0.1.31
@@ -718,11 +718,12 @@ git push origin v0.1.31
 
 For normal releases, prefer the scripted flow. It bumps `package.json`, updates
 the README release tag example, runs `pnpm run check`, commits with a
-Conventional Commit message and creates the local tag:
+Conventional Commit message and creates the tag. With `--push`, the helper runs
+the remote preflight before changing files, then atomically pushes `main` and
+the new tag after the checks, commit and tag succeed:
 
 ```bash
-pnpm run release:patch
-git push origin main v0.1.18
+pnpm run release:patch -- --push
 ```
 
 The `Release` workflow runs the full check and publishes the scoped package to

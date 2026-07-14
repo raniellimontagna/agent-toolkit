@@ -351,6 +351,25 @@ describe("release push preflights", () => {
 });
 
 describe("release workflow defenses", () => {
+  it("documents the scripted release as a preflighted atomic push", () => {
+    const readmePath = fileURLToPath(
+      new URL("../../README.md", import.meta.url),
+    );
+    const readme = fs.readFileSync(readmePath, "utf8");
+    const scriptedFlow = readme.match(
+      /For normal releases,[\s\S]*?(?=\nThe `Release` workflow)/,
+    )?.[0];
+
+    expect(scriptedFlow).toBeDefined();
+    expect(scriptedFlow).toContain("pnpm run release:patch -- --push");
+    expect(scriptedFlow).toMatch(
+      /`--push`[\s\S]*remote preflight[\s\S]*atomically pushes `main` and\s+the new tag/i,
+    );
+    expect(scriptedFlow).not.toMatch(
+      /git push origin main v[0-9]+\.[0-9]+\.[0-9]+/,
+    );
+  });
+
   it("checks full main ancestry while preserving the publish helper", () => {
     const workflowPath = fileURLToPath(
       new URL("../../.github/workflows/release.yml", import.meta.url),
