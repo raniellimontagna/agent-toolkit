@@ -712,8 +712,8 @@ For a manual release, update `package.json`, push the change to `main`, then
 push a matching tag:
 
 ```bash
-git tag v0.1.31
-git push origin v0.1.31
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 For normal releases, prefer the scripted flow. It bumps `package.json`, updates
