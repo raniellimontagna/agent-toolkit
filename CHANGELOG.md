@@ -1,102 +1,277 @@
 # Changelog
 
-## 0.1.30
+Agent Toolkit has evolved from a hardened installer foundation into a catalog-driven release with pinned external skills, multi-runtime support, and safer release operations.
 
-- onboard-repo: fixed the runtime-selection guidance — bare runtime flags
-  are mutually exclusive, so the skill now instructs
-  `--all-runtimes --no-gemini --no-antigravity` for multi-runtime installs.
+| Milestone | Versions | Meaningful evolution |
+|---|---|---|
+| Foundation | `0.1.0`–`0.1.16` | Hardened installer foundation, interactive selection, bundled language/workflow skills, granular skill selection, Graphify workflow, and Antigravity runtime. |
+| Toolkit expansion | `0.1.17`–`0.1.22` | Improve, GSAP, toolkit operations, strict review, revenue/design workflows, and official GSD integration. |
+| Lifecycle hardening | `0.1.23`–`0.1.26` | React Doctor, safer uninstall/repair, pinned-source enforcement, Windows support, redirect checks, provenance, and Graphify 0.9.11. |
+| Onboarding and catalog growth | `0.1.27`–`0.1.31` | Planning skills, Web Design Guidelines, repository onboarding, multi-runtime guidance, Agent Browser, and Remotion skills. |
+| Catalog-driven release | `0.2.0` | Normalized agent-skill catalog plus bounded HTTP, release, Antigravity, manifest, and publication hardening. |
 
-## 0.1.29
+The release entries below are based on Git tag ranges and npm publication metadata. Publication uses Git tags plus GitHub Actions, not GitHub Release objects.
 
-- Added the bundled `onboard-repo` skill (`core` package): detects a
-  repository's stack, installs the matching toolkit skills, and organizes the
-  agent docs (canonical `AGENTS.md`, pointer `CLAUDE.md`, optional MCP
-  config), ending with a report of what was installed and skipped.
+## [0.2.0] - 2026-07-14
 
-## 0.1.28
+Published to npm
 
-- Frontend Skills: replaced Taste Skill with Vercel's Web Design Guidelines
-  (`vercel-labs/agent-skills`, skill `web-design-guidelines`) — an objective
-  UI-code auditor that complements Impeccable (design direction) instead of
-  overlapping with it. Taste Skill v2 is marked experimental upstream and
-  competes with Impeccable for the same role.
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.31...v0.2.0)
 
-## 0.1.27
+- Added catalog-driven agent-skill metadata and installer, containment of skill roots, bounded HTTP requests, and hardened release state, publish retries, Antigravity environment handling, and manifest uninstall paths.
 
-- Added the `planning-skills` tool: installs Matt Pocock's grilling skills
-  (`grill-me`, `grilling`, `grill-with-docs`, `domain-modeling`) from
-  `mattpocock/skills` at a pinned commit through the Agent Skills CLI.
-  New flags: `--planning-skills-only` and `--no-planning-skills`.
+## [0.1.31] - 2026-07-12
 
-## 0.1.26
+Published to npm
 
-- Bumped the pinned Graphify version from `graphifyy==0.8.51` to `graphifyy==0.9.11`.
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.30...v0.1.31)
 
-## 0.1.25
+- Added Agent Browser and Remotion skills, stabilized custom-skill fixtures, and ignored local worktrees.
 
-- Environment overrides that change a source's identity (different npm package,
-  GitHub repository, PyPI package or RTK release repository than the lock) now
-  require `--allow-mutable-sources`, closing a silent redirection vector.
-- `TOOLS_LOCK_PATH` now requires `--allow-mutable-sources`, since an alternate
-  lock bypasses every pinned checksum and ref.
-- `ANTIGRAVITY_INSTALL_SCRIPT` must be HTTPS (always) and any non-default URL
-  requires the explicit override flag — the script is piped to bash.
-- Fixed Windows support: npm/npx `.cmd` shims are now routed through `cmd.exe`
-  with cross-spawn-style escaping (Node >= 18.20 refuses to spawn them
-  directly), and RTK post-install verification runs the real `rtk.exe` instead
-  of the bash shim.
-- Added integration coverage for the full RTK download pipeline (release
-  metadata, asset download, sha256 verification, install) against a local HTTP
-  server, including checksum-mismatch rejection.
+## [0.1.30] - 2026-07-11
 
-## 0.1.24
+Published to npm
 
-- Fixed `--uninstall --dry-run` deleting files instead of previewing the removal plan.
-- Fixed runtime CLI version pinning matching by substring (`2.0.1` matched `2.0.10`).
-- Runtime CLI install failures now propagate to the exit code instead of being swallowed.
-- Verified that git-cloned pinned skills (Improve, frontend skills) match the pinned commit SHA after checkout.
-- Refused HTTPS-to-HTTP downgrades when following download redirects.
-- Published to npm with `--provenance` attestation.
-- `--repair` now force-reinstalls RTK and Graphify instead of skipping them as "already installed".
-- Listed Frontend Skills in the selected-tools output.
-- Removed 31 unreferenced media assets (~33 MB), shrinking the npm package by roughly 80%.
-- Declared the supported Node.js range in `package.json` (`engines`).
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.29...v0.1.30)
 
-## 0.1.23
+- Corrected multi-runtime flag guidance for `onboard-repo`.
 
-- Corrected RTK hook wiring (`rtk init --global --auto-patch`), guided EACCES npm failures, and warned on silently overridden flags.
-- Installed and reported the React Doctor frontend skill.
-- Generalized the frontend skills installer copy and stabilized related verification.
+## [0.1.29] - 2026-07-11
 
-## 0.1.22
+Published to npm
 
-- Switched GSD to the official `@opengsd/gsd-core` package (old package deprecated).
-- Fixed the integration test suite on macOS (BSD `sed`).
-- Failed clearly when a skills target path exists as a file.
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.28...v0.1.29)
 
-## 0.1.21
+- Added the bundled `onboard-repo` skill for stack detection, matching skill installation, and agent-doc organization.
 
-- Added the design-to-code skill (generation, verification, interaction/responsive rules) hardened through dogfood rounds.
-- Adopted taste-skill analysis and anti-drift heuristics in design-to-code.
+## [0.1.28] - 2026-07-11
 
-## 0.1.20
+Published to npm
+
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.27...v0.1.28)
+
+- Replaced Taste Skill with Vercel Web Design Guidelines to complement Impeccable.
+
+## [0.1.27] - 2026-07-11
+
+Published to npm
+
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.26...v0.1.27)
+
+- Added pinned planning skills from Matt Pocock: grilling variants and domain modeling.
+
+## [0.1.26] - 2026-07-09
+
+Published to npm
+
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.25...v0.1.26)
+
+- Updated Graphify from `0.8.51` to `0.9.11`.
+
+## [0.1.25] - 2026-07-09
+
+Published to npm
+
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.24...v0.1.25)
+
+- Required explicit permission for source-identity overrides and alternate locks, enforced HTTPS for Antigravity override scripts, restored Windows npm/RTK execution, and added RTK download/checksum integration coverage.
+
+## [0.1.24] - 2026-07-09
+
+Published to npm
+
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.23...v0.1.24)
+
+- Made uninstall dry-run non-destructive, fixed exact runtime-version matching and failure propagation, verified pinned checkouts and redirect safety, added npm provenance, strengthened repair behavior, reduced package size, and declared Node engines.
+
+## [0.1.23] - 2026-07-09
+
+Published to npm
+
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.22...v0.1.23)
+
+- Added pinned React Doctor integration, generalized frontend-skill installation, corrected RTK hook wiring, improved EACCES and flag-override guidance, and stabilized tests.
+
+## [0.1.22] - 2026-07-08
+
+Published to npm
+
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.21...v0.1.22)
+
+- Switched to official `@opengsd/gsd-core`, fixed macOS integration tests, and rejected target paths that are files.
+
+## [0.1.21] - 2026-07-04
+
+Published to npm
+
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.20...v0.1.21)
+
+- Added the complete design-to-code lifecycle, hardened it through dogfood, and added interaction, responsive, multi-screen, consolidation, and anti-drift guidance.
+
+## [0.1.20] - 2026-07-02
+
+Published to npm
+
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.19...v0.1.20)
 
 - Added the revenue-centric design skill.
 
-## 0.1.19
+## [0.1.19] - 2026-06-28
 
-- Updated toolkit pins and bundled skills.
+Published to npm
 
-## 0.1.18
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.18...v0.1.19)
 
-- Added the thermonuclear review skill and toolkit operations commands.
+- Refreshed toolkit pins and bundled skills.
 
-## 0.1.17
+## [0.1.18] - 2026-06-19
 
-- Added shadcn Improve installation from a pinned source.
-- Added GSAP skills under the bundled frontend package.
-- Updated external tool and runtime pins.
-- Published through the trusted npm release workflow.
+Published to npm
 
-Earlier versions were developed before this changelog existed. Use Git history
-and npm release metadata for older details.
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.17...v0.1.18)
+
+- Added toolkit operation commands and the thermonuclear code-quality review skill.
+
+## [0.1.17] - 2026-06-18
+
+Published to npm
+
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.16...v0.1.17)
+
+- Added pinned Improve installation and GSAP skills, refreshed source/runtime pins, and published through the trusted npm release flow.
+
+## [0.1.16] - 2026-06-07
+
+Published to npm
+
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.15...v0.1.16)
+
+- Added Antigravity as a supported runtime.
+
+## [0.1.15] - 2026-06-04
+
+Published to npm
+
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.14...v0.1.15)
+
+- Documented the Graphify workflow and handled macOS install drift.
+
+## [0.1.14] - 2026-06-04
+
+Published to npm
+
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.13...v0.1.14)
+
+- Consolidated the custom-skill refinement prompt.
+
+## [0.1.13] - 2026-06-04
+
+Published to npm
+
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.12...v0.1.13)
+
+- Streamlined custom-skill prompts.
+
+## [0.1.12] - 2026-06-04
+
+Published to npm
+
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.11...v0.1.12)
+
+- Removed a secret-scan false positive from the API skill.
+
+## [0.1.11] - 2026-06-04
+
+Published to npm
+
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.10...v0.1.11)
+
+- Added API-design and Astro skills.
+
+## [0.1.10] - 2026-06-04
+
+Published to npm
+
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.9...v0.1.10)
+
+- Added package, scope, and exact-path skill selection.
+
+## [0.1.9] - 2026-06-04
+
+Published to npm
+
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.8...v0.1.9)
+
+- Added Python and Kotlin skill packages.
+
+## [0.1.8] - 2026-06-04
+
+Git tag only — not published to npm
+
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.7...v0.1.8)
+
+- Added bundled workflow skills.
+
+## [0.1.7] - 2026-06-04
+
+Published to npm
+
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.6...v0.1.7)
+
+- Added Java and Go skill packages.
+
+## [0.1.6] - 2026-06-04
+
+Published to npm
+
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.5...v0.1.6)
+
+- Added React frontend skill packages.
+
+## [0.1.5] - 2026-06-04
+
+Published to npm
+
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.4...v0.1.5)
+
+- Improved onboarding, migrated to pnpm, and added Fastify skills.
+
+## [0.1.4] - 2026-06-04
+
+Published to npm
+
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.3...v0.1.4)
+
+- Added bundled-skill package selection and npm trusted publishing.
+
+## [0.1.3] - 2026-06-04
+
+Published to npm
+
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.2...v0.1.3)
+
+- Displayed installer status before installation.
+
+## [0.1.2] - 2026-06-04
+
+Published to npm
+
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.1...v0.1.2)
+
+- Added the visual installer menu.
+
+## [0.1.1] - 2026-06-04
+
+Published to npm
+
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.1.0...v0.1.1)
+
+- Corrected the npm account scope.
+
+## [0.1.0] - 2026-06-04
+
+Git tag only — not published to npm
+
+[Tag](https://github.com/raniellimontagna/agent-toolkit/tree/v0.1.0)
+
+- Established the installer, project rules, CI/security gates, immutable provenance, frontend-skill installer, and npm release workflow.
