@@ -146,9 +146,9 @@ npx -y @ranimontagna/agent-toolkit --doctor --json --codex
 
 ## Manifest, Repair, and Uninstall
 
-Agent Toolkit currently writes manifest entries only for bundled Custom Skills copied by its Custom Skills installer. The versioned manifest records its scope and generation time, plus each recorded Custom Skill's runtime, source, absolute destination, and installation time. External Agent Skills bundles such as Improve, Frontend Skills, Planning Skills, and Agent Browser are not recorded; neither are RTK, Caveman, Superpowers, Graphify, GSD, or runtime CLIs. Local and global scopes use separate manifests.
+Agent Toolkit currently writes manifest entries only for Custom Skills installed through its Custom Skills installer, including skills loaded from an alternate source directory selected with `--skills-dir`. The versioned manifest records its scope and generation time, plus each recorded Custom Skill's runtime, source, absolute destination, and installation time. External Agent Skills bundles such as Improve, Frontend Skills, Planning Skills, and Agent Browser are not recorded; neither are RTK, Caveman, Superpowers, Graphify, GSD, or runtime CLIs. Local and global scopes use separate manifests.
 
-Repair re-runs the selected installers, but only successful bundled Custom Skill copies update or insert manifest entries and refresh the manifest generation time. External Agent Skills bundles and other tools may be reinstalled by their own installers; `--repair` does not bring them under manifest management:
+Repair re-runs the selected installers, but only successful Custom Skill copies performed by the Custom Skills installer update or insert manifest entries and refresh the manifest generation time. This includes copies from an alternate `--skills-dir` source. External Agent Skills bundles and other tools may be reinstalled by their own installers; `--repair` does not bring them under manifest management:
 
 ```bash
 npx -y @ranimontagna/agent-toolkit --repair --all --codex
@@ -170,7 +170,7 @@ Then remove the validated entries for the selected runtime:
 npx -y @ranimontagna/agent-toolkit --uninstall --skills-only --codex
 ```
 
-Uninstall removes only manifest-recorded bundled Custom Skill destinations that are direct, contained children of recognized runtime skill roots. It does not uninstall external Agent Skills bundles or other tools, sweep unrecorded files, or remove arbitrary directories. If a destination escapes its expected root, changes identity during removal, or otherwise fails safety validation, removal is rejected and the manifest is preserved for review or retry.
+Uninstall removes only manifest-recorded Custom Skill destinations created by the Custom Skills installer, including recorded copies sourced through `--skills-dir`, and only when they are direct, contained children of recognized runtime skill roots. It does not uninstall external Agent Skills bundles or other tools, sweep unrecorded files, or remove arbitrary directories. If a destination escapes its expected root, changes identity during removal, or otherwise fails safety validation, removal is rejected and the manifest is preserved for review or retry.
 
 ## Common Problems
 
