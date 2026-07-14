@@ -41,6 +41,18 @@ if [[ ! -f "$ROOT_DIR/dist/bin/agent-toolkit.js" ]]; then
   exit 1
 fi
 
+for removed_installer in frontend-skills improve planning-skills; do
+  removed_artifacts="$({
+    find "$ROOT_DIR/dist/src/installers" -maxdepth 1 -type f \
+      -name "${removed_installer}.*" -print
+  } 2>/dev/null)"
+  if [[ -n "$removed_artifacts" ]]; then
+    echo "Expected production build to omit removed installer artifacts for: $removed_installer" >&2
+    echo "$removed_artifacts" >&2
+    exit 1
+  fi
+done
+
 if [[ ! -f "$ROOT_DIR/package.json" ]]; then
   echo "Expected package.json to exist for the Node CLI" >&2
   exit 1

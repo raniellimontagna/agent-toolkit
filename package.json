@@ -26,7 +26,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.json",
     "check": "pnpm run lint && pnpm run typecheck && pnpm run test:unit && pnpm run build && find dist/bin dist/src -name '*.js' -print0 | xargs -0 -n1 node --check && bash -n setup-agent-toolkit.sh && pnpm run test:integration",
     "format": "biome format --write .",
     "lint": "biome check .",
