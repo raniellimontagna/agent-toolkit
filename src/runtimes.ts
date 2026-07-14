@@ -8,6 +8,7 @@ import {
   requireNode,
   run,
 } from "./system.js";
+import { agentSkillBundleIds } from "./tool-lock.js";
 
 export function runtimeCommand(runtime: RuntimeName): string {
   return runtimeMeta[runtime].command;
@@ -274,7 +275,7 @@ export function checkPrerequisites(): boolean {
     ok("npx found");
   }
 
-  if (state.tools["frontend-skills"] || state.tools.improve) {
+  if (agentSkillBundleIds.some((bundleId) => state.tools[bundleId])) {
     requireNode(24);
     requireCommand("git");
     requireCommand("npx");

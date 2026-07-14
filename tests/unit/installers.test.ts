@@ -4,9 +4,6 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { installAgentBrowser } from "../../src/installers/agent-browser.js";
 import { installAgentSkillBundle } from "../../src/installers/agent-skills.js";
-import { installFrontendSkills } from "../../src/installers/frontend-skills.js";
-import { installImprove } from "../../src/installers/improve.js";
-import { installPlanningSkills } from "../../src/installers/planning-skills.js";
 import { state } from "../../src/state.js";
 import type { RunResult } from "../../src/system.js";
 
@@ -91,98 +88,6 @@ describe("third-party skill installers", () => {
           ]),
         ],
         ["npx", expect.arrayContaining(["--skill", "agent-browser", "--copy"])],
-      ]),
-    );
-  });
-
-  it("clones and installs the pinned shadcn Improve skill", () => {
-    expect(installImprove()).toBe(true);
-
-    const calls = runMock.mock.calls.map(([command, args]) => [command, args]);
-
-    expect(calls).toEqual(
-      expect.arrayContaining([
-        [
-          "git",
-          expect.arrayContaining([
-            "clone",
-            "--filter=blob:none",
-            "--no-checkout",
-            "https://github.com/shadcn/improve.git",
-          ]),
-        ],
-        [
-          "git",
-          expect.arrayContaining([
-            "fetch",
-            "--depth",
-            "1",
-            "origin",
-            "03369ee6d7cafbfcecc4346539b05b3dc0a603bb",
-          ]),
-        ],
-        [
-          "npx",
-          expect.arrayContaining([
-            "-y",
-            "skills@1.5.13",
-            "add",
-            "--skill",
-            "improve",
-            "--copy",
-          ]),
-        ],
-      ]),
-    );
-  });
-
-  it("clones and installs each pinned external frontend skill", () => {
-    expect(installFrontendSkills()).toBe(true);
-
-    const cloneUrls = runMock.mock.calls
-      .filter(([command, args]) => command === "git" && args?.includes("clone"))
-      .map(([, args]) => args?.filter((value) => value.endsWith(".git")));
-    const npxCalls = runMock.mock.calls.filter(
-      ([command]) => command === "npx",
-    );
-
-    expect(cloneUrls.flat()).toEqual([
-      "https://github.com/pbakaus/impeccable.git",
-      "https://github.com/vercel-labs/agent-skills.git",
-      "https://github.com/millionco/react-doctor.git",
-      "https://github.com/remotion-dev/skills.git",
-    ]);
-    expect(npxCalls).toHaveLength(4);
-    expect(npxCalls[0]?.[1]).toEqual(
-      expect.arrayContaining(["--skill", "impeccable", "--copy"]),
-    );
-    expect(npxCalls[1]?.[1]).toEqual(
-      expect.arrayContaining(["--skill", "web-design-guidelines", "--copy"]),
-    );
-    expect(npxCalls[2]?.[1]).toEqual(
-      expect.arrayContaining(["--skill", "react-doctor", "--copy"]),
-    );
-    expect(npxCalls[3]?.[1]).toEqual(
-      expect.arrayContaining(["--skill", "remotion-best-practices", "--copy"]),
-    );
-  });
-
-  it("clones and installs the pinned architecture review skills", () => {
-    expect(installPlanningSkills()).toBe(true);
-
-    const npxCalls = runMock.mock.calls.filter(
-      ([command]) => command === "npx",
-    );
-
-    expect(npxCalls).toHaveLength(6);
-    expect(npxCalls[4]?.[1]).toEqual(
-      expect.arrayContaining(["--skill", "codebase-design", "--copy"]),
-    );
-    expect(npxCalls[5]?.[1]).toEqual(
-      expect.arrayContaining([
-        "--skill",
-        "improve-codebase-architecture",
-        "--copy",
       ]),
     );
   });

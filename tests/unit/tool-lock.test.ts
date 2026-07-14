@@ -167,51 +167,10 @@ describe("external tool lock", () => {
     );
     expect(lock.tools.gsd.version).toBe("1.6.1");
     expect(lock.tools.graphify.version).toBe("0.9.11");
-    expect(lock.tools.improve.ref).toBe(
-      "03369ee6d7cafbfcecc4346539b05b3dc0a603bb",
-    );
     expect(lock.tools.agentBrowser).toEqual({
       source: "npm",
       package: "agent-browser",
       version: "0.31.1",
-      skill: {
-        source: "github",
-        repository: "vercel-labs/agent-browser",
-        ref: "afae698a51242166170b6fe4809dd57fe9f75798",
-        path: "skills/agent-browser",
-        skill: "agent-browser",
-      },
-    });
-    expect(lock.tools.frontendSkills.skillsCli.version).toBe("1.5.13");
-    expect(lock.tools.frontendSkills.impeccable.ref).toBe(
-      "3590bf9e37c84ecbc92f9c205ce1aebf2185a971",
-    );
-    expect(lock.tools.frontendSkills.webDesignGuidelines.ref).toBe(
-      "f8a72b9603728bb92a217a879b7e62e43ad76c81",
-    );
-    expect(lock.tools.frontendSkills.reactDoctor).toEqual({
-      source: "github",
-      repository: "millionco/react-doctor",
-      ref: "aa519e5f5505105ef8c00e1b1972c98514f7577a",
-      skill: "react-doctor",
-    });
-    expect(lock.tools.frontendSkills.remotionBestPractices).toEqual({
-      source: "github",
-      repository: "remotion-dev/skills",
-      ref: "8b1d51ade295b2d9bd22a8f07047d13c0740f275",
-      skill: "remotion-best-practices",
-    });
-    expect(lock.tools.planningSkills.codebaseDesign).toEqual({
-      source: "github",
-      repository: "mattpocock/skills",
-      ref: "391a2701dd948f94f56a39f7533f8eea9a859c87",
-      skill: "codebase-design",
-    });
-    expect(lock.tools.planningSkills.improveCodebaseArchitecture).toEqual({
-      source: "github",
-      repository: "mattpocock/skills",
-      ref: "391a2701dd948f94f56a39f7533f8eea9a859c87",
-      skill: "improve-codebase-architecture",
     });
     expect(lock.tools.agentSkills.skillsCli).toEqual({
       source: "npm",

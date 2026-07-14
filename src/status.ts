@@ -17,6 +17,7 @@ import {
   toolNames,
 } from "./state.js";
 import { capture, findCommand } from "./system.js";
+import type { AgentSkillBundleId } from "./tool-lock.js";
 
 export type DetectionState = "installed" | "missing" | "available" | "external";
 
@@ -98,6 +99,25 @@ function customSkillsDetection(): Detection {
   };
 }
 
+function agentSkillCount(bundleId: AgentSkillBundleId): number {
+  return state.agentSkillsCatalog.bundles[bundleId].skills.length;
+}
+
+function agentSkillSourceDetail(bundleId: AgentSkillBundleId): string {
+  const bundle = state.agentSkillsCatalog.bundles[bundleId];
+  return [
+    ...new Set(
+      bundle.skills.map(({ repository }) => {
+        const source = state.agentSkillsCatalog.repositories[repository];
+        if (!source) {
+          throw new Error(`Missing Agent Skills repository ${repository}.`);
+        }
+        return `${source.repository}@${source.ref}`;
+      }),
+    ),
+  ].join(", ");
+}
+
 export function detectInstallerStatus(): InstallerStatus {
   return {
     tools: {
@@ -120,17 +140,17 @@ export function detectInstallerStatus(): InstallerStatus {
       improve: {
         state: "external",
         summary: "pinned shadcn advisor skill",
-        detail: `${state.improveSkillSource.repository}@${state.improveSkillSource.ref}`,
+        detail: agentSkillSourceDetail("improve"),
       },
       "agent-browser": agentBrowserDetection(),
       "frontend-skills": {
         state: "external",
-        summary: `${state.frontendSkillSources.length} pinned source skill(s)`,
+        summary: `${agentSkillCount("frontend-skills")} pinned source skill(s)`,
         detail: "installed through Agent Skills CLI",
       },
       "planning-skills": {
         state: "external",
-        summary: `${state.planningSkillSources.length} pinned source skill(s)`,
+        summary: `${agentSkillCount("planning-skills")} pinned source skill(s)`,
         detail: "installed through Agent Skills CLI",
       },
       skills: customSkillsDetection(),

@@ -1,7 +1,7 @@
 import { err, info, ok, step } from "../logger.js";
 import { state } from "../state.js";
 import { requireCommand, requireNode, run } from "../system.js";
-import { installSkillsCliSources } from "./frontend-skills.js";
+import { installAgentSkillBundle } from "./agent-skills.js";
 
 export function installAgentBrowser(): boolean {
   step("Agent Browser");
@@ -26,11 +26,7 @@ export function installAgentBrowser(): boolean {
     return false;
   }
 
-  const installed = installSkillsCliSources(
-    "Agent Browser",
-    "Pinned browser automation skill installed via Agent Skills CLI",
-    [state.agentBrowserSkillSource],
-  );
-  if (installed) ok("Agent Browser installed");
-  return installed;
+  const skillResult = installAgentSkillBundle("agent-browser");
+  if (skillResult.ok) ok("Agent Browser installed");
+  return skillResult.ok;
 }

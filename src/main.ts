@@ -2,12 +2,10 @@ import process from "node:process";
 import { parseArgs } from "./args.js";
 import { buildDoctorReport, formatDoctorReport } from "./doctor.js";
 import { installAgentBrowser } from "./installers/agent-browser.js";
+import { installAgentSkillBundle } from "./installers/agent-skills.js";
 import { installCaveman } from "./installers/caveman.js";
-import { installFrontendSkills } from "./installers/frontend-skills.js";
 import { installGraphify } from "./installers/graphify.js";
 import { installGsd } from "./installers/gsd.js";
-import { installImprove } from "./installers/improve.js";
-import { installPlanningSkills } from "./installers/planning-skills.js";
 import { installRtk } from "./installers/rtk.js";
 import { installSuperpowers } from "./installers/superpowers.js";
 import {
@@ -180,7 +178,7 @@ export async function runInstaller(
   }
 
   if (state.tools.improve) {
-    if (!installImprove()) {
+    if (!installAgentSkillBundle("improve").ok) {
       err("Improve install failed.");
       hadError = true;
     }
@@ -198,7 +196,7 @@ export async function runInstaller(
   }
 
   if (state.tools["frontend-skills"]) {
-    if (!installFrontendSkills()) {
+    if (!installAgentSkillBundle("frontend-skills").ok) {
       err("Frontend Skills install failed.");
       hadError = true;
     }
@@ -207,7 +205,7 @@ export async function runInstaller(
   }
 
   if (state.tools["planning-skills"]) {
-    if (!installPlanningSkills()) {
+    if (!installAgentSkillBundle("planning-skills").ok) {
       err("Planning Skills install failed.");
       hadError = true;
     }

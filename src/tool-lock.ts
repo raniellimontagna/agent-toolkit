@@ -55,94 +55,10 @@ export type ToolLock = {
       package: string;
       version: string;
     };
-    improve: {
-      source: "github";
-      repository: string;
-      ref: string;
-      skill: string;
-    };
     agentBrowser: {
       source: "npm";
       package: string;
       version: string;
-      skill: {
-        source: "github";
-        repository: string;
-        ref: string;
-        path: string;
-        skill: string;
-      };
-    };
-    frontendSkills: {
-      source: "skills-cli";
-      skillsCli: {
-        source: "npm";
-        package: string;
-        version: string;
-      };
-      impeccable: {
-        source: "github";
-        repository: string;
-        ref: string;
-        skill: string;
-      };
-      webDesignGuidelines: {
-        source: "github";
-        repository: string;
-        ref: string;
-        skill: string;
-      };
-      reactDoctor: {
-        source: "github";
-        repository: string;
-        ref: string;
-        skill: string;
-      };
-      remotionBestPractices: {
-        source: "github";
-        repository: string;
-        ref: string;
-        skill: string;
-      };
-    };
-    planningSkills: {
-      source: "skills-cli";
-      grillMe: {
-        source: "github";
-        repository: string;
-        ref: string;
-        skill: string;
-      };
-      grilling: {
-        source: "github";
-        repository: string;
-        ref: string;
-        skill: string;
-      };
-      grillWithDocs: {
-        source: "github";
-        repository: string;
-        ref: string;
-        skill: string;
-      };
-      domainModeling: {
-        source: "github";
-        repository: string;
-        ref: string;
-        skill: string;
-      };
-      codebaseDesign: {
-        source: "github";
-        repository: string;
-        ref: string;
-        skill: string;
-      };
-      improveCodebaseArchitecture: {
-        source: "github";
-        repository: string;
-        ref: string;
-        skill: string;
-      };
     };
     agentSkills: {
       source: "skills-cli";
@@ -426,79 +342,11 @@ function validateToolLock(lock: ToolLock): ToolLock {
   assertString(lock.tools.gsd.package, "tools.gsd.package");
   assertExactVersion(lock.tools.gsd.version, "tools.gsd.version");
   validateAgentSkillsCatalog(lock.tools.agentSkills);
-  assertString(lock.tools.improve.repository, "tools.improve.repository");
-  assertGitSha(lock.tools.improve.ref, "tools.improve.ref");
-  assertString(lock.tools.improve.skill, "tools.improve.skill");
   assertString(lock.tools.agentBrowser.package, "tools.agentBrowser.package");
   assertExactVersion(
     lock.tools.agentBrowser.version,
     "tools.agentBrowser.version",
   );
-  assertString(
-    lock.tools.agentBrowser.skill.repository,
-    "tools.agentBrowser.skill.repository",
-  );
-  assertGitSha(
-    lock.tools.agentBrowser.skill.ref,
-    "tools.agentBrowser.skill.ref",
-  );
-  assertString(
-    lock.tools.agentBrowser.skill.path,
-    "tools.agentBrowser.skill.path",
-  );
-  assertString(
-    lock.tools.agentBrowser.skill.skill,
-    "tools.agentBrowser.skill.skill",
-  );
-  assertString(
-    lock.tools.frontendSkills.skillsCli.package,
-    "tools.frontendSkills.skillsCli.package",
-  );
-  assertExactVersion(
-    lock.tools.frontendSkills.skillsCli.version,
-    "tools.frontendSkills.skillsCli.version",
-  );
-  for (const skillName of [
-    "impeccable",
-    "webDesignGuidelines",
-    "reactDoctor",
-    "remotionBestPractices",
-  ] as const) {
-    const skill = lock.tools.frontendSkills[skillName];
-    if (!skill) {
-      throw new Error(
-        `Invalid tools.lock.json: tools.frontendSkills.${skillName} must be defined.`,
-      );
-    }
-    assertString(
-      skill.repository,
-      `tools.frontendSkills.${skillName}.repository`,
-    );
-    assertGitSha(skill.ref, `tools.frontendSkills.${skillName}.ref`);
-    assertString(skill.skill, `tools.frontendSkills.${skillName}.skill`);
-  }
-
-  for (const skillName of [
-    "grillMe",
-    "grilling",
-    "grillWithDocs",
-    "domainModeling",
-    "codebaseDesign",
-    "improveCodebaseArchitecture",
-  ] as const) {
-    const skill = lock.tools.planningSkills[skillName];
-    if (!skill) {
-      throw new Error(
-        `Invalid tools.lock.json: tools.planningSkills.${skillName} must be defined.`,
-      );
-    }
-    assertString(
-      skill.repository,
-      `tools.planningSkills.${skillName}.repository`,
-    );
-    assertGitSha(skill.ref, `tools.planningSkills.${skillName}.ref`);
-    assertString(skill.skill, `tools.planningSkills.${skillName}.skill`);
-  }
 
   for (const runtime of ["claude", "codex", "opencode", "gemini"] as const) {
     assertString(

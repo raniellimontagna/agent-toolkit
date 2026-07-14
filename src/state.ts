@@ -50,35 +50,9 @@ type State = {
   graphifyPackage: string;
   graphifyInstaller: string;
   gsdPackage: string;
-  improveSkillSource: {
-    label: string;
-    repository: string;
-    ref: string;
-    skill: string;
-  };
   agentBrowserPackage: string;
-  agentBrowserSkillSource: {
-    label: string;
-    repository: string;
-    ref: string;
-    path: string;
-    skill: string;
-  };
   agentSkillsCliPackage: string;
   agentSkillsCatalog: ToolLock["tools"]["agentSkills"];
-  frontendSkillsCliPackage: string;
-  frontendSkillSources: Array<{
-    label: string;
-    repository: string;
-    ref: string;
-    skill: string;
-  }>;
-  planningSkillSources: Array<{
-    label: string;
-    repository: string;
-    ref: string;
-    skill: string;
-  }>;
   gsdScope: InstallScope;
   customSkillsDir: string;
   skillPackages: string[];
@@ -161,25 +135,12 @@ export const state: State = {
       toolLock.tools.gsd.package,
       toolLock.tools.gsd.version,
     ),
-  improveSkillSource: {
-    label: "Improve",
-    repository: toolLock.tools.improve.repository,
-    ref: toolLock.tools.improve.ref,
-    skill: toolLock.tools.improve.skill,
-  },
   agentBrowserPackage:
     process.env.AGENT_BROWSER_PACKAGE ||
     formatNpmPackageSpec(
       toolLock.tools.agentBrowser.package,
       toolLock.tools.agentBrowser.version,
     ),
-  agentBrowserSkillSource: {
-    label: "Agent Browser",
-    repository: toolLock.tools.agentBrowser.skill.repository,
-    ref: toolLock.tools.agentBrowser.skill.ref,
-    path: toolLock.tools.agentBrowser.skill.path,
-    skill: toolLock.tools.agentBrowser.skill.skill,
-  },
   agentSkillsCliPackage:
     process.env.SKILLS_CLI_PACKAGE ||
     formatNpmPackageSpec(
@@ -187,78 +148,6 @@ export const state: State = {
       toolLock.tools.agentSkills.skillsCli.version,
     ),
   agentSkillsCatalog: toolLock.tools.agentSkills,
-  frontendSkillsCliPackage:
-    process.env.SKILLS_CLI_PACKAGE ||
-    formatNpmPackageSpec(
-      toolLock.tools.frontendSkills.skillsCli.package,
-      toolLock.tools.frontendSkills.skillsCli.version,
-    ),
-  frontendSkillSources: [
-    {
-      label: "Impeccable",
-      repository: toolLock.tools.frontendSkills.impeccable.repository,
-      ref: toolLock.tools.frontendSkills.impeccable.ref,
-      skill: toolLock.tools.frontendSkills.impeccable.skill,
-    },
-    {
-      label: "Web Design Guidelines",
-      repository: toolLock.tools.frontendSkills.webDesignGuidelines.repository,
-      ref: toolLock.tools.frontendSkills.webDesignGuidelines.ref,
-      skill: toolLock.tools.frontendSkills.webDesignGuidelines.skill,
-    },
-    {
-      label: "React Doctor",
-      repository: toolLock.tools.frontendSkills.reactDoctor.repository,
-      ref: toolLock.tools.frontendSkills.reactDoctor.ref,
-      skill: toolLock.tools.frontendSkills.reactDoctor.skill,
-    },
-    {
-      label: "Remotion Best Practices",
-      repository:
-        toolLock.tools.frontendSkills.remotionBestPractices.repository,
-      ref: toolLock.tools.frontendSkills.remotionBestPractices.ref,
-      skill: toolLock.tools.frontendSkills.remotionBestPractices.skill,
-    },
-  ],
-  planningSkillSources: [
-    {
-      label: "Grill Me",
-      repository: toolLock.tools.planningSkills.grillMe.repository,
-      ref: toolLock.tools.planningSkills.grillMe.ref,
-      skill: toolLock.tools.planningSkills.grillMe.skill,
-    },
-    {
-      label: "Grilling",
-      repository: toolLock.tools.planningSkills.grilling.repository,
-      ref: toolLock.tools.planningSkills.grilling.ref,
-      skill: toolLock.tools.planningSkills.grilling.skill,
-    },
-    {
-      label: "Grill With Docs",
-      repository: toolLock.tools.planningSkills.grillWithDocs.repository,
-      ref: toolLock.tools.planningSkills.grillWithDocs.ref,
-      skill: toolLock.tools.planningSkills.grillWithDocs.skill,
-    },
-    {
-      label: "Domain Modeling",
-      repository: toolLock.tools.planningSkills.domainModeling.repository,
-      ref: toolLock.tools.planningSkills.domainModeling.ref,
-      skill: toolLock.tools.planningSkills.domainModeling.skill,
-    },
-    {
-      label: "Codebase Design",
-      repository: toolLock.tools.planningSkills.codebaseDesign.repository,
-      ref: toolLock.tools.planningSkills.codebaseDesign.ref,
-      skill: toolLock.tools.planningSkills.codebaseDesign.skill,
-    },
-    {
-      label: "Improve Codebase Architecture",
-      repository:
-        toolLock.tools.planningSkills.improveCodebaseArchitecture.repository,
-      ref: toolLock.tools.planningSkills.improveCodebaseArchitecture.ref,
-      skill: toolLock.tools.planningSkills.improveCodebaseArchitecture.skill,
-    },
-  ],
   gsdScope: envInstallScope(process.env.GSD_SCOPE),
   customSkillsDir:
     process.env.CUSTOM_SKILLS_DIR || path.join(REPO_ROOT, "skills"),
