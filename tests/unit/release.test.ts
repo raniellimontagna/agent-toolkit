@@ -82,6 +82,7 @@ function expectRejectedWithoutWrites(
 type FakePushOptions = {
   behindCount?: number;
   localTagError?: Error;
+  remoteTagError?: Error;
   remoteTagStatus?: number;
   upstream?: string;
 };
@@ -111,6 +112,21 @@ function createPushRunner(
 
       if (command !== "git") return success();
       expect(runOptions?.cwd).toBe(repoRoot);
+
+      const isInspection =
+        call === "git rev-parse --show-toplevel" ||
+        call === "git branch --show-current" ||
+        call === "git status --porcelain=v1 --untracked-files=all" ||
+        call.startsWith("git rev-parse --verify --quiet refs/tags/") ||
+        call ===
+          "git fetch --quiet --no-tags origin +refs/heads/main:refs/remotes/origin/main" ||
+        call ===
+          "git rev-parse --abbrev-ref --symbolic-full-name @{upstream}" ||
+        call === "git rev-list --left-right --count origin/main...HEAD" ||
+        call.startsWith("git ls-remote --exit-code --tags origin refs/tags/");
+      if (isInspection) {
+        expect(runOptions?.capture).toBe(true);
+      }
 
       if (call === "git rev-parse --show-toplevel")
         return success(`${repoRoot}\n`);
@@ -156,6 +172,12 @@ function createPushRunner(
         call.startsWith("git ls-remote --exit-code --tags origin refs/tags/")
       ) {
         const status = options.remoteTagStatus ?? 2;
+        if (options.remoteTagError) {
+          return {
+            ...failure(status),
+            error: options.remoteTagError,
+          };
+        }
         return status === 0 ? success("fixture-tag\n") : failure(status);
       }
       return success();
@@ -292,25 +314,39 @@ describe("release push preflights", () => {
     expectRejectedWithoutWrites(repoRoot, /inspect.*remote tag/i, runner);
   });
 
+  it("reports a status-2 remote operational failure without release writes", () => {
+    const repoRoot = createReleaseRepository();
+    const { calls, runner } = createPushRunner(repoRoot, {
+      remoteTagError: new Error("spawn remote failure"),
+      remoteTagStatus: 2,
+    });
+
+    expectRejectedWithoutWrites(repoRoot, /inspect.*remote tag/i, runner);
+    expect(
+      calls.some((call) => /^git (?:add|commit|tag|push)(?:\s|$)/.test(call)),
+    ).toBe(false);
+  });
+
   it("runs remote preflights before writing and pushes main plus tag atomically", () => {
     const repoRoot = createReleaseRepository();
     const { calls, runner } = createPushRunner(repoRoot);
 
     runReleaseCli(["patch", "--no-check", "--push"], { repoRoot, runner });
 
-    expect(calls).toContain(
+    expect(calls).toEqual([
+      "git rev-parse --show-toplevel",
+      "git branch --show-current",
+      "git status --porcelain=v1 --untracked-files=all",
+      "git rev-parse --verify --quiet refs/tags/v1.0.1",
       "git fetch --quiet --no-tags origin +refs/heads/main:refs/remotes/origin/main",
-    );
-    expect(calls).toContain(
       "git rev-parse --abbrev-ref --symbolic-full-name @{upstream}",
-    );
-    expect(calls).toContain(
       "git rev-list --left-right --count origin/main...HEAD",
-    );
-    expect(calls).toContain(
       "git ls-remote --exit-code --tags origin refs/tags/v1.0.1",
-    );
-    expect(calls.at(-1)).toBe("git push --atomic origin main v1.0.1");
+      "git add package.json README.md",
+      "git commit -m chore: release 1.0.1",
+      "git tag v1.0.1",
+      "git push --atomic origin main v1.0.1",
+    ]);
   });
 });
 
@@ -322,7 +358,9 @@ describe("release workflow defenses", () => {
     const workflow = fs.readFileSync(workflowPath, "utf8");
 
     expect(workflow).toMatch(/fetch-depth:\s*0/);
-    expect(workflow).toContain("refs/heads/main:refs/remotes/origin/main");
+    expect(workflow).toContain(
+      "git fetch --quiet --no-tags origin +refs/heads/main:refs/remotes/origin/main",
+    );
     expect(workflow).toContain(
       `git merge-base --is-ancestor "\${GITHUB_SHA}" origin/main`,
     );

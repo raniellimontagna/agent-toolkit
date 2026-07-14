@@ -233,7 +233,7 @@ function assertRemoteReleaseState(
   if (remoteTag.ok) {
     die(`Release tag ${tagName} already exists on origin.`);
   }
-  if (remoteTag.status !== 2) {
+  if (remoteTag.error || remoteTag.status !== 2) {
     die(
       `Unable to inspect remote tag ${tagName}: ${gitFailureDetail(remoteTag)}`,
     );
