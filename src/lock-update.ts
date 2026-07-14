@@ -182,83 +182,25 @@ export async function buildLockUpdateReport(
     ),
     collectItem(
       {
-        name: "Improve",
-        source: "github",
-        current: lock.tools.improve.ref,
-      },
-      () => latestGitHubCommit(lock.tools.improve.repository, resolvedClients),
-    ),
-    collectItem(
-      {
         name: "Agent Skills CLI",
         source: "npm",
-        current: lock.tools.frontendSkills.skillsCli.version,
+        current: lock.tools.agentSkills.skillsCli.version,
       },
       () =>
         latestNpmVersion(
-          lock.tools.frontendSkills.skillsCli.package,
+          lock.tools.agentSkills.skillsCli.package,
           resolvedClients,
         ),
     ),
-    collectItem(
-      {
-        name: "Impeccable",
-        source: "github",
-        current: lock.tools.frontendSkills.impeccable.ref,
-      },
-      () =>
-        latestGitHubCommit(
-          lock.tools.frontendSkills.impeccable.repository,
-          resolvedClients,
-        ),
-    ),
-    collectItem(
-      {
-        name: "Web Design Guidelines",
-        source: "github",
-        current: lock.tools.frontendSkills.webDesignGuidelines.ref,
-      },
-      () =>
-        latestGitHubCommit(
-          lock.tools.frontendSkills.webDesignGuidelines.repository,
-          resolvedClients,
-        ),
-    ),
-    collectItem(
-      {
-        name: "React Doctor",
-        source: "github",
-        current: lock.tools.frontendSkills.reactDoctor.ref,
-      },
-      () =>
-        latestGitHubCommit(
-          lock.tools.frontendSkills.reactDoctor.repository,
-          resolvedClients,
-        ),
-    ),
-    collectItem(
-      {
-        name: "Remotion Best Practices",
-        source: "github",
-        current: lock.tools.frontendSkills.remotionBestPractices.ref,
-      },
-      () =>
-        latestGitHubCommit(
-          lock.tools.frontendSkills.remotionBestPractices.repository,
-          resolvedClients,
-        ),
-    ),
-    collectItem(
-      {
-        name: "Planning Skills (mattpocock/skills)",
-        source: "github",
-        current: lock.tools.planningSkills.grillMe.ref,
-      },
-      () =>
-        latestGitHubCommit(
-          lock.tools.planningSkills.grillMe.repository,
-          resolvedClients,
-        ),
+    ...Object.values(lock.tools.agentSkills.repositories).map((repository) =>
+      collectItem(
+        {
+          name: `Agent Skill repository (${repository.repository})`,
+          source: "github" as const,
+          current: repository.ref,
+        },
+        () => latestGitHubCommit(repository.repository, resolvedClients),
+      ),
     ),
     ...(["claude", "codex", "opencode", "gemini"] as const).map((runtime) =>
       collectItem(

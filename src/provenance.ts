@@ -161,16 +161,16 @@ export function checkExternalToolProvenance(): void {
   }
 
   if (
-    state.tools["frontend-skills"] ||
-    state.tools["planning-skills"] ||
-    state.tools.improve
+    Object.keys(state.agentSkillsCatalog.bundles).some(
+      (bundleId) => state.tools[bundleId as keyof typeof state.tools],
+    )
   ) {
     const lockSpec = formatNpmPackageSpec(
-      lock.tools.frontendSkills.skillsCli.package,
-      lock.tools.frontendSkills.skillsCli.version,
+      lock.tools.agentSkills.skillsCli.package,
+      lock.tools.agentSkills.skillsCli.version,
     );
-    checkIdentity("Agent Skills CLI", state.frontendSkillsCliPackage, lockSpec);
-    checkSource("Agent Skills CLI", state.frontendSkillsCliPackage);
+    checkIdentity("Agent Skills CLI", state.agentSkillsCliPackage, lockSpec);
+    checkSource("Agent Skills CLI", state.agentSkillsCliPackage);
   }
 
   if (state.runtimes.antigravity) checkAntigravitySource();

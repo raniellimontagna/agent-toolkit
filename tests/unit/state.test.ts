@@ -14,16 +14,20 @@ describe("state helpers", () => {
     expect(normalizeScope(" /Backend\\Node/ ")).toBe("backend/node");
   });
 
-  it("exposes React Doctor as a pinned frontend skill source", () => {
-    expect(state.frontendSkillSources).toEqual(
-      expect.arrayContaining([
-        {
-          label: "React Doctor",
-          repository: "millionco/react-doctor",
-          ref: "aa519e5f5505105ef8c00e1b1972c98514f7577a",
-          skill: "react-doctor",
-        },
-      ]),
-    );
+  it("exposes the validated Agent Skills catalog without mirrored arrays", () => {
+    expect(state.agentSkillsCliPackage).toBe("skills@1.5.13");
+    expect(Object.keys(state.agentSkillsCatalog.repositories)).toHaveLength(7);
+    expect(
+      state.agentSkillsCatalog.bundles["planning-skills"].skills.map(
+        ({ skill }) => skill,
+      ),
+    ).toEqual([
+      "grill-me",
+      "grilling",
+      "grill-with-docs",
+      "domain-modeling",
+      "codebase-design",
+      "improve-codebase-architecture",
+    ]);
   });
 });

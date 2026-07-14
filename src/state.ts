@@ -6,6 +6,7 @@ import {
   formatPythonPackageSpec,
   githubReleaseApiUrl,
   loadToolLock,
+  type ToolLock,
 } from "./tool-lock.js";
 
 export const toolNames = [
@@ -63,6 +64,8 @@ type State = {
     path: string;
     skill: string;
   };
+  agentSkillsCliPackage: string;
+  agentSkillsCatalog: ToolLock["tools"]["agentSkills"];
   frontendSkillsCliPackage: string;
   frontendSkillSources: Array<{
     label: string;
@@ -177,6 +180,13 @@ export const state: State = {
     path: toolLock.tools.agentBrowser.skill.path,
     skill: toolLock.tools.agentBrowser.skill.skill,
   },
+  agentSkillsCliPackage:
+    process.env.SKILLS_CLI_PACKAGE ||
+    formatNpmPackageSpec(
+      toolLock.tools.agentSkills.skillsCli.package,
+      toolLock.tools.agentSkills.skillsCli.version,
+    ),
+  agentSkillsCatalog: toolLock.tools.agentSkills,
   frontendSkillsCliPackage:
     process.env.SKILLS_CLI_PACKAGE ||
     formatNpmPackageSpec(
@@ -234,6 +244,19 @@ export const state: State = {
       repository: toolLock.tools.planningSkills.domainModeling.repository,
       ref: toolLock.tools.planningSkills.domainModeling.ref,
       skill: toolLock.tools.planningSkills.domainModeling.skill,
+    },
+    {
+      label: "Codebase Design",
+      repository: toolLock.tools.planningSkills.codebaseDesign.repository,
+      ref: toolLock.tools.planningSkills.codebaseDesign.ref,
+      skill: toolLock.tools.planningSkills.codebaseDesign.skill,
+    },
+    {
+      label: "Improve Codebase Architecture",
+      repository:
+        toolLock.tools.planningSkills.improveCodebaseArchitecture.repository,
+      ref: toolLock.tools.planningSkills.improveCodebaseArchitecture.ref,
+      skill: toolLock.tools.planningSkills.improveCodebaseArchitecture.skill,
     },
   ],
   gsdScope: envInstallScope(process.env.GSD_SCOPE),
