@@ -32,3 +32,17 @@ test: cover installer dry run
 Keep `tools.lock.json` as the source of truth for external tools. New third-party
 skills must use immutable public sources, include license/notice files when
 vendored, and pass `pnpm run check`.
+
+## Documentation Changes
+
+For documentation-only changes, verify behavior against the implementation and
+verify release claims against Git tags and npm publication metadata.
+
+## Contributor Guides
+
+- [Development](docs/DEVELOPMENT.md) covers local setup and the change workflow.
+- [Testing](docs/TESTING.md) explains focused checks and the full release gate.
+- [Deployment and Releases](docs/DEPLOYMENT.md) documents release mechanics.
+- [Configuration](docs/CONFIGURATION.md) defines supported settings and source
+  overrides.
+- [Security](SECURITY.md) explains vulnerability reporting and trust controls.
