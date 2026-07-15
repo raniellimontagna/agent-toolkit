@@ -1,5 +1,3 @@
-<!-- generated-by: gsd-doc-writer -->
-
 # Agent Toolkit
 
 Agent Toolkit is a Node.js CLI for installing a pinned, reusable set of coding-agent tools and skills across Claude Code, Codex CLI, OpenCode, Gemini CLI, and Antigravity.

@@ -1,5 +1,3 @@
-<!-- generated-by: gsd-doc-writer -->
-
 # Getting Started
 
 This guide takes you from prerequisites to a verified Agent Toolkit installation, then explains how to repair or remove the skill paths the toolkit records.
@@ -148,7 +146,7 @@ npx -y @ranimontagna/agent-toolkit --doctor --json --codex
 
 Agent Toolkit currently writes manifest entries only for Custom Skills installed through its Custom Skills installer, including skills loaded from an alternate source directory selected with `--skills-dir`. The versioned manifest records its scope and generation time, plus each recorded Custom Skill's runtime, source, absolute destination, and installation time. External Agent Skills bundles such as Improve, Frontend Skills, Planning Skills, and Agent Browser are not recorded; neither are RTK, Caveman, Superpowers, Graphify, GSD, or runtime CLIs. Local and global scopes use separate manifests.
 
-Repair re-runs the selected installers, but only successful Custom Skill copies performed by the Custom Skills installer update or insert manifest entries and refresh the manifest generation time. This includes copies from an alternate `--skills-dir` source. External Agent Skills bundles and other tools may be reinstalled by their own installers; `--repair` does not bring them under manifest management:
+Repair re-runs the selected installers, but only successful Custom Skill installations handled by the Custom Skills installer update or insert manifest entries and refresh the manifest generation time. This includes toolkit-managed copies from an alternate `--skills-dir` source and successful installs delegated to Gemini CLI. External Agent Skills bundles and other tools may be reinstalled by their own installers; `--repair` does not bring them under manifest management:
 
 ```bash
 npx -y @ranimontagna/agent-toolkit --repair --all --codex
@@ -220,5 +218,5 @@ External package versions, repository commits, checksums, and source identities 
 - [Configuration](CONFIGURATION.md) — environment variables, defaults, and source overrides
 - [Architecture](ARCHITECTURE.md) — components, install flow, and trust boundaries
 - [Testing](TESTING.md) — unit, integration, and release-gate commands
-- [Security](../SECURITY.md) — supported versions and vulnerability reporting
+- [Security](../SECURITY.md) — vulnerability reporting and supply-chain controls
 - [Changelog](../CHANGELOG.md) — release history and upgrade context

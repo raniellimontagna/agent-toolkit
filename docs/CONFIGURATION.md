@@ -1,5 +1,3 @@
-<!-- generated-by: gsd-doc-writer -->
-
 # Configuration
 
 Agent Toolkit is configured with command-line flags, environment variables, and the repository's validated [`tools.lock.json`](../tools.lock.json). No environment variable is required for a normal run: unset values resolve to the lock-backed, path, or behavior defaults described below.
@@ -280,4 +278,4 @@ For different projects, prefer `--local` from each project root or project-scope
 
 - [Getting Started](GETTING-STARTED.md) — first installation, repair, uninstall, and common setup issues.
 - [Architecture](ARCHITECTURE.md) — orchestration, provenance, runtime targets, and lifecycle boundaries.
-- [Security](../SECURITY.md) — supported versions and vulnerability reporting.
+- [Security](../SECURITY.md) — vulnerability reporting and supply-chain controls.

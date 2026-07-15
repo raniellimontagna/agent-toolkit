@@ -1,5 +1,3 @@
-<!-- generated-by: gsd-doc-writer -->
-
 # Deployment and Releases
 
 Agent Toolkit is a command-line package, not a hosted application. Its only deployment target is the public npm package [`@ranimontagna/agent-toolkit`](https://www.npmjs.com/package/@ranimontagna/agent-toolkit). A version tag pushed to GitHub starts the repository's [`Release` workflow](../.github/workflows/release.yml), which validates the tagged commit before attempting publication to npm.
