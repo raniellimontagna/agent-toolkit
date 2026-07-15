@@ -9,8 +9,19 @@ Agent Toolkit has evolved from a hardened installer foundation into a catalog-dr
 | Lifecycle hardening | `0.1.23`–`0.1.26` | React Doctor, safer uninstall/repair, pinned-source enforcement, Windows support, redirect checks, provenance, and Graphify 0.9.11. |
 | Onboarding and catalog growth | `0.1.27`–`0.1.31` | Planning skills, Web Design Guidelines, repository onboarding, multi-runtime guidance, Agent Browser, and Remotion skills. |
 | Catalog-driven release | `0.2.0` | Normalized agent-skill catalog plus bounded HTTP, release, Antigravity, manifest, and publication hardening. |
+| Documentation overhaul | `0.2.1` | Rebuilt onboarding and operational documentation, reconstructed release history, and clarified architecture, configuration, testing, deployment, contribution, and security boundaries. |
 
 The release entries below are based on Git tag ranges and npm publication metadata. Publication uses Git tags plus GitHub Actions, not GitHub Release objects.
+
+## [0.2.1] - 2026-07-14
+
+Published to npm
+
+[Compare](https://github.com/raniellimontagna/agent-toolkit/compare/v0.2.0...v0.2.1)
+
+- Rebuilt the public documentation into a concise README plus focused onboarding, architecture, configuration, development, testing, deployment, contribution, and security guides.
+- Reconstructed the complete Git and npm release history with per-version differences, publication status, dates, and compare links.
+- Added adversarial documentation verification for source-backed claims, CLI flags, package scripts, local links, release invariants, packaging, and public-safety checks.
 
 ## [0.2.0] - 2026-07-14
 
