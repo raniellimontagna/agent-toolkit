@@ -65,10 +65,13 @@ The Agent Skills catalog exposes these locked bundle IDs and skill names:
 - `agent-browser`: `agent-browser`
 - `frontend-skills`: `impeccable`, `web-design-guidelines`, `react-doctor`, `remotion-best-practices`
 - `planning-skills`: `grill-me`, `grilling`, `grill-with-docs`, `domain-modeling`, `codebase-design`, `improve-codebase-architecture`
+- `security`: `api-security-audit`, `source-leak-audit`, `cicd-security-audit`, `cloud-misconfiguration-audit`, `llm-agent-security-audit`, `js-secrets-audit`
 
 React Doctor is installed from [`millionco/react-doctor`](https://github.com/millionco/react-doctor) at a pinned commit and is documented upstream under a Modified MIT License. It is an agent skill integration, not automatic CI setup. Remotion Best Practices is installed from [`remotion-dev/skills`](https://github.com/remotion-dev/skills) at a pinned commit.
 
 Bundled third-party skills preserve upstream attribution and license files in their skill directories. The repository catalog and immutable source pins in [`tools.lock.json`](tools.lock.json) are the source of truth.
+
+The first-party `security` skills are defensive rewrites informed by [`uphiago/recon-skills`](https://github.com/uphiago/recon-skills), under its MIT License. They are intended for authorized, non-destructive reviews; upstream offensive infrastructure, agent instructions, scripts, and mass-scanning workflows are not included. See [`skills/security/NOTICE.md`](skills/security/NOTICE.md) for attribution.
 
 ## Documentation
 

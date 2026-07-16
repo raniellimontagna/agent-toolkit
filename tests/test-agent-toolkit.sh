@@ -1039,6 +1039,34 @@ for expected_backend_skill in \
   fi
 done
 
+REPO_SECURITY_SKILLS_OUTPUT="$(
+  HOME="$DRY_RUN_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-list --skills-package security
+)"
+for expected_security_skill in \
+  "security/api-security-audit" \
+  "security/source-leak-audit" \
+  "security/cicd-security-audit" \
+  "security/cloud-misconfiguration-audit" \
+  "security/llm-agent-security-audit" \
+  "security/js-secrets-audit"; do
+  if ! grep -Fq -- "$expected_security_skill" <<<"$REPO_SECURITY_SKILLS_OUTPUT"; then
+    echo "Expected repository security package to include: $expected_security_skill" >&2
+    exit 1
+  fi
+done
+
+for required_security_guardrail in \
+  "authorized" \
+  "non-destructive" \
+  "never include secret values"; do
+  if ! grep -RilF -- "$required_security_guardrail" "$ROOT_DIR/skills/security" >/dev/null; then
+    echo "Expected security skills to document guardrail: $required_security_guardrail" >&2
+    exit 1
+  fi
+done
+
 REPO_API_SKILLS_OUTPUT="$(
   HOME="$TECH_SKILLS_HOME" \
   PATH="$FAKE_BIN:/usr/bin:/bin" \

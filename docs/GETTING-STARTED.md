@@ -86,7 +86,7 @@ npx -y @ranimontagna/agent-toolkit --skills-only --codex --local
 
 ## Select Custom Skills
 
-Bundled Custom Skills use repository-relative paths below `skills/`. Filters are repeatable and can be combined; package filtering runs first, scope filtering narrows the result, and exact paths select individual skills from the remaining set.
+Bundled Custom Skills use repository-relative paths below `skills/`. Filters are repeatable and can be combined; package filtering runs first, scope filtering narrows the result, and exact paths select individual skills from the remaining set. The `security` package contains authorized, non-destructive application and code security review skills; use `--skills-package security` or `--skills-scope security` to select only that package or scope.
 
 Select a first-level package:
 

@@ -61,7 +61,7 @@ Keep every public contract and its proof synchronized.
 | Add or change a CLI flag | `src/args.ts`, `src/usage.ts` and, when interactive behavior changes, `src/menu.ts` or `src/state.ts` | Argument unit tests, integration help assertions, and user documentation. |
 | Add or update an external source | `tools.lock.json`, `src/tool-lock.ts`, `src/provenance.ts`, and the consuming installer | Provenance and installer tests, integration expectations, source documentation, and license or notice material when content is vendored. |
 | Add or change runtime support | `src/state.ts`, `src/runtimes.ts`, `src/skill-targets.ts`, and affected installers | Runtime, target, installer, integration, configuration, and architecture coverage. |
-| Add or update a bundled Custom Skill | The skill directory below `skills/` | Valid metadata and local links, attribution files, audit and installation expectations, and the public catalog where applicable. |
+| Add or update a bundled Custom Skill | The skill directory below `skills/` | Valid metadata and local links, attribution files, audit and installation expectations, and the public catalog where applicable. Security skills must remain authorized, non-destructive, and redact secrets. |
 | Change installer or lifecycle behavior | `src/main.ts`, the owning module in `src/installers/`, `src/skills.ts`, or `src/manifest.ts` | Focused unit tests, end-to-end integration assertions, and lifecycle documentation. |
 | Change release or publish behavior | `src/release.ts`, `scripts/publish-npm-with-retry.sh`, or `.github/workflows/release.yml` | Release unit tests, publish-retry tests, README contracts, and release documentation. |
 
