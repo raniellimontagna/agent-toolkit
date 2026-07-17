@@ -605,7 +605,7 @@ if grep -Fq -- "--only antigravity" "$NPM_LOG"; then
   exit 1
 fi
 
-if ! grep -Fxq -- "-y @opengsd/gsd-core@1.6.1 --global --claude --codex --opencode --gemini" "$NPM_LOG"; then
+if ! grep -Fxq -- "-y @opengsd/gsd-core@1.7.0 --global --claude --codex --opencode --gemini" "$NPM_LOG"; then
   echo "Expected GSD installer to target Claude, Codex, OpenCode and Gemini globally" >&2
   cat "$NPM_LOG" >&2
   exit 1

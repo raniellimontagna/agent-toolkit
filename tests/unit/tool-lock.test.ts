@@ -165,7 +165,7 @@ describe("external tool lock", () => {
     expect(lock.tools.caveman.ref).toBe(
       "25d22f864ad68cc447a4cb93aefde918aa4aec9f",
     );
-    expect(lock.tools.gsd.version).toBe("1.6.1");
+    expect(lock.tools.gsd.version).toBe("1.7.0");
     expect(lock.tools.graphify.version).toBe("0.9.11");
     expect(lock.tools.agentBrowser).toEqual({
       source: "npm",

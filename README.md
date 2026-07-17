@@ -54,7 +54,7 @@ Current external sources:
 | RTK | `rtk-ai/rtk@v0.43.0`, with a SHA-256 pin for every supported archive |
 | Caveman | `JuliusBrussee/caveman@25d22f864ad68cc447a4cb93aefde918aa4aec9f` |
 | Graphify | `graphifyy==0.9.11` |
-| GSD | `@opengsd/gsd-core@1.6.1` |
+| GSD | `@opengsd/gsd-core@1.7.0` |
 | Agent Browser | `agent-browser@0.31.1` |
 | Agent Skills CLI | `skills@1.5.13`, with each source repository pinned to a full commit |
 | Runtime CLIs | `@anthropic-ai/claude-code@2.1.204`, `@openai/codex@0.143.0`, `opencode-ai@1.17.15`, and `@google/gemini-cli@0.49.0` |
