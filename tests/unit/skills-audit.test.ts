@@ -83,7 +83,9 @@ See [missing](rules/missing.md).
 
     expect(issues).toHaveLength(2);
     for (const issue of issues) {
-      expect(issue.message).toContain('Duplicate skill directory name "ui-ux-pro-max"');
+      expect(issue.message).toContain(
+        'Duplicate skill directory name "ui-ux-pro-max"',
+      );
       expect(issue.message).toContain("overwrite each other");
     }
     expect(issues.map((issue) => issue.file).sort()).toEqual([

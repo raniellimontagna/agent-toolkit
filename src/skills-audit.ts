@@ -90,7 +90,9 @@ export function auditDuplicateSkillNames(
         file: relative,
         message: `Duplicate skill directory name "${name}" also used by ${sorted
           .filter((other) => other !== relative)
-          .join(", ")}. Skills install by directory name, so these would overwrite each other.`,
+          .join(
+            ", ",
+          )}. Skills install by directory name, so these would overwrite each other.`,
       });
     }
   }
