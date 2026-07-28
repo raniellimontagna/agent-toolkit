@@ -55,7 +55,7 @@
     "@biomejs/biome": "^2.5.1",
     "@types/node": "^26.0.1",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.10"
   },
   "dependencies": {
     "@clack/prompts": "^1.6.0"
