@@ -72,4 +72,32 @@ See [missing](rules/missing.md).
       },
     ]);
   });
+  it("flags skills that share a directory name across categories", () => {
+    const frontmatter = (name: string) =>
+      `---\nname: ${name}\ndescription: Duplicate name check.\n---\n\n# ${name}\n`;
+
+    writeSkill("frontend/design/ui-ux-pro-max", frontmatter("ui-ux-pro-max"));
+    writeSkill("general/ui-ux-pro-max", frontmatter("ui-ux-pro-max"));
+
+    const issues = auditSkills(tempDir).issues;
+
+    expect(issues).toHaveLength(2);
+    for (const issue of issues) {
+      expect(issue.message).toContain('Duplicate skill directory name "ui-ux-pro-max"');
+      expect(issue.message).toContain("overwrite each other");
+    }
+    expect(issues.map((issue) => issue.file).sort()).toEqual([
+      "frontend/design/ui-ux-pro-max",
+      "general/ui-ux-pro-max",
+    ]);
+  });
+
+  it("accepts the same skill name when only one directory uses it", () => {
+    writeSkill(
+      "frontend/accessibility",
+      "---\nname: accessibility\ndescription: Only one.\n---\n\n# Accessibility\n",
+    );
+
+    expect(auditSkills(tempDir).issues).toEqual([]);
+  });
 });
