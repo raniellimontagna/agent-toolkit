@@ -14,7 +14,11 @@ function fixture(): { projectRoot: string; runDir: string } {
   return { projectRoot, runDir: path.join(projectRoot, ".ariadne", "run-1") };
 }
 
-function result(status: number | null, durationMs: number): ProcessResult {
+function result(
+  status: number | null,
+  durationMs: number,
+  overrides: Partial<ProcessResult> = {},
+): ProcessResult {
   return {
     status,
     signal: status === null ? "SIGTERM" : null,
@@ -25,6 +29,7 @@ function result(status: number | null, durationMs: number): ProcessResult {
     durationMs,
     timedOut: status === null,
     aborted: false,
+    ...overrides,
   };
 }
 
@@ -78,7 +83,10 @@ describe("runQualityChecks", () => {
     expect(check).toEqual({
       command: "pnpm test",
       status: 0,
+      signal: null,
       durationMs: 47,
+      timedOut: false,
+      aborted: false,
       stdoutPath: path.join(runDir, "check-1.stdout.log"),
       stderrPath: path.join(runDir, "check-1.stderr.log"),
     });
@@ -158,6 +166,58 @@ describe("runQualityChecks", () => {
     expect(calls[0]?.[1].timeoutMs).toBeGreaterThan(0);
     expect(results.map((entry) => entry.status)).toEqual([null]);
     expect(calls).toHaveLength(1);
+  });
+
+  it("caps checks to the remaining loop runtime and preserves stop metadata", async () => {
+    const { projectRoot, runDir } = fixture();
+    const calls: Parameters<typeof runAgentProcess>[] = [];
+    const runProcess: typeof runAgentProcess = async (...args) => {
+      calls.push(args);
+      return result(null, 25, {
+        signal: "SIGKILL",
+        timedOut: true,
+        aborted: false,
+      });
+    };
+
+    const [check] = await runQualityChecks({
+      commands: ["slow-check"],
+      projectRoot,
+      runDir,
+      timeoutMs: 75,
+      runProcess,
+    });
+
+    expect(calls[0]?.[1].timeoutMs).toBeLessThanOrEqual(75);
+    expect(check).toMatchObject({
+      status: null,
+      signal: "SIGKILL",
+      timedOut: true,
+      aborted: false,
+    });
+  });
+
+  it("preserves cancellation metadata from a quality check", async () => {
+    const { projectRoot, runDir } = fixture();
+    const runProcess: typeof runAgentProcess = async () =>
+      result(null, 5, {
+        signal: "SIGKILL",
+        timedOut: false,
+        aborted: true,
+      });
+
+    const [check] = await runQualityChecks({
+      commands: ["cancelled-check"],
+      projectRoot,
+      runDir,
+      runProcess,
+    });
+
+    expect(check).toMatchObject({
+      signal: "SIGKILL",
+      timedOut: false,
+      aborted: true,
+    });
   });
 
   it("rejects an empty command list without starting a process", async () => {

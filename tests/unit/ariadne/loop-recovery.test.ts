@@ -27,7 +27,11 @@ type FailureMode =
   | "missing_result"
   | "false_criterion"
   | "check"
+  | "check_timeout"
+  | "check_cancelled"
   | "sigint"
+  | "timeout_sigterm"
+  | "cancelled_sigterm"
   | "cancelled";
 
 function story(
@@ -67,6 +71,7 @@ type Harness = {
   prompts: string[];
   processStarts: number;
   readyDiffFlags: boolean[];
+  commits: number;
   setNow(value: number): void;
 };
 
@@ -96,6 +101,7 @@ function createHarness(
   const prompts: string[] = [];
   const readyDiffFlags: boolean[] = [];
   let processStarts = 0;
+  let commits = 0;
   let runNumber = 0;
   let nowMs = Date.parse("2026-07-29T00:00:00.000Z");
 
@@ -105,6 +111,7 @@ function createHarness(
     },
     stageAll() {},
     commit() {
+      commits += 1;
       return "commit-head";
     },
   } as unknown as AriadneGit;
@@ -188,6 +195,18 @@ function createHarness(
         throw new Error("fake child failed to spawn");
       if (mode === "sigint")
         return processResult({ status: null, signal: "SIGINT" });
+      if (mode === "timeout_sigterm")
+        return processResult({
+          status: null,
+          signal: "SIGTERM",
+          timedOut: true,
+        });
+      if (mode === "cancelled_sigterm")
+        return processResult({
+          status: null,
+          signal: "SIGTERM",
+          aborted: true,
+        });
       if (mode === "cancelled")
         return processResult({ status: null, aborted: true });
       return processResult();
@@ -196,8 +215,11 @@ function createHarness(
       const mode = modes[processStarts - 1] ?? modes.at(-1) ?? "success";
       const checks: QualityCheckResult[] = input.commands.map((command) => ({
         command,
-        status: mode === "check" ? 1 : 0,
+        status: mode === "check" ? 1 : mode.startsWith("check_") ? null : 0,
+        signal: mode.startsWith("check_") ? "SIGKILL" : null,
         durationMs: 5,
+        timedOut: mode === "check_timeout",
+        aborted: mode === "check_cancelled",
         stdoutPath: path.join(input.runDir, "check.stdout.log"),
         stderrPath: path.join(input.runDir, "check.stderr.log"),
       }));
@@ -216,6 +238,9 @@ function createHarness(
       return processStarts;
     },
     readyDiffFlags,
+    get commits() {
+      return commits;
+    },
     setNow(value: number) {
       nowMs = value;
     },
@@ -366,6 +391,7 @@ describe("runAriadneLoop recovery", () => {
 
   it.each([
     ["sigint", "signal"],
+    ["cancelled_sigterm", "cancelled"],
     ["cancelled", "cancelled"],
   ] as const)("returns interrupted for %s and preserves active state", async (mode, reason) => {
     const harness = createHarness([mode]);
@@ -392,6 +418,88 @@ describe("runAriadneLoop recovery", () => {
         ),
       ),
     ).toMatchObject({ outcome: "interrupted", reason });
+  });
+
+  it("classifies a runtime timeout before the SIGTERM used to stop the child", async () => {
+    const harness = createHarness(["timeout_sigterm"]);
+
+    const result = await runAriadneLoop(
+      { runtime: "codex", dryRun: false, maxRuntimeMs: 100 },
+      harness.deps,
+    );
+
+    expect(result).toMatchObject({
+      outcome: "budget_exhausted",
+      iterations: 1,
+      lastRunId: "run-1",
+    });
+    expect(harness.commits).toBe(0);
+  });
+
+  it.each([
+    ["check_timeout", "budget_exhausted", "max_runtime"],
+    ["check_cancelled", "interrupted", "cancelled"],
+  ] as const)("propagates %s from quality checks without committing", async (mode, outcome, reason) => {
+    const harness = createHarness([mode]);
+    let checkInput: Parameters<AriadneLoopDeps["runChecks"]>[0] | undefined;
+    const originalRunChecks = harness.deps.runChecks;
+    harness.deps.runChecks = async (input) => {
+      checkInput = input;
+      return originalRunChecks(input);
+    };
+    const controller = new AbortController();
+
+    const result = await runAriadneLoop(
+      {
+        runtime: "codex",
+        dryRun: false,
+        maxRuntimeMs: 100,
+        signal: controller.signal,
+      },
+      harness.deps,
+    );
+
+    expect(result).toMatchObject({ outcome, lastRunId: "run-1" });
+    expect(checkInput?.timeoutMs).toBeGreaterThan(0);
+    expect(checkInput?.timeoutMs).toBeLessThanOrEqual(100);
+    expect(checkInput?.signal).toBe(controller.signal);
+    expect(harness.commits).toBe(0);
+    expect(
+      JSON.parse(
+        fs.readFileSync(
+          path.join(harness.store.paths.runs, "run-1", "stop.json"),
+          "utf8",
+        ),
+      ),
+    ).toMatchObject({ outcome, reason });
+  });
+
+  it.each([
+    "SIGINT",
+    "SIGTERM",
+  ] as const)("treats a parent %s as interrupted even when the child is killed with SIGKILL", async (parentSignal) => {
+    const harness = createHarness(["success"]);
+    const listenersBefore = new Set(process.listeners(parentSignal));
+    harness.deps.runProcess = async () => {
+      const loopListener = process
+        .listeners(parentSignal)
+        .find((listener) => !listenersBefore.has(listener));
+      expect(loopListener).toBeDefined();
+      loopListener?.(parentSignal);
+      return processResult({ status: null, signal: "SIGKILL" });
+    };
+
+    const result = await runAriadneLoop(
+      { runtime: "codex", dryRun: false },
+      harness.deps,
+    );
+
+    expect(result).toMatchObject({
+      outcome: "interrupted",
+      iterations: 1,
+      lastRunId: "run-1",
+    });
+    expect(harness.commits).toBe(0);
   });
 
   it("archives a stale lock and does not increment when the budget expires before child start", async () => {
@@ -427,6 +535,7 @@ describe("runAriadneLoop recovery", () => {
     );
 
     expect(result.outcome).toBe("budget_exhausted");
+    expect(result.lastRunId).toBe("run-1");
     expect(harness.processStarts).toBe(0);
     expect(harness.store.loadPrd().userStories[0]).toMatchObject({
       status: "in_progress",
@@ -441,6 +550,26 @@ describe("runAriadneLoop recovery", () => {
         ),
       ),
     ).toBe(true);
+  });
+
+  it("reports an already-blocked story while preserving its existing diff", async () => {
+    const harness = createHarness(["success"], story("blocked", 3));
+    harness.deps.git.assertReady = (_branch, allowPreservedDiff) => {
+      if (!allowPreservedDiff) throw new Error("working tree is dirty");
+    };
+
+    const result = await runAriadneLoop(
+      { runtime: "codex", dryRun: false },
+      harness.deps,
+    );
+
+    expect(result).toMatchObject({
+      outcome: "blocked",
+      iterations: 0,
+      activeStoryId: "US-008",
+      blockedStoryId: "US-008",
+    });
+    expect(harness.processStarts).toBe(0);
   });
 });
 

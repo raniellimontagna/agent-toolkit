@@ -7,7 +7,10 @@ const QUALITY_CHECK_TIMEOUT_MS = 30 * 60 * 1_000;
 export type QualityCheckResult = {
   command: string;
   status: number | null;
+  signal: NodeJS.Signals | null;
   durationMs: number;
+  timedOut: boolean;
+  aborted: boolean;
   stdoutPath: string;
   stderrPath: string;
 };
@@ -17,6 +20,7 @@ export type QualityCheckInput = {
   projectRoot: string;
   runDir: string;
   signal?: AbortSignal;
+  timeoutMs?: number;
   runProcess: typeof runAgentProcess;
 };
 
@@ -49,7 +53,13 @@ export async function runQualityChecks(
 
   fs.mkdirSync(input.runDir, { recursive: true });
   const results: QualityCheckResult[] = [];
+  const startedAt = Date.now();
   for (const [index, command] of input.commands.entries()) {
+    const remainingTimeout =
+      input.timeoutMs === undefined
+        ? QUALITY_CHECK_TIMEOUT_MS
+        : input.timeoutMs - (Date.now() - startedAt);
+    if (remainingTimeout <= 0) break;
     const checkNumber = index + 1;
     const stdoutPath = path.join(
       input.runDir,
@@ -64,14 +74,17 @@ export async function runQualityChecks(
       {
         stdoutPath,
         stderrPath,
-        timeoutMs: QUALITY_CHECK_TIMEOUT_MS,
+        timeoutMs: Math.min(QUALITY_CHECK_TIMEOUT_MS, remainingTimeout),
         signal: input.signal,
       },
     );
     results.push({
       command,
       status: processResult.status,
+      signal: processResult.signal,
       durationMs: processResult.durationMs,
+      timedOut: processResult.timedOut,
+      aborted: processResult.aborted,
       stdoutPath,
       stderrPath,
     });

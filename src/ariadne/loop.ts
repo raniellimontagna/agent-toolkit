@@ -239,6 +239,13 @@ export async function runAriadneLoop(
   let commit: string | undefined;
   const startedAt = deps.now().getTime();
   const priorFailures = new Map<string, AttemptFailure>();
+  let parentSignal: "SIGINT" | "SIGTERM" | undefined;
+  const onParentSigint = () => {
+    parentSignal = "SIGINT";
+  };
+  const onParentSigterm = () => {
+    parentSignal = "SIGTERM";
+  };
 
   const runtimeBudgetReached = () =>
     options.maxRuntimeMs !== undefined &&
@@ -261,7 +268,7 @@ export async function runAriadneLoop(
       iterations,
       completedStoryIds,
       ...(storyId ? { activeStoryId: storyId } : {}),
-      ...(lastRunId ? { lastRunId } : {}),
+      ...((runId ?? lastRunId) ? { lastRunId: runId ?? lastRunId } : {}),
       ...(commit ? { commit } : {}),
     });
     if (runId) {
@@ -320,335 +327,447 @@ export async function runAriadneLoop(
     return result;
   };
 
-  for (;;) {
-    if (
-      options.maxIterations !== undefined &&
-      iterations >= options.maxIterations
-    ) {
-      return stop(
-        "budget_exhausted",
-        "max_iterations",
-        lastRunId,
-        activeStoryId(),
-      );
-    }
-    if (runtimeBudgetReached()) {
-      return stop(
-        "budget_exhausted",
-        "max_runtime",
-        lastRunId,
-        activeStoryId(),
-      );
-    }
+  const recordTerminalFailure = (
+    story: AriadneStory,
+    failure: AttemptFailure,
+  ) => {
+    deps.store.writeRunJson(failure.runId, "failure.json", failure);
+    deps.store.appendProgress(
+      formatFailureProgress({
+        failure,
+        storyId: story.id,
+        runtime: options.runtime,
+      }),
+    );
+  };
 
-    const runId = deps.createRunId();
-    const lock = acquireIterationLock(runId, deps);
-    try {
-      const config = deps.store.loadConfig();
-      const prd = deps.store.loadPrd();
-      assertRunnableConfig(config);
-      const hasActiveStory = prd.userStories.some(
-        (story) => story.status === "in_progress",
-      );
-      deps.git.assertReady(prd.branchName, hasActiveStory);
-
-      const activeStory = selectStory(prd);
-      if (!activeStory) {
-        const blockedStory = prd.userStories.find(
-          (story) => story.status === "blocked",
+  process.on("SIGINT", onParentSigint);
+  process.on("SIGTERM", onParentSigterm);
+  try {
+    for (;;) {
+      if (options.signal?.aborted || parentSignal) {
+        return stop(
+          "interrupted",
+          options.signal?.aborted ? "cancelled" : "signal",
+          lastRunId,
+          activeStoryId(),
         );
-        if (blockedStory) {
+      }
+      if (
+        options.maxIterations !== undefined &&
+        iterations >= options.maxIterations
+      ) {
+        return stop(
+          "budget_exhausted",
+          "max_iterations",
+          lastRunId,
+          activeStoryId(),
+        );
+      }
+      if (runtimeBudgetReached()) {
+        return stop(
+          "budget_exhausted",
+          "max_runtime",
+          lastRunId,
+          activeStoryId(),
+        );
+      }
+
+      const runId = deps.createRunId();
+      const lock = acquireIterationLock(runId, deps);
+      try {
+        const config = deps.store.loadConfig();
+        const prd = deps.store.loadPrd();
+        assertRunnableConfig(config);
+        const hasPreservedDiff = prd.userStories.some(
+          (story) =>
+            story.status === "in_progress" || story.status === "blocked",
+        );
+        deps.git.assertReady(prd.branchName, hasPreservedDiff);
+
+        const activeStory = selectStory(prd);
+        if (!activeStory) {
+          const blockedStory = prd.userStories.find(
+            (story) => story.status === "blocked",
+          );
+          if (blockedStory) {
+            return summary({
+              options,
+              outcome: "blocked",
+              iterations,
+              completedStoryIds,
+              activeStoryId: blockedStory.id,
+              blockedStoryId: blockedStory.id,
+              ...(lastRunId ? { lastRunId } : {}),
+              ...(commit ? { commit } : {}),
+            });
+          }
           return summary({
             options,
-            outcome: "blocked",
+            outcome: "complete",
             iterations,
             completedStoryIds,
-            activeStoryId: blockedStory.id,
-            blockedStoryId: blockedStory.id,
             ...(lastRunId ? { lastRunId } : {}),
             ...(commit ? { commit } : {}),
           });
         }
-        return summary({
-          options,
-          outcome: "complete",
-          iterations,
-          completedStoryIds,
-          ...(lastRunId ? { lastRunId } : {}),
-          ...(commit ? { commit } : {}),
-        });
-      }
 
-      if (runtimeBudgetReached()) {
-        return stop("budget_exhausted", "max_runtime", runId, activeStory.id);
-      }
-
-      const continuedStory = activeStory.status === "in_progress";
-      activeStory.status = "in_progress";
-      deps.store.savePrd(prd);
-
-      const runDir = deps.store.createRunDir(runId);
-      const promptPath = path.join(runDir, "prompt.md");
-      const resultPath = path.join(runDir, "result.json");
-      const priorFailure =
-        priorFailures.get(activeStory.id) ??
-        readPriorAttemptFailure(deps.store, activeStory.id);
-      const prompt = buildIterationPrompt({
-        runId,
-        story: activeStory,
-        projectRoot: deps.store.projectRoot,
-        resultPath,
-        qualityChecks: config.qualityChecks,
-        ...(priorFailure ? { priorFailure: priorFailure.message } : {}),
-        hasExistingDiff: continuedStory,
-      });
-      fs.writeFileSync(promptPath, prompt, "utf8");
-      const attempt = activeStory.attempts + 1;
-      deps.store.writeRunJson(runId, "attempt.json", {
-        schemaVersion: 1,
-        runId,
-        storyId: activeStory.id,
-        runtime: options.runtime,
-        attempt,
-        startedAt: deps.now().toISOString(),
-      });
-
-      const invocation = deps.adapter.buildInvocation({
-        runId,
-        projectRoot: deps.store.projectRoot,
-        promptPath,
-        relativePromptPath: path.relative(deps.store.projectRoot, promptPath),
-      });
-      activeStory.attempts = attempt;
-      deps.store.savePrd(prd);
-      iterations += 1;
-      lastRunId = runId;
-      const remainingRuntime =
-        options.maxRuntimeMs === undefined
-          ? undefined
-          : Math.max(
-              1,
-              options.maxRuntimeMs - (deps.now().getTime() - startedAt),
-            );
-      let processResult: Awaited<ReturnType<typeof deps.runProcess>>;
-      try {
-        processResult = await deps.runProcess(invocation, {
-          stdoutPath: path.join(runDir, "runtime.stdout.log"),
-          stderrPath: path.join(runDir, "runtime.stderr.log"),
-          ...(remainingRuntime === undefined
-            ? {}
-            : { timeoutMs: remainingRuntime }),
-        });
-      } catch (error) {
-        const failure: AttemptFailure = {
-          runId,
-          category: "process",
-          message: errorMessage(error),
-          timestamp: deps.now().toISOString(),
-        };
-        if (
-          failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory)
-        ) {
-          return blockedSummary(activeStory.id, runId);
+        if (runtimeBudgetReached()) {
+          return stop("budget_exhausted", "max_runtime", runId, activeStory.id);
         }
-        continue;
-      }
-      deps.store.writeRunJson(runId, "process.json", processResult);
+        if (options.signal?.aborted || parentSignal) {
+          return stop(
+            "interrupted",
+            options.signal?.aborted ? "cancelled" : "signal",
+            runId,
+            activeStory.id,
+          );
+        }
 
-      if (
-        processResult.signal === "SIGINT" ||
-        processResult.signal === "SIGTERM"
-      ) {
-        const failure: AttemptFailure = {
-          runId,
-          category: "process",
-          message: `Ariadne runtime was interrupted by ${processResult.signal}`,
-          timestamp: deps.now().toISOString(),
-        };
-        deps.store.writeRunJson(runId, "failure.json", failure);
-        deps.store.appendProgress(
-          formatFailureProgress({
-            failure,
-            storyId: activeStory.id,
-            runtime: options.runtime,
-          }),
-        );
-        return stop("interrupted", "signal", runId, activeStory.id);
-      }
-      if (processResult.aborted) {
-        const failure: AttemptFailure = {
-          runId,
-          category: "process",
-          message: "Ariadne runtime was cancelled",
-          timestamp: deps.now().toISOString(),
-        };
-        deps.store.writeRunJson(runId, "failure.json", failure);
-        deps.store.appendProgress(
-          formatFailureProgress({
-            failure,
-            storyId: activeStory.id,
-            runtime: options.runtime,
-          }),
-        );
-        return stop("interrupted", "cancelled", runId, activeStory.id);
-      }
-      if (processResult.timedOut && options.maxRuntimeMs !== undefined) {
-        const failure: AttemptFailure = {
-          runId,
-          category: "process",
-          message: "Ariadne runtime budget expired during the agent process",
-          timestamp: deps.now().toISOString(),
-        };
-        failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory);
-        return stop("budget_exhausted", "max_runtime", runId, activeStory.id);
-      }
+        const continuedStory = activeStory.status === "in_progress";
+        activeStory.status = "in_progress";
+        deps.store.savePrd(prd);
 
-      let runtimeOutcome: ReturnType<AriadneRuntimeAdapter["interpretResult"]>;
-      try {
-        runtimeOutcome = deps.adapter.interpretResult(processResult);
-      } catch (error) {
-        const failure: AttemptFailure = {
-          runId,
-          category: "process",
-          message: errorMessage(error),
-          timestamp: deps.now().toISOString(),
-        };
-        if (
-          failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory)
-        ) {
-          return blockedSummary(activeStory.id, runId);
-        }
-        continue;
-      }
-      if (!runtimeOutcome.ok) {
-        const failure: AttemptFailure = {
-          runId,
-          category: "process",
-          message:
-            runtimeOutcome.reason ??
-            `Ariadne runtime exited with status ${runtimeOutcome.status}`,
-          timestamp: deps.now().toISOString(),
-        };
-        if (
-          failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory)
-        ) {
-          return blockedSummary(activeStory.id, runId);
-        }
-        continue;
-      }
-
-      let result: ReturnType<typeof readAgentResult>;
-      try {
-        result = readAgentResult(resultPath, {
-          runId,
-          storyId: activeStory.id,
-          acceptanceCriteria: activeStory.acceptanceCriteria,
-          projectRoot: deps.store.projectRoot,
-        });
-      } catch (error) {
-        const failure: AttemptFailure = {
-          runId,
-          category: "result",
-          message: errorMessage(error),
-          timestamp: deps.now().toISOString(),
-        };
-        if (
-          failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory)
-        ) {
-          return blockedSummary(activeStory.id, runId);
-        }
-        continue;
-      }
-      if (result.outcome !== "completed") {
-        const category = result.criteria.some((criterion) => !criterion.passed)
-          ? "criterion"
-          : "result";
-        const failure: AttemptFailure = {
-          runId,
-          category,
-          message:
-            result.failureReason ??
-            `Ariadne runtime did not complete ${activeStory.id}`,
-          timestamp: deps.now().toISOString(),
-        };
-        if (
-          failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory)
-        ) {
-          return blockedSummary(activeStory.id, runId);
-        }
-        continue;
-      }
-
-      let checks: Awaited<ReturnType<typeof deps.runChecks>>;
-      try {
-        checks = await deps.runChecks({
-          commands: config.qualityChecks,
-          projectRoot: deps.store.projectRoot,
-          runDir,
-          runProcess: deps.runProcess,
-        });
-      } catch (error) {
-        const failure: AttemptFailure = {
-          runId,
-          category: "check",
-          message: errorMessage(error),
-          timestamp: deps.now().toISOString(),
-        };
-        if (
-          failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory)
-        ) {
-          return blockedSummary(activeStory.id, runId);
-        }
-        continue;
-      }
-      deps.store.writeRunJson(runId, "checks.json", checks);
-      if (checks.length !== config.qualityChecks.length) {
-        const failure: AttemptFailure = {
-          runId,
-          category: "check",
-          message: `Ariadne quality checks did not all run for ${activeStory.id}`,
-          timestamp: deps.now().toISOString(),
-        };
-        if (
-          failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory)
-        ) {
-          return blockedSummary(activeStory.id, runId);
-        }
-        continue;
-      }
-      const failedCheck = checks.find((check) => check.status !== 0);
-      if (failedCheck) {
-        const failure: AttemptFailure = {
-          runId,
-          category: "check",
-          message: `Ariadne quality check failed: ${failedCheck.command}`,
-          timestamp: deps.now().toISOString(),
-        };
-        if (
-          failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory)
-        ) {
-          return blockedSummary(activeStory.id, runId);
-        }
-        continue;
-      }
-
-      activeStory.status = "completed";
-      deps.store.savePrd(prd);
-      deps.store.appendProgress(
-        formatProgressEntry({
-          timestamp: deps.now().toISOString(),
+        const runDir = deps.store.createRunDir(runId);
+        const promptPath = path.join(runDir, "prompt.md");
+        const resultPath = path.join(runDir, "result.json");
+        const priorFailure =
+          priorFailures.get(activeStory.id) ??
+          readPriorAttemptFailure(deps.store, activeStory.id);
+        const prompt = buildIterationPrompt({
           runId,
           story: activeStory,
+          projectRoot: deps.store.projectRoot,
+          resultPath,
+          qualityChecks: config.qualityChecks,
+          ...(priorFailure ? { priorFailure: priorFailure.message } : {}),
+          hasExistingDiff: continuedStory,
+        });
+        fs.writeFileSync(promptPath, prompt, "utf8");
+        const attempt = activeStory.attempts + 1;
+        deps.store.writeRunJson(runId, "attempt.json", {
+          schemaVersion: 1,
+          runId,
+          storyId: activeStory.id,
           runtime: options.runtime,
-          result,
-          checks,
-        }),
-      );
-      deps.git.stageAll();
-      try {
-        commit = deps.git.commit(activeStory);
-      } catch (error) {
-        activeStory.status = "in_progress";
+          attempt,
+          startedAt: deps.now().toISOString(),
+        });
+
+        const invocation = deps.adapter.buildInvocation({
+          runId,
+          projectRoot: deps.store.projectRoot,
+          promptPath,
+          relativePromptPath: path.relative(deps.store.projectRoot, promptPath),
+        });
+        activeStory.attempts = attempt;
+        deps.store.savePrd(prd);
+        iterations += 1;
+        lastRunId = runId;
+        const remainingRuntime =
+          options.maxRuntimeMs === undefined
+            ? undefined
+            : Math.max(
+                1,
+                options.maxRuntimeMs - (deps.now().getTime() - startedAt),
+              );
+        let processResult: Awaited<ReturnType<typeof deps.runProcess>>;
+        try {
+          processResult = await deps.runProcess(invocation, {
+            stdoutPath: path.join(runDir, "runtime.stdout.log"),
+            stderrPath: path.join(runDir, "runtime.stderr.log"),
+            ...(remainingRuntime === undefined
+              ? {}
+              : { timeoutMs: remainingRuntime }),
+            ...(options.signal ? { signal: options.signal } : {}),
+          });
+        } catch (error) {
+          if (options.signal?.aborted || parentSignal) {
+            return stop(
+              "interrupted",
+              options.signal?.aborted ? "cancelled" : "signal",
+              runId,
+              activeStory.id,
+            );
+          }
+          if (runtimeBudgetReached()) {
+            return stop(
+              "budget_exhausted",
+              "max_runtime",
+              runId,
+              activeStory.id,
+            );
+          }
+          const failure: AttemptFailure = {
+            runId,
+            category: "process",
+            message: errorMessage(error),
+            timestamp: deps.now().toISOString(),
+          };
+          if (
+            failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory)
+          ) {
+            return blockedSummary(activeStory.id, runId);
+          }
+          continue;
+        }
+        deps.store.writeRunJson(runId, "process.json", processResult);
+
+        if (processResult.timedOut && options.maxRuntimeMs !== undefined) {
+          const failure: AttemptFailure = {
+            runId,
+            category: "process",
+            message: "Ariadne runtime budget expired during the agent process",
+            timestamp: deps.now().toISOString(),
+          };
+          failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory);
+          return stop("budget_exhausted", "max_runtime", runId, activeStory.id);
+        }
+        if (processResult.aborted || options.signal?.aborted) {
+          const failure: AttemptFailure = {
+            runId,
+            category: "process",
+            message: "Ariadne runtime was cancelled",
+            timestamp: deps.now().toISOString(),
+          };
+          recordTerminalFailure(activeStory, failure);
+          return stop("interrupted", "cancelled", runId, activeStory.id);
+        }
+        if (parentSignal) {
+          const failure: AttemptFailure = {
+            runId,
+            category: "process",
+            message: `Ariadne runtime was interrupted by parent ${parentSignal}`,
+            timestamp: deps.now().toISOString(),
+          };
+          recordTerminalFailure(activeStory, failure);
+          return stop("interrupted", "signal", runId, activeStory.id);
+        }
+        if (
+          processResult.signal === "SIGINT" ||
+          processResult.signal === "SIGTERM"
+        ) {
+          const failure: AttemptFailure = {
+            runId,
+            category: "process",
+            message: `Ariadne runtime was interrupted by ${processResult.signal}`,
+            timestamp: deps.now().toISOString(),
+          };
+          recordTerminalFailure(activeStory, failure);
+          return stop("interrupted", "signal", runId, activeStory.id);
+        }
+
+        let runtimeOutcome: ReturnType<
+          AriadneRuntimeAdapter["interpretResult"]
+        >;
+        try {
+          runtimeOutcome = deps.adapter.interpretResult(processResult);
+        } catch (error) {
+          const failure: AttemptFailure = {
+            runId,
+            category: "process",
+            message: errorMessage(error),
+            timestamp: deps.now().toISOString(),
+          };
+          if (
+            failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory)
+          ) {
+            return blockedSummary(activeStory.id, runId);
+          }
+          continue;
+        }
+        if (!runtimeOutcome.ok) {
+          const failure: AttemptFailure = {
+            runId,
+            category: "process",
+            message:
+              runtimeOutcome.reason ??
+              `Ariadne runtime exited with status ${runtimeOutcome.status}`,
+            timestamp: deps.now().toISOString(),
+          };
+          if (
+            failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory)
+          ) {
+            return blockedSummary(activeStory.id, runId);
+          }
+          continue;
+        }
+
+        let result: ReturnType<typeof readAgentResult>;
+        try {
+          result = readAgentResult(resultPath, {
+            runId,
+            storyId: activeStory.id,
+            acceptanceCriteria: activeStory.acceptanceCriteria,
+            projectRoot: deps.store.projectRoot,
+          });
+        } catch (error) {
+          const failure: AttemptFailure = {
+            runId,
+            category: "result",
+            message: errorMessage(error),
+            timestamp: deps.now().toISOString(),
+          };
+          if (
+            failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory)
+          ) {
+            return blockedSummary(activeStory.id, runId);
+          }
+          continue;
+        }
+        if (result.outcome !== "completed") {
+          const category = result.criteria.some(
+            (criterion) => !criterion.passed,
+          )
+            ? "criterion"
+            : "result";
+          const failure: AttemptFailure = {
+            runId,
+            category,
+            message:
+              result.failureReason ??
+              `Ariadne runtime did not complete ${activeStory.id}`,
+            timestamp: deps.now().toISOString(),
+          };
+          if (
+            failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory)
+          ) {
+            return blockedSummary(activeStory.id, runId);
+          }
+          continue;
+        }
+
+        if (runtimeBudgetReached()) {
+          return stop("budget_exhausted", "max_runtime", runId, activeStory.id);
+        }
+        if (options.signal?.aborted || parentSignal) {
+          return stop(
+            "interrupted",
+            options.signal?.aborted ? "cancelled" : "signal",
+            runId,
+            activeStory.id,
+          );
+        }
+
+        let checks: Awaited<ReturnType<typeof deps.runChecks>>;
+        const remainingCheckRuntime =
+          options.maxRuntimeMs === undefined
+            ? undefined
+            : Math.max(
+                1,
+                options.maxRuntimeMs - (deps.now().getTime() - startedAt),
+              );
+        try {
+          checks = await deps.runChecks({
+            commands: config.qualityChecks,
+            projectRoot: deps.store.projectRoot,
+            runDir,
+            runProcess: deps.runProcess,
+            ...(options.signal ? { signal: options.signal } : {}),
+            ...(remainingCheckRuntime === undefined
+              ? {}
+              : { timeoutMs: remainingCheckRuntime }),
+          });
+        } catch (error) {
+          if (options.signal?.aborted || parentSignal) {
+            return stop(
+              "interrupted",
+              options.signal?.aborted ? "cancelled" : "signal",
+              runId,
+              activeStory.id,
+            );
+          }
+          if (runtimeBudgetReached()) {
+            return stop(
+              "budget_exhausted",
+              "max_runtime",
+              runId,
+              activeStory.id,
+            );
+          }
+          const failure: AttemptFailure = {
+            runId,
+            category: "check",
+            message: errorMessage(error),
+            timestamp: deps.now().toISOString(),
+          };
+          if (
+            failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory)
+          ) {
+            return blockedSummary(activeStory.id, runId);
+          }
+          continue;
+        }
+        deps.store.writeRunJson(runId, "checks.json", checks);
+        const timedOutCheck = checks.find((check) => check.timedOut);
+        if (timedOutCheck && options.maxRuntimeMs !== undefined) {
+          const failure: AttemptFailure = {
+            runId,
+            category: "check",
+            message: `Ariadne runtime budget expired during quality check: ${timedOutCheck.command}`,
+            timestamp: deps.now().toISOString(),
+          };
+          failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory);
+          return stop("budget_exhausted", "max_runtime", runId, activeStory.id);
+        }
+        const abortedCheck = checks.find((check) => check.aborted);
+        if (abortedCheck || options.signal?.aborted) {
+          const failure: AttemptFailure = {
+            runId,
+            category: "check",
+            message: `Ariadne quality check was cancelled: ${abortedCheck?.command ?? "external cancellation"}`,
+            timestamp: deps.now().toISOString(),
+          };
+          recordTerminalFailure(activeStory, failure);
+          return stop("interrupted", "cancelled", runId, activeStory.id);
+        }
+        const interruptedCheck = checks.find(
+          (check) => check.signal === "SIGINT" || check.signal === "SIGTERM",
+        );
+        if (parentSignal || interruptedCheck) {
+          const failure: AttemptFailure = {
+            runId,
+            category: "check",
+            message: `Ariadne quality checks were interrupted by ${parentSignal ?? interruptedCheck?.signal}`,
+            timestamp: deps.now().toISOString(),
+          };
+          recordTerminalFailure(activeStory, failure);
+          return stop("interrupted", "signal", runId, activeStory.id);
+        }
+        if (runtimeBudgetReached()) {
+          return stop("budget_exhausted", "max_runtime", runId, activeStory.id);
+        }
+        if (checks.length !== config.qualityChecks.length) {
+          const failure: AttemptFailure = {
+            runId,
+            category: "check",
+            message: `Ariadne quality checks did not all run for ${activeStory.id}`,
+            timestamp: deps.now().toISOString(),
+          };
+          if (
+            failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory)
+          ) {
+            return blockedSummary(activeStory.id, runId);
+          }
+          continue;
+        }
+        const failedCheck = checks.find((check) => check.status !== 0);
+        if (failedCheck) {
+          const failure: AttemptFailure = {
+            runId,
+            category: "check",
+            message: `Ariadne quality check failed: ${failedCheck.command}`,
+            timestamp: deps.now().toISOString(),
+          };
+          if (
+            failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory)
+          ) {
+            return blockedSummary(activeStory.id, runId);
+          }
+          continue;
+        }
+
+        activeStory.status = "completed";
         deps.store.savePrd(prd);
         deps.store.appendProgress(
           formatProgressEntry({
@@ -658,25 +777,45 @@ export async function runAriadneLoop(
             runtime: options.runtime,
             result,
             checks,
-            failureCategory: "commit_failure",
           }),
         );
-        throw error;
-      }
-      completedStoryIds.push(activeStory.id);
+        deps.git.stageAll();
+        try {
+          commit = deps.git.commit(activeStory);
+        } catch (error) {
+          activeStory.status = "in_progress";
+          deps.store.savePrd(prd);
+          deps.store.appendProgress(
+            formatProgressEntry({
+              timestamp: deps.now().toISOString(),
+              runId,
+              story: activeStory,
+              runtime: options.runtime,
+              result,
+              checks,
+              failureCategory: "commit_failure",
+            }),
+          );
+          throw error;
+        }
+        completedStoryIds.push(activeStory.id);
 
-      if (!selectStory(prd)) {
-        return summary({
-          options,
-          outcome: "complete",
-          iterations,
-          completedStoryIds,
-          lastRunId,
-          commit,
-        });
+        if (!selectStory(prd)) {
+          return summary({
+            options,
+            outcome: "complete",
+            iterations,
+            completedStoryIds,
+            lastRunId,
+            commit,
+          });
+        }
+      } finally {
+        lock.release();
       }
-    } finally {
-      lock.release();
     }
+  } finally {
+    process.removeListener("SIGINT", onParentSigint);
+    process.removeListener("SIGTERM", onParentSigterm);
   }
 }

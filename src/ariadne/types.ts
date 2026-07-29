@@ -22,6 +22,7 @@ export type AriadneRunOptions = {
   runtime: AriadneRuntimeName;
   maxIterations?: number;
   maxRuntimeMs?: number;
+  signal?: AbortSignal;
   dryRun: boolean;
 };
 

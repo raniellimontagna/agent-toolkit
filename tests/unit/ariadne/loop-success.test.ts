@@ -181,7 +181,10 @@ function createHarness(
       return {
         command,
         status: 0,
+        signal: null,
         durationMs: 5,
+        timedOut: false,
+        aborted: false,
         stdoutPath: path.join(input.runDir, "check.stdout.log"),
         stderrPath: path.join(input.runDir, "check.stderr.log"),
       };

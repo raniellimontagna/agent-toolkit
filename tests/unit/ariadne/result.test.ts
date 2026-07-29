@@ -100,7 +100,10 @@ describe("agent result files and durable progress", () => {
         {
           command: "pnpm test",
           status: 0,
+          signal: null,
           durationMs: 123,
+          timedOut: false,
+          aborted: false,
           stdoutPath: "/private/stdout.log",
           stderrPath: "/private/stderr.log",
         },
