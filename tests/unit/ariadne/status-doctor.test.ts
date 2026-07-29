@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { buildAriadneDoctor } from "../../../src/ariadne/doctor.js";
+import type { AriadneGit } from "../../../src/ariadne/git.js";
 import {
   formatAriadneDoctor,
   formatAriadneJson,
@@ -223,7 +224,13 @@ describe("Ariadne status", () => {
       runtime: { name: "codex", state: "healthy", version: "1.2.3" },
       stories: { pending: 1, inProgress: 1, completed: 1, blocked: 1 },
       activeStory: { id: "US-002", title: "Active", attempts: 2 },
-      lastRun: { id: "run-latest", outcome: "interrupted", durationMs: 1250 },
+      lastRun: {
+        id: "run-latest",
+        outcome: "interrupted",
+        durationMs: 1250,
+        initialHead: "head-before",
+        finalHead: "head-after",
+      },
       dirty: true,
       lock: { state: "live", pid: 4242, runId: "run-latest" },
       paths: { progress: store.paths.progress, runs: store.paths.runs },
@@ -236,6 +243,30 @@ describe("Ariadne status", () => {
 });
 
 describe("Ariadne doctor", () => {
+  it("does not report runtime unavailability when Git failure prevents runtime inspection", () => {
+    const root = repository();
+    writeProject(root);
+    const gitFailure = {
+      assertRepository: () => {
+        throw new Error("Git inspection failed");
+      },
+    } as unknown as AriadneGit;
+
+    const report = buildAriadneDoctor({
+      projectRoot: root,
+      registry: detectionRegistry(),
+      git: gitFailure,
+      isProcessAlive: () => false,
+    });
+
+    expect(report.issues).toContainEqual(
+      expect.objectContaining({ code: "git_repository", severity: "error" }),
+    );
+    expect(report.issues.map((entry) => entry.code)).not.toContain(
+      "runtime_unavailable",
+    );
+  });
+
   it("uses stable codes for Git, config, ignore, lock, and interrupted recovery diagnostics", () => {
     const root = repository();
     const store = writeProject(root, {

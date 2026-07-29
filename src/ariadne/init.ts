@@ -1,8 +1,8 @@
-import { execFileSync } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import * as prompts from "@clack/prompts";
-import { capture, findCommand } from "../system.js";
+import { findCommand, type RunResult, windowsSpawnPlan } from "../system.js";
 import { normalizeImportedPrd } from "./import.js";
 import { createRuntimeRegistry } from "./runtimes/index.js";
 import type { RuntimeDetection } from "./runtimes/types.js";
@@ -12,6 +12,8 @@ import type { AriadneConfig, AriadnePrd, AriadneRuntimeName } from "./types.js";
 import { AriadneUsageError } from "./types.js";
 
 const GITIGNORE_ADDITIONS = [".ariadne/lock", ".ariadne/runs/"] as const;
+const RUNTIME_PROBE_TIMEOUT_MS = 2_000;
+const RUNTIME_PROBE_MAX_BYTES = 1024 * 1024;
 
 export type AriadneInitPlan = {
   projectRoot: string;
@@ -47,7 +49,10 @@ type InitPrompts = {
 
 export type AriadneInitDeps = {
   prompts?: InitPrompts;
-  runtimeDetections?: () => RuntimeDetection[];
+  runtimeDetections?: readonly RuntimeDetection[];
+  detectRuntimes?: (options: {
+    timeoutMs: number;
+  }) => Promise<RuntimeDetection[]>;
 };
 
 function gitOutput(cwd: string, args: string[], description: string): string {
@@ -56,6 +61,7 @@ function gitOutput(cwd: string, args: string[], description: string): string {
       cwd,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
+      timeout: RUNTIME_PROBE_TIMEOUT_MS,
     }).trim();
   } catch {
     throw new AriadneUsageError(
@@ -164,22 +170,20 @@ function defaultPrd(
   };
 }
 
-function detectedRuntime(): AriadneRuntimeName | undefined {
-  const registry = createRuntimeRegistry({
-    findCommand,
-    capture,
-    baseEnv: process.env,
-  });
-  const selectable = Object.values(registry)
-    .map((adapter) => adapter.detect())
-    .filter(
-      (detection) =>
-        detection.state === "healthy" || detection.state === "unverified",
-    );
+function detectedRuntime(
+  detections: readonly RuntimeDetection[],
+): AriadneRuntimeName | undefined {
+  const selectable = detections.filter(
+    (detection) =>
+      detection.state === "healthy" || detection.state === "unverified",
+  );
   return selectable.length === 1 ? selectable[0]?.name : undefined;
 }
 
-export function buildInitPlan(input: AriadneInitInput): AriadneInitPlan {
+export function buildInitPlan(
+  input: AriadneInitInput,
+  runtimeDetections: readonly RuntimeDetection[] = [],
+): AriadneInitPlan {
   const projectRoot = repositoryRoot(input.cwd);
   const store = new AriadneStore(projectRoot);
   const packageJson = readPackage(projectRoot);
@@ -208,7 +212,10 @@ export function buildInitPlan(input: AriadneInitInput): AriadneInitPlan {
       "Ariadne init requires at least one quality check in non-interactive mode; pass --check.",
     );
   }
-  const runtime = input.runtime ?? existingConfig?.runtime ?? detectedRuntime();
+  const runtime =
+    input.runtime ??
+    existingConfig?.runtime ??
+    detectedRuntime(runtimeDetections);
   const config: AriadneConfig = {
     schemaVersion: 1,
     ...(runtime ? { runtime } : {}),
@@ -315,13 +322,82 @@ export function applyInitPlan(plan: AriadneInitPlan): AriadneInitReport {
   return reportFor(plan, "initialized");
 }
 
-function defaultDetections(): RuntimeDetection[] {
+class RuntimeProbeRequest extends Error {
+  constructor(
+    readonly command: string,
+    readonly args: string[],
+  ) {
+    super(`Runtime probe requested: ${command}`);
+  }
+}
+
+function probeKey(command: string, args: string[]): string {
+  return JSON.stringify([command, args]);
+}
+
+function captureRuntime(
+  command: string,
+  args: string[],
+  timeoutMs: number,
+): Promise<RunResult> {
+  const plan =
+    process.platform === "win32"
+      ? windowsSpawnPlan(command, args)
+      : { command, args, verbatim: false };
+  return new Promise((resolve) => {
+    execFile(
+      plan.command,
+      plan.args,
+      {
+        encoding: "utf8",
+        maxBuffer: RUNTIME_PROBE_MAX_BYTES,
+        timeout: timeoutMs,
+        windowsVerbatimArguments: plan.verbatim || undefined,
+      },
+      (error, stdout, stderr) => {
+        const status =
+          error && typeof error.code === "number" ? error.code : error ? 1 : 0;
+        resolve({
+          ok: error === null,
+          status,
+          stdout,
+          stderr: stderr || error?.message || "",
+          ...(error ? { error } : {}),
+        });
+      },
+    );
+  });
+}
+
+async function defaultDetections(options: {
+  timeoutMs: number;
+}): Promise<RuntimeDetection[]> {
+  const cached = new Map<string, RunResult>();
   const registry = createRuntimeRegistry({
     findCommand,
-    capture,
+    capture: (command, args) => {
+      const result = cached.get(probeKey(command, args));
+      if (!result) throw new RuntimeProbeRequest(command, args);
+      return result;
+    },
     baseEnv: process.env,
   });
-  return Object.values(registry).map((adapter) => adapter.detect());
+  return Promise.all(
+    Object.values(registry).map(async (adapter) => {
+      for (;;) {
+        try {
+          return adapter.detect();
+        } catch (error) {
+          if (!(error instanceof RuntimeProbeRequest)) throw error;
+          const key = probeKey(error.command, error.args);
+          cached.set(
+            key,
+            await captureRuntime(error.command, error.args, options.timeoutMs),
+          );
+        }
+      }
+    }),
+  );
 }
 
 export async function initializeAriadne(
@@ -329,7 +405,9 @@ export async function initializeAriadne(
   deps: AriadneInitDeps = {},
 ): Promise<AriadneInitReport> {
   const prompt = deps.prompts ?? prompts;
-  let plan = buildInitPlan(input);
+  const detectionsWerePrecomputed = deps.runtimeDetections !== undefined;
+  let detections = deps.runtimeDetections ?? [];
+  let plan = buildInitPlan(input, detections);
   if (input.interactive && plan.config.qualityChecks.length === 0) {
     const answer = await prompt.text({
       message: "Quality check command",
@@ -340,27 +418,39 @@ export async function initializeAriadne(
           : undefined,
     });
     if (prompt.isCancel(answer)) return reportFor(plan, "cancelled");
-    plan = buildInitPlan({ ...input, qualityChecks: [answer] });
+    plan = buildInitPlan({ ...input, qualityChecks: [answer] }, detections);
+  }
+  if (!plan.config.runtime && !detectionsWerePrecomputed) {
+    detections = await (deps.detectRuntimes ?? defaultDetections)({
+      timeoutMs: RUNTIME_PROBE_TIMEOUT_MS,
+    });
+    plan = buildInitPlan(
+      { ...input, qualityChecks: plan.config.qualityChecks },
+      detections,
+    );
   }
   if (input.interactive && !plan.config.runtime) {
-    const detections = (deps.runtimeDetections ?? defaultDetections)().filter(
+    const selectable = detections.filter(
       (detection) =>
         detection.state === "healthy" || detection.state === "unverified",
     );
-    if (detections.length > 0) {
+    if (selectable.length > 0) {
       const answer = await prompt.select({
         message: "Runtime",
-        options: detections.map((detection) => ({
+        options: selectable.map((detection) => ({
           value: detection.name,
           label: `${detection.name}${detection.version ? ` ${detection.version}` : ""}`,
         })),
       });
       if (prompt.isCancel(answer)) return reportFor(plan, "cancelled");
-      plan = buildInitPlan({
-        ...input,
-        runtime: answer,
-        qualityChecks: plan.config.qualityChecks,
-      });
+      plan = buildInitPlan(
+        {
+          ...input,
+          runtime: answer,
+          qualityChecks: plan.config.qualityChecks,
+        },
+        detections,
+      );
     }
   }
   if (input.interactive) {

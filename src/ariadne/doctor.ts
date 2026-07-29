@@ -272,8 +272,12 @@ export function buildAriadneDoctor(
       "error",
       "No Ariadne runtime is configured.",
     );
-  } else if (state.configValid && status.runtime?.state !== "healthy") {
-    const runtimeState = status.runtime?.state ?? "unavailable";
+  } else if (
+    state.configValid &&
+    status.runtime &&
+    status.runtime.state !== "healthy"
+  ) {
+    const runtimeState = status.runtime.state;
     issue(
       issues,
       `runtime_${runtimeState}`,

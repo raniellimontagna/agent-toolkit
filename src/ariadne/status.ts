@@ -33,7 +33,13 @@ export type AriadneStatusReport = {
   };
   stories: AriadneStoryCounts;
   activeStory?: { id: string; title: string; attempts: number };
-  lastRun?: { id: string; outcome: string; durationMs: number };
+  lastRun?: {
+    id: string;
+    outcome: string;
+    durationMs: number;
+    initialHead?: string;
+    finalHead?: string;
+  };
   dirty: boolean;
   lock: {
     state: "absent" | "live" | "stale";
@@ -155,6 +161,8 @@ type RunCandidate = {
   timestamp: number;
   outcome: string;
   durationMs: number;
+  initialHead?: string;
+  finalHead?: string;
 };
 
 function stringValue(
@@ -210,7 +218,16 @@ function runCandidate(runsPath: string, id: string): RunCandidate | undefined {
   if (durationMs === 0 && startedAt && finishedAt) {
     durationMs = Math.max(0, Date.parse(finishedAt) - Date.parse(startedAt));
   }
-  return { id, timestamp, outcome, durationMs };
+  const initialHead = stringValue(sources, "initialHead");
+  const finalHead = stringValue(sources, "finalHead");
+  return {
+    id,
+    timestamp,
+    outcome,
+    durationMs,
+    ...(initialHead ? { initialHead } : {}),
+    ...(finalHead ? { finalHead } : {}),
+  };
 }
 
 export function inspectLastAriadneRun(
@@ -237,6 +254,8 @@ export function inspectLastAriadneRun(
         id: latest.id,
         outcome: latest.outcome,
         durationMs: latest.durationMs,
+        ...(latest.initialHead ? { initialHead: latest.initialHead } : {}),
+        ...(latest.finalHead ? { finalHead: latest.finalHead } : {}),
       }
     : undefined;
 }

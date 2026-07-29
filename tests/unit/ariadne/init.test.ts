@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   type AriadneInitDeps,
   applyInitPlan,
@@ -57,6 +57,81 @@ afterEach(() => {
 });
 
 describe("Ariadne init", () => {
+  it("uses precomputed runtime detections without invoking a runtime probe", async () => {
+    const root = repository();
+    const detectRuntimes = vi.fn(async () => {
+      throw new Error("runtime probes must not run");
+    });
+
+    const report = await initializeAriadne(
+      {
+        cwd: root,
+        qualityChecks: ["pnpm test"],
+        interactive: false,
+      },
+      {
+        runtimeDetections: [
+          {
+            name: "gemini",
+            state: "healthy",
+            version: "1.2.3",
+            reason: "precomputed test detection",
+          },
+        ],
+        detectRuntimes,
+      },
+    );
+
+    expect(report.runtime).toBe("gemini");
+    expect(detectRuntimes).not.toHaveBeenCalled();
+  });
+
+  it("accepts an empty precomputed detection set without falling back to probes", async () => {
+    const root = repository();
+    const detectRuntimes = vi.fn(async () => {
+      throw new Error("runtime probes must not run");
+    });
+
+    const report = await initializeAriadne(
+      {
+        cwd: root,
+        qualityChecks: ["pnpm test"],
+        interactive: false,
+      },
+      { runtimeDetections: [], detectRuntimes },
+    );
+
+    expect(report.runtime).toBeUndefined();
+    expect(detectRuntimes).not.toHaveBeenCalled();
+  });
+
+  it("awaits a dependency-controlled runtime probe with a finite timeout", async () => {
+    const root = repository();
+    const detectRuntimes = vi.fn(async (options: { timeoutMs: number }) => {
+      expect(options.timeoutMs).toBeGreaterThan(0);
+      expect(Number.isFinite(options.timeoutMs)).toBe(true);
+      return [
+        {
+          name: "codex" as const,
+          state: "healthy" as const,
+          reason: "bounded async test detection",
+        },
+      ];
+    });
+
+    const report = await initializeAriadne(
+      {
+        cwd: root,
+        qualityChecks: ["pnpm test"],
+        interactive: false,
+      },
+      { detectRuntimes },
+    );
+
+    expect(report.runtime).toBe("codex");
+    expect(detectRuntimes).toHaveBeenCalledOnce();
+  });
+
   it("requires the Git repository root before planning any writes", () => {
     const outsideGit = temporaryDirectory();
     expect(() =>
