@@ -33,7 +33,9 @@ export function buildIterationPrompt(input: IterationPromptInput): string {
       runId: "string",
       storyId: "string",
       outcome: "completed | failed",
-      criteria: [{ criterion: "string", passed: true, evidence: "string" }],
+      criteria: [
+        { criterion: "string", passed: "boolean", evidence: "string" },
+      ],
       summary: "string",
       filesChanged: ["safe relative path"],
       checksAttempted: ["string"],

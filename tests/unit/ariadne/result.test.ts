@@ -66,6 +66,14 @@ describe("validateAgentResult", () => {
       "empty failure reason",
       { ...result, outcome: "failed", failureReason: "" },
     ],
+    ["unknown top-level field", { ...result, unexpected: true }],
+    [
+      "unknown criterion field",
+      {
+        ...result,
+        criteria: [{ ...result.criteria[0], unexpected: true }],
+      },
+    ],
   ])("rejects a %s", (_label, invalid) => {
     expect(() => validateAgentResult(invalid, expected)).toThrow();
   });

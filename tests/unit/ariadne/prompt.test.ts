@@ -42,6 +42,8 @@ describe("buildIterationPrompt", () => {
     expect(prompt).toContain("genuinely durable");
     expect(prompt).toContain("```json");
     expect(prompt).toContain('"schemaVersion": 1');
+    expect(prompt).toContain('"passed": "boolean"');
+    expect(prompt).not.toContain('"passed": true');
     expect(prompt).toContain(
       '"failureReason": "string (required when outcome is failed)"',
     );

@@ -32,6 +32,18 @@ function recordAt(input: unknown, jsonPath: string): Record<string, unknown> {
   return input as Record<string, unknown>;
 }
 
+function assertOnlyKeys(
+  input: Record<string, unknown>,
+  allowedKeys: readonly string[],
+  jsonPath: string,
+): void {
+  for (const key of Object.keys(input)) {
+    if (!allowedKeys.includes(key)) {
+      stateError(`${jsonPath}.${key}`, "is not allowed");
+    }
+  }
+}
+
 function stringAt(input: unknown, jsonPath: string): string {
   if (typeof input !== "string" || input.trim() === "") {
     stateError(jsonPath, "expected a non-empty string");
@@ -196,6 +208,7 @@ function validateAgentCriterion(
   jsonPath: string,
 ): AgentCriterionResult {
   const criterion = recordAt(input, jsonPath);
+  assertOnlyKeys(criterion, ["criterion", "passed", "evidence"], jsonPath);
   return {
     criterion: stringAt(criterion.criterion, `${jsonPath}.criterion`),
     passed: booleanAt(criterion.passed, `${jsonPath}.passed`),
@@ -207,9 +220,26 @@ export function validateAgentResult(
   input: unknown,
   expected: ExpectedAgentResult,
 ): AgentResult {
-  const result = recordAt(input, "$"),
-    criteria = arrayAt(result.criteria, "$.criteria").map((criterion, index) =>
-      validateAgentCriterion(criterion, `$.criteria[${index}]`),
+  const result = recordAt(input, "$");
+  assertOnlyKeys(
+    result,
+    [
+      "schemaVersion",
+      "runId",
+      "storyId",
+      "outcome",
+      "criteria",
+      "summary",
+      "filesChanged",
+      "checksAttempted",
+      "learnings",
+      "failureReason",
+    ],
+    "$",
+  );
+  const criteria = arrayAt(result.criteria, "$.criteria").map(
+      (criterion, index) =>
+        validateAgentCriterion(criterion, `$.criteria[${index}]`),
     ),
     filesChanged = arrayAt(result.filesChanged, "$.filesChanged").map(
       (file, index) => safeRelativePathAt(file, `$.filesChanged[${index}]`),
