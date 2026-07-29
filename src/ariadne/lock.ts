@@ -111,7 +111,7 @@ function sameRecoveryRecord(
 }
 
 function coordinatorPath(lockPath: string): string {
-  return `${lockPath}.coordinator`;
+  return path.join(path.dirname(lockPath), "runs", ".lock-coordinator");
 }
 
 function generationRecordPath(coordinator: string, generation: string): string {
@@ -128,6 +128,7 @@ function generationTransitionPath(
 function ensureCoordinatorDirectory(lockPath: string): string {
   fs.mkdirSync(path.dirname(lockPath), { recursive: true });
   const coordinator = coordinatorPath(lockPath);
+  fs.mkdirSync(path.dirname(coordinator), { recursive: true, mode: 0o700 });
   try {
     fs.mkdirSync(coordinator, { mode: 0o700 });
   } catch (error: unknown) {

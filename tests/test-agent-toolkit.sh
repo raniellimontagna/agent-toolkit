@@ -9,9 +9,15 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 REAL_NODE="$(command -v node || true)"
+REAL_NPM="$(command -v npm || true)"
 
 if [[ -z "$REAL_NODE" ]]; then
   echo "Node.js is required to test the Node installer." >&2
+  exit 1
+fi
+
+if [[ -z "$REAL_NPM" ]]; then
+  echo "npm is required to inspect the package contents." >&2
   exit 1
 fi
 
@@ -69,6 +75,52 @@ if ! grep -Fq -- '"access": "public"' <<<"$PACKAGE_JSON_CONTENT"; then
   echo "Expected scoped package to publish publicly" >&2
   exit 1
 fi
+
+ROOT_DIR="$ROOT_DIR" "$REAL_NODE" --input-type=module <<'NODE'
+import { readFile } from "node:fs/promises";
+
+const packageJson = JSON.parse(
+  await readFile(`${process.env.ROOT_DIR}/package.json`, "utf8"),
+);
+const expectedScripts = {
+  "test:ariadne": "vitest run tests/unit/ariadne",
+  "test:ariadne:real": "node tests/ariadne-smoke.mjs",
+};
+for (const [name, command] of Object.entries(expectedScripts)) {
+  if (packageJson.scripts?.[name] !== command) {
+    throw new Error(`Expected package script ${name} to equal ${command}`);
+  }
+}
+NODE
+
+PACKAGE_DRY_RUN_JSON="$(
+  cd "$ROOT_DIR"
+  "$REAL_NPM" pack --dry-run --json --ignore-scripts
+)"
+PACKAGE_DRY_RUN_JSON="$PACKAGE_DRY_RUN_JSON" "$REAL_NODE" --input-type=module <<'NODE'
+const report = JSON.parse(process.env.PACKAGE_DRY_RUN_JSON);
+const files = new Set(report[0]?.files?.map(({ path }) => path));
+const required = [
+  "dist/src/ariadne/cli.js",
+  "skills/workflow/ariadne/SKILL.md",
+  "skills/workflow/ariadne/NOTICE.md",
+  "skills/workflow/ariadne-prd/SKILL.md",
+  "skills/workflow/ariadne-prd/NOTICE.md",
+  "tools.lock.json",
+  "LICENSE",
+];
+for (const path of required) {
+  if (!files.has(path)) throw new Error(`Expected package to contain ${path}`);
+}
+for (const path of files) {
+  if (path === ".ariadne" || path.startsWith(".ariadne/")) {
+    throw new Error(`Package must omit project-local Ariadne state: ${path}`);
+  }
+  if (path.includes("/.ariadne/runs/")) {
+    throw new Error(`Package must omit Ariadne run artifacts: ${path}`);
+  }
+}
+NODE
 
 ROOT_DIR="$ROOT_DIR" "$REAL_NODE" --input-type=module <<'NODE'
 import { existsSync, readdirSync } from "node:fs";
@@ -2111,3 +2163,6 @@ fs.writeFileSync(dest, `${JSON.stringify(lock, null, 2)}\n`);
   kill "$RTK_SERVER_PID" 2>/dev/null || true
   wait "$RTK_SERVER_PID" 2>/dev/null || true
 fi
+
+ARIADNE_REAL_GIT="$(command -v git)" \
+  "$REAL_NODE" "$ROOT_DIR/tests/ariadne-e2e.mjs"

@@ -7,6 +7,7 @@ Unit tests use Vitest 4.1.9 with TypeScript. `vitest.config.ts` keeps Vitest's d
 Integration coverage is shell-based:
 
 - `tests/test-agent-toolkit.sh` builds an isolated `HOME`, supplies fake external commands, and exercises the compiled CLI, `setup-agent-toolkit.sh`, README and package contracts, selection and install flows, provenance failures, manifests, runtime targets, and bundled skills.
+- `tests/ariadne-e2e.mjs`, invoked by the shell integration suite, creates real temporary Git repositories and five local fake runtime executables. It proves compiled-CLI success, repair, blocking, missing-result, stale-lock, interruption/resume, dirty-worktree, ambiguity, dry-run, Ralph/Helix import, exact adapter arguments, commit ownership, and stable exit classes without authentication, network access, model calls, or provider credits.
 - `tests/publish-npm-with-retry.test.sh` replaces `npm` with a deterministic fake and proves already-published, successful, ambiguous-response, retry, terminal-failure, and invalid-configuration behavior.
 
 Use Node.js 24 or newer and the pnpm 11.8.0 version pinned in `package.json`:
@@ -26,6 +27,8 @@ If RTK is unavailable, omit only the `rtk` prefix.
 | `rtk pnpm run lint` | Biome formatting and static lint rules. |
 | `rtk pnpm run typecheck` | Test-aware TypeScript compilation without output. |
 | `rtk pnpm run test:unit` | Vitest behavior for arguments, installers, provenance, lifecycle, releases, networking, targets, and catalogs. |
+| `rtk pnpm run test:ariadne` | Ariadne's cross-platform Vitest unit surface only; safe for public CI. |
+| `rtk pnpm run test:ariadne:real` | Opt-in authenticated smoke; skips unless both Ariadne environment gates are set. |
 | `rtk pnpm run build` | Clean production TypeScript build. |
 | `rtk pnpm run test:integration` | Built CLI, shell wrapper, README contracts, install flows, and npm publish retry script. |
 | `rtk pnpm test` | Unit plus integration suites. |
@@ -64,6 +67,14 @@ Run one named test for diagnosis:
 rtk pnpm exec vitest run tests/unit/system.test.ts -t "shares one total deadline across redirects"
 ```
 
+Run the authenticated smoke only when you intentionally want to use a locally authenticated runtime:
+
+```bash
+ARIADNE_E2E=1 ARIADNE_RUNTIME=codex rtk pnpm run test:ariadne:real
+```
+
+Replace `codex` with `claude`, `opencode`, `gemini`, or `antigravity`. Without both gates, the command prints `Ariadne authenticated smoke skipped`, exits successfully, and creates no project. Public CI never sets these variables.
+
 Finish code, script, package, installer, workflow, or test changes with the full local gate:
 
 ```bash
@@ -85,7 +96,8 @@ rtk pnpm run check
 | `tests/unit/release.test.ts` | Version changes, repository preflights, tags, atomic push behavior, and workflow defenses. |
 | `tests/unit/tooling-config.test.ts` | Biome and Vitest worktree exclusions. |
 | `tests/unit/ariadne/*.test.ts` | Ariadne parsing, schema/store, runtime adapters, prompts/results, process/lock, Git/checks, loop success/recovery, init, status, Doctor, and CLI exit mapping. |
-| `tests/test-agent-toolkit.sh` | Compiled CLI and wrapper contracts plus isolated end-to-end install behavior. |
+| `tests/test-agent-toolkit.sh`, `tests/ariadne-e2e.mjs`, `tests/fixtures/ariadne-*.mjs` | Compiled CLI and wrapper contracts, fake-runtime Ariadne end-to-end behavior, and isolated install behavior. |
+| `tests/ariadne-smoke.mjs` | Explicitly gated authenticated one-story smoke with retained failure fixtures. |
 | `tests/publish-npm-with-retry.test.sh` | Deterministic npm publication retry behavior. |
 
 ## Writing New Tests
@@ -116,6 +128,17 @@ node dist/bin/agent-toolkit.js --skills-audit
 
 Default Ariadne tests use fake runtime detection, subprocess, Git, clock, signal, and filesystem boundaries. They must not call a live model, depend on external authentication, or spend provider credits. Adapter tests assert the exact headless flags and version contracts for Claude Code, Codex CLI, OpenCode, Gemini CLI, and Antigravity; loop tests prove successful commits, failed-diff preservation, retry/blocking, budgets, interruption, and stable exit mapping.
 
+The compiled fake-runtime suite additionally records every argument as a JSON array so argument boundaries are checked independently of shell rendering. Its Git proxy delegates to the real local Git executable while recording command arrays; the suite rejects push, reset, checkout, clean, and revert and requires exactly one Ariadne-owned commit for each completed story.
+
+Package integration uses `npm pack --dry-run --json --ignore-scripts` to require compiled Ariadne sources, both companion skills and notices, `tools.lock.json`, and the repository license while rejecting project-local `.ariadne` state. Before release, also inspect and install the real tarball as documented below:
+
+```bash
+pnpm pack --pack-destination ./work/package-check
+tar -tf ./work/package-check/ranimontagna-agent-toolkit-*.tgz | rg 'dist/src/ariadne|skills/workflow/ariadne|tools.lock.json|NOTICE.md'
+```
+
+Install that explicit tarball in a temporary directory and run `npx agent-toolkit ariadne --help` plus `npx agent-toolkit --help`. Remove only `work/package-check` after the inspection.
+
 ## Timing-Sensitive Network Tests
 
 The bounded-network tests in `tests/unit/system.test.ts` use local sockets and deadlines, so a loaded machine can make a failure timing-sensitive. Isolate the failing file or named test to diagnose the timeout, resource cleanup, and assertion path. After the diagnosis or fix, require a clean full `rtk pnpm run check` rerun before delivery. Never make the gate green by deleting, disabling, or skipping the failing test.
@@ -140,6 +163,7 @@ The `CI` workflow in `.github/workflows/ci.yml` runs on pushes to `main` and pul
 | Job | Triggers | Proof |
 |---|---|---|
 | `Check` | Push to `main`; pull request targeting `main` | Checks out the repository, uses Node.js 24, activates the `packageManager` value through Corepack, installs with `pnpm install --frozen-lockfile`, and runs `pnpm run check`. |
+| `Ariadne cross-platform` | Push to `main`; pull request targeting `main` | Runs Ariadne units, typecheck, and the production build on Ubuntu, macOS, and Windows with Node.js 24 and pnpm resolved from `packageManager`; it deliberately excludes Bash integration and authenticated smoke. |
 | `Secret scan` | Push to `main`; pull request targeting `main` | Checks out full history and runs Gitleaks with the workflow token. |
 | `Dependency audit` | Push to `main`; pull request targeting `main` | Uses Node.js 24, installs the frozen lockfile with lifecycle scripts disabled, and runs `pnpm run security`. |
 | `Dependency review` | Pull request targeting `main` only | Reviews dependency changes and fails on moderate-or-higher severity. |

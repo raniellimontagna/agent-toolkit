@@ -38,6 +38,8 @@
     "security": "pnpm run security:audit",
     "security:audit": "pnpm audit --audit-level=moderate",
     "test": "pnpm run test:unit && pnpm run test:integration",
+    "test:ariadne": "vitest run tests/unit/ariadne",
+    "test:ariadne:real": "node tests/ariadne-smoke.mjs",
     "test:integration": "pnpm run build && bash tests/test-agent-toolkit.sh && bash tests/publish-npm-with-retry.test.sh",
     "test:unit": "vitest run",
     "typecheck": "tsc -p tsconfig.test.json --noEmit"
