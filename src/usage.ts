@@ -4,6 +4,7 @@ export function usage(): string {
 Usage:
   bash setup-agent-toolkit.sh [options]
   npx -y @ranimontagna/agent-toolkit [options]
+  agent-toolkit ariadne <command>
 
 Tools:
   --all                 Install every tool without the menu

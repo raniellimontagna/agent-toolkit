@@ -136,6 +136,7 @@ fi
 for module in \
   args.ts \
   checksum.ts \
+  cli.ts \
   context.ts \
   doctor.ts \
   lock-update.ts \
@@ -152,6 +153,32 @@ for module in \
   tool-lock.ts \
   usage.ts \
   ui.ts \
+  ariadne/args.ts \
+  ariadne/checks.ts \
+  ariadne/cli.ts \
+  ariadne/doctor.ts \
+  ariadne/git.ts \
+  ariadne/import.ts \
+  ariadne/init.ts \
+  ariadne/lock.ts \
+  ariadne/loop.ts \
+  ariadne/process.ts \
+  ariadne/prompt.ts \
+  ariadne/render.ts \
+  ariadne/result.ts \
+  ariadne/schema.ts \
+  ariadne/status.ts \
+  ariadne/store.ts \
+  ariadne/types.ts \
+  ariadne/usage.ts \
+  ariadne/runtimes/antigravity.ts \
+  ariadne/runtimes/claude.ts \
+  ariadne/runtimes/codex.ts \
+  ariadne/runtimes/gemini.ts \
+  ariadne/runtimes/index.ts \
+  ariadne/runtimes/opencode.ts \
+  ariadne/runtimes/shared.ts \
+  ariadne/runtimes/types.ts \
   installers/caveman.ts \
   installers/agent-browser.ts \
   installers/agent-skills.ts \
@@ -165,8 +192,8 @@ for module in \
   fi
 done
 
-if ! grep -Fq -- "../src/main.js" "$ROOT_DIR/bin/agent-toolkit.ts"; then
-  echo "Expected bin/agent-toolkit.ts to be a thin entrypoint into src/main.ts" >&2
+if ! grep -Fq -- "../src/cli.js" "$ROOT_DIR/bin/agent-toolkit.ts"; then
+  echo "Expected bin/agent-toolkit.ts to be a thin entrypoint into src/cli.ts" >&2
   exit 1
 fi
 
