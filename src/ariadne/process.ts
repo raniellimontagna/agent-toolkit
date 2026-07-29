@@ -7,7 +7,7 @@ import type { ProcessResult } from "./types.js";
 export type { ProcessResult } from "./types.js";
 
 const MAX_CAPTURE_BYTES = 1024 * 1024;
-const DEFAULT_GRACE_PERIOD_MS = 10_000;
+const DEFAULT_GRACE_PERIOD_MS = 5_000;
 
 export type ProcessRunOptions = {
   stdoutPath: string;

@@ -32,7 +32,7 @@ function compressDefaultGracePeriod(): number[] {
     ...args: unknown[]
   ) => {
     delays.push(delay ?? 0);
-    return nativeSetTimeout(callback, delay === 10_000 ? 20 : delay, ...args);
+    return nativeSetTimeout(callback, delay === 5_000 ? 20 : delay, ...args);
   }) as typeof setTimeout);
   return delays;
 }
@@ -96,7 +96,7 @@ describe("runAgentProcess", () => {
     expect(fs.statSync(stdoutPath).size).toBe(bytes);
   });
 
-  it("uses SIGKILL after the default 10 second grace period on timeout", async () => {
+  it("uses SIGKILL after the default 5 second grace period on timeout", async () => {
     const { root, stdoutPath, stderrPath } = fixture();
     const delays = compressDefaultGracePeriod();
     const result = await runAgentProcess(
@@ -113,11 +113,11 @@ describe("runAgentProcess", () => {
     );
 
     expect(result).toMatchObject({ timedOut: true, aborted: false });
-    expect(delays).toContain(10_000);
+    expect(delays).toContain(5_000);
     if (process.platform !== "win32") expect(result.signal).toBe("SIGKILL");
   });
 
-  it("uses SIGKILL after the default 10 second grace period on abort", async () => {
+  it("uses SIGKILL after the default 5 second grace period on abort", async () => {
     const { root, stdoutPath, stderrPath } = fixture();
     const delays = compressDefaultGracePeriod();
     const controller = new AbortController();
@@ -136,7 +136,7 @@ describe("runAgentProcess", () => {
     );
 
     expect(result).toMatchObject({ timedOut: false, aborted: true });
-    expect(delays).toContain(10_000);
+    expect(delays).toContain(5_000);
     if (process.platform !== "win32") expect(result.signal).toBe("SIGKILL");
   });
 
@@ -161,7 +161,7 @@ describe("runAgentProcess", () => {
         stdoutPath,
         stderrPath,
         signal: controller.signal,
-        gracePeriodMs: 20,
+        gracePeriodMs: 200,
       },
     );
 
