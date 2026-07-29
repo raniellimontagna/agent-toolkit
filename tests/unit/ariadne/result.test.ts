@@ -103,6 +103,7 @@ describe("agent result files and durable progress", () => {
           signal: null,
           durationMs: 123,
           timedOut: false,
+          timeoutOrigin: null,
           aborted: false,
           stdoutPath: "/private/stdout.log",
           stderrPath: "/private/stderr.log",

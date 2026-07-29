@@ -184,6 +184,7 @@ function createHarness(
         signal: null,
         durationMs: 5,
         timedOut: false,
+        timeoutOrigin: null,
         aborted: false,
         stdoutPath: path.join(input.runDir, "check.stdout.log"),
         stderrPath: path.join(input.runDir, "check.stderr.log"),

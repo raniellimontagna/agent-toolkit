@@ -86,6 +86,7 @@ describe("runQualityChecks", () => {
       signal: null,
       durationMs: 47,
       timedOut: false,
+      timeoutOrigin: null,
       aborted: false,
       stdoutPath: path.join(runDir, "check-1.stdout.log"),
       stderrPath: path.join(runDir, "check-1.stderr.log"),
@@ -165,6 +166,7 @@ describe("runQualityChecks", () => {
     expect(calls[0]?.[1].signal).toBe(controller.signal);
     expect(calls[0]?.[1].timeoutMs).toBeGreaterThan(0);
     expect(results.map((entry) => entry.status)).toEqual([null]);
+    expect(results[0]?.timeoutOrigin).toBe("quality_check");
     expect(calls).toHaveLength(1);
   });
 
@@ -193,7 +195,34 @@ describe("runQualityChecks", () => {
       status: null,
       signal: "SIGKILL",
       timedOut: true,
+      timeoutOrigin: "global_budget",
       aborted: false,
+    });
+  });
+
+  it("identifies the local 30-minute check timeout when global runtime remains", async () => {
+    const { projectRoot, runDir } = fixture();
+    const calls: Parameters<typeof runAgentProcess>[] = [];
+    const runProcess: typeof runAgentProcess = async (...args) => {
+      calls.push(args);
+      return result(null, 30 * 60 * 1_000, {
+        signal: "SIGKILL",
+        timedOut: true,
+      });
+    };
+
+    const [check] = await runQualityChecks({
+      commands: ["slow-check"],
+      projectRoot,
+      runDir,
+      timeoutMs: 31 * 60 * 1_000,
+      runProcess,
+    });
+
+    expect(calls[0]?.[1].timeoutMs).toBe(30 * 60 * 1_000);
+    expect(check).toMatchObject({
+      timedOut: true,
+      timeoutOrigin: "quality_check",
     });
   });
 
@@ -216,6 +245,7 @@ describe("runQualityChecks", () => {
     expect(check).toMatchObject({
       signal: "SIGKILL",
       timedOut: false,
+      timeoutOrigin: null,
       aborted: true,
     });
   });

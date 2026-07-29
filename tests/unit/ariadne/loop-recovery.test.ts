@@ -28,6 +28,7 @@ type FailureMode =
   | "false_criterion"
   | "check"
   | "check_timeout"
+  | "check_local_timeout"
   | "check_cancelled"
   | "sigint"
   | "timeout_sigterm"
@@ -77,7 +78,7 @@ type Harness = {
 
 function createHarness(
   modes: FailureMode[],
-  initialStory = story(),
+  initialStory: AriadneStory | AriadneStory[] = story(),
   acquire?: AriadneLoopDeps["acquireLock"],
 ): Harness {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-recovery-"));
@@ -94,7 +95,7 @@ function createHarness(
     project: "Recovery fixture",
     branchName: "main",
     description: "Exercise deterministic recovery.",
-    userStories: [initialStory],
+    userStories: Array.isArray(initialStory) ? initialStory : [initialStory],
   });
   fs.writeFileSync(path.join(root, "kept.diff"), "preserve me\n", "utf8");
 
@@ -218,7 +219,13 @@ function createHarness(
         status: mode === "check" ? 1 : mode.startsWith("check_") ? null : 0,
         signal: mode.startsWith("check_") ? "SIGKILL" : null,
         durationMs: 5,
-        timedOut: mode === "check_timeout",
+        timedOut: mode === "check_timeout" || mode === "check_local_timeout",
+        timeoutOrigin:
+          mode === "check_timeout"
+            ? "global_budget"
+            : mode === "check_local_timeout"
+              ? "quality_check"
+              : null,
         aborted: mode === "check_cancelled",
         stdoutPath: path.join(input.runDir, "check.stdout.log"),
         stderrPath: path.join(input.runDir, "check.stderr.log"),
@@ -475,6 +482,38 @@ describe("runAriadneLoop recovery", () => {
   });
 
   it.each([
+    {
+      maxRuntimeMs: undefined,
+      scenario: "without a global runtime budget",
+    },
+    {
+      maxRuntimeMs: 31 * 60 * 1_000,
+      scenario: "while the global runtime budget still has time",
+    },
+  ] as const)("retries a local quality-check timeout $scenario", async ({
+    maxRuntimeMs,
+  }) => {
+    const harness = createHarness(["check_local_timeout", "success"]);
+
+    const result = await runAriadneLoop(
+      {
+        runtime: "codex",
+        dryRun: false,
+        ...(maxRuntimeMs === undefined ? {} : { maxRuntimeMs }),
+      },
+      harness.deps,
+    );
+
+    expect(result.outcome).toBe("complete");
+    expect(harness.processStarts).toBe(2);
+    expect(harness.store.loadPrd().userStories[0]).toMatchObject({
+      status: "completed",
+      attempts: 2,
+    });
+    expect(harness.commits).toBe(1);
+  });
+
+  it.each([
     "SIGINT",
     "SIGTERM",
   ] as const)("treats a parent %s as interrupted even when the child is killed with SIGKILL", async (parentSignal) => {
@@ -570,6 +609,43 @@ describe("runAriadneLoop recovery", () => {
       blockedStoryId: "US-008",
     });
     expect(harness.processStarts).toBe(0);
+  });
+
+  it("does not start a pending story while a blocked story owns the preserved diff", async () => {
+    const blocked = story("blocked", 3);
+    const pending = {
+      ...story("pending", 0),
+      id: "US-009",
+      title: "Do not start yet",
+      priority: 2,
+    };
+    const harness = createHarness(["success"], [blocked, pending]);
+    let checkStarts = 0;
+    const originalRunChecks = harness.deps.runChecks;
+    harness.deps.runChecks = async (input) => {
+      checkStarts += 1;
+      return originalRunChecks(input);
+    };
+
+    const result = await runAriadneLoop(
+      { runtime: "codex", dryRun: false },
+      harness.deps,
+    );
+
+    expect(result).toMatchObject({
+      outcome: "blocked",
+      iterations: 0,
+      activeStoryId: "US-008",
+      blockedStoryId: "US-008",
+    });
+    expect(harness.processStarts).toBe(0);
+    expect(checkStarts).toBe(0);
+    expect(harness.commits).toBe(0);
+    expect(harness.store.loadPrd().userStories[1]).toMatchObject({
+      id: "US-009",
+      status: "pending",
+      attempts: 0,
+    });
   });
 });
 

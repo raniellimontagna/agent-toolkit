@@ -385,23 +385,24 @@ export async function runAriadneLoop(
         );
         deps.git.assertReady(prd.branchName, hasPreservedDiff);
 
+        const blockedStory = prd.userStories.find(
+          (story) => story.status === "blocked",
+        );
+        if (blockedStory) {
+          return summary({
+            options,
+            outcome: "blocked",
+            iterations,
+            completedStoryIds,
+            activeStoryId: blockedStory.id,
+            blockedStoryId: blockedStory.id,
+            ...(lastRunId ? { lastRunId } : {}),
+            ...(commit ? { commit } : {}),
+          });
+        }
+
         const activeStory = selectStory(prd);
         if (!activeStory) {
-          const blockedStory = prd.userStories.find(
-            (story) => story.status === "blocked",
-          );
-          if (blockedStory) {
-            return summary({
-              options,
-              outcome: "blocked",
-              iterations,
-              completedStoryIds,
-              activeStoryId: blockedStory.id,
-              blockedStoryId: blockedStory.id,
-              ...(lastRunId ? { lastRunId } : {}),
-              ...(commit ? { commit } : {}),
-            });
-          }
           return summary({
             options,
             outcome: "complete",
@@ -700,7 +701,7 @@ export async function runAriadneLoop(
         }
         deps.store.writeRunJson(runId, "checks.json", checks);
         const timedOutCheck = checks.find((check) => check.timedOut);
-        if (timedOutCheck && options.maxRuntimeMs !== undefined) {
+        if (timedOutCheck?.timeoutOrigin === "global_budget") {
           const failure: AttemptFailure = {
             runId,
             category: "check",
@@ -709,6 +710,20 @@ export async function runAriadneLoop(
           };
           failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory);
           return stop("budget_exhausted", "max_runtime", runId, activeStory.id);
+        }
+        if (timedOutCheck) {
+          const failure: AttemptFailure = {
+            runId,
+            category: "check",
+            message: `Ariadne quality check timed out: ${timedOutCheck.command}`,
+            timestamp: deps.now().toISOString(),
+          };
+          if (
+            failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory)
+          ) {
+            return blockedSummary(activeStory.id, runId);
+          }
+          continue;
         }
         const abortedCheck = checks.find((check) => check.aborted);
         if (abortedCheck || options.signal?.aborted) {

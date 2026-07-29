@@ -4,12 +4,15 @@ import type { runAgentProcess } from "./process.js";
 
 const QUALITY_CHECK_TIMEOUT_MS = 30 * 60 * 1_000;
 
+export type QualityCheckTimeoutOrigin = "quality_check" | "global_budget";
+
 export type QualityCheckResult = {
   command: string;
   status: number | null;
   signal: NodeJS.Signals | null;
   durationMs: number;
   timedOut: boolean;
+  timeoutOrigin: QualityCheckTimeoutOrigin | null;
   aborted: boolean;
   stdoutPath: string;
   stderrPath: string;
@@ -55,11 +58,21 @@ export async function runQualityChecks(
   const results: QualityCheckResult[] = [];
   const startedAt = Date.now();
   for (const [index, command] of input.commands.entries()) {
-    const remainingTimeout =
+    const remainingGlobalRuntime =
       input.timeoutMs === undefined
-        ? QUALITY_CHECK_TIMEOUT_MS
+        ? undefined
         : input.timeoutMs - (Date.now() - startedAt);
-    if (remainingTimeout <= 0) break;
+    if (remainingGlobalRuntime !== undefined && remainingGlobalRuntime <= 0)
+      break;
+    const timeoutOrigin: QualityCheckTimeoutOrigin =
+      remainingGlobalRuntime !== undefined &&
+      remainingGlobalRuntime <= QUALITY_CHECK_TIMEOUT_MS
+        ? "global_budget"
+        : "quality_check";
+    const timeoutMs =
+      remainingGlobalRuntime === undefined
+        ? QUALITY_CHECK_TIMEOUT_MS
+        : Math.min(QUALITY_CHECK_TIMEOUT_MS, remainingGlobalRuntime);
     const checkNumber = index + 1;
     const stdoutPath = path.join(
       input.runDir,
@@ -74,7 +87,7 @@ export async function runQualityChecks(
       {
         stdoutPath,
         stderrPath,
-        timeoutMs: Math.min(QUALITY_CHECK_TIMEOUT_MS, remainingTimeout),
+        timeoutMs,
         signal: input.signal,
       },
     );
@@ -84,6 +97,7 @@ export async function runQualityChecks(
       signal: processResult.signal,
       durationMs: processResult.durationMs,
       timedOut: processResult.timedOut,
+      timeoutOrigin: processResult.timedOut ? timeoutOrigin : null,
       aborted: processResult.aborted,
       stdoutPath,
       stderrPath,
