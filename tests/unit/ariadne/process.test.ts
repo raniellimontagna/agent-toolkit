@@ -52,6 +52,32 @@ async function waitForFileContent(
   throw new Error(`Timed out waiting for ${JSON.stringify(expected)}.`);
 }
 
+function waitForFileContentSync(
+  filePath: string,
+  expected: string,
+  timeoutMs = 5_000,
+): void {
+  const deadline = Date.now() + timeoutMs;
+  const sleeper = new Int32Array(new SharedArrayBuffer(4));
+  while (Date.now() < deadline) {
+    if (
+      fs.existsSync(filePath) &&
+      fs.readFileSync(filePath, "utf8").includes(expected)
+    )
+      return;
+    Atomics.wait(sleeper, 0, 0, 10);
+  }
+  throw new Error(`Timed out waiting for ${JSON.stringify(expected)}.`);
+}
+
+function sigtermIgnoringProgram(readyPath: string): string {
+  return [
+    "process.on('SIGTERM', () => {});",
+    `require('node:fs').writeFileSync(${JSON.stringify(readyPath)}, 'ready');`,
+    "setInterval(() => {}, 1_000);",
+  ].join("");
+}
+
 describe("runAgentProcess", () => {
   it("captures output, writes complete logs, and returns exit metadata", async () => {
     const { root, stdoutPath, stderrPath } = fixture();
@@ -98,18 +124,23 @@ describe("runAgentProcess", () => {
 
   it("uses SIGKILL after the default 5 second grace period on timeout", async () => {
     const { root, stdoutPath, stderrPath } = fixture();
+    const readyPath = path.join(root, "ready");
     const delays = compressDefaultGracePeriod();
     const result = await runAgentProcess(
       {
         command: process.execPath,
-        args: [
-          "-e",
-          "process.on('SIGTERM', () => {}); setInterval(() => {}, 1_000)",
-        ],
+        args: ["-e", sigtermIgnoringProgram(readyPath)],
         cwd: root,
         env: process.env,
       },
-      { stdoutPath, stderrPath, timeoutMs: 200 },
+      {
+        stdoutPath,
+        stderrPath,
+        get timeoutMs() {
+          waitForFileContentSync(readyPath, "ready");
+          return 1;
+        },
+      },
     );
 
     expect(result).toMatchObject({ timedOut: true, aborted: false });
@@ -119,21 +150,21 @@ describe("runAgentProcess", () => {
 
   it("uses SIGKILL after the default 5 second grace period on abort", async () => {
     const { root, stdoutPath, stderrPath } = fixture();
+    const readyPath = path.join(root, "ready");
     const delays = compressDefaultGracePeriod();
     const controller = new AbortController();
-    setTimeout(() => controller.abort(), 200);
-    const result = await runAgentProcess(
+    const running = runAgentProcess(
       {
         command: process.execPath,
-        args: [
-          "-e",
-          "process.on('SIGTERM', () => {}); setInterval(() => {}, 1_000)",
-        ],
+        args: ["-e", sigtermIgnoringProgram(readyPath)],
         cwd: root,
         env: process.env,
       },
       { stdoutPath, stderrPath, signal: controller.signal },
     );
+    await waitForFileContent(readyPath, "ready");
+    controller.abort();
+    const result = await running;
 
     expect(result).toMatchObject({ timedOut: false, aborted: true });
     expect(delays).toContain(5_000);

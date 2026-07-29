@@ -88,6 +88,17 @@ function sameRecord(a: AriadneLockRecord, b: AriadneLockRecord): boolean {
   return a.pid === b.pid && a.runId === b.runId;
 }
 
+function sameRecoveryRecord(
+  a: AriadneLockRecord,
+  b: AriadneLockRecord,
+): boolean {
+  return (
+    sameRecord(a, b) &&
+    a.schemaVersion === b.schemaVersion &&
+    a.startedAt === b.startedAt
+  );
+}
+
 function coordinatorPath(lockPath: string): string {
   return `${lockPath}.coordinator`;
 }
@@ -280,6 +291,19 @@ function diagnosticSegment(value: string): string {
   return value.replace(/[^a-zA-Z0-9._-]/g, "_");
 }
 
+function restoreMovedPublicLock(
+  lockPath: string,
+  recoveryMarker: string,
+): void {
+  try {
+    fs.linkSync(recoveryMarker, lockPath);
+  } catch (error: unknown) {
+    if ((error as NodeJS.ErrnoException).code === "EEXIST") return;
+    throw error;
+  }
+  fs.unlinkSync(recoveryMarker);
+}
+
 function recoverPublicLock(
   input: AcquireProjectLockInput,
   stale: AriadneLockRecord,
@@ -296,8 +320,17 @@ function recoverPublicLock(
       throw changedDuringRecovery();
     throw error;
   }
-  const recovered = parseLockRecord(fs.readFileSync(recoveryMarker, "utf8"));
-  if (!sameRecord(recovered, stale)) throw changedDuringRecovery();
+  let recovered: AriadneLockRecord;
+  try {
+    recovered = parseLockRecord(fs.readFileSync(recoveryMarker, "utf8"));
+  } catch {
+    restoreMovedPublicLock(input.lockPath, recoveryMarker);
+    throw changedDuringRecovery();
+  }
+  if (!sameRecoveryRecord(recovered, stale)) {
+    restoreMovedPublicLock(input.lockPath, recoveryMarker);
+    throw changedDuringRecovery();
+  }
 }
 
 export function acquireProjectLock(

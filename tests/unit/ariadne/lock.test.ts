@@ -195,6 +195,45 @@ describe("acquireProjectLock", () => {
     handle.release();
   });
 
+  it("restores a live replacement injected at the recovery rename boundary", () => {
+    const replacement: AriadneLockRecord = {
+      schemaVersion: 1,
+      pid: 10,
+      startedAt: "2026-07-29T01:00:00.000Z",
+      runId: "run-live-replacement",
+    };
+    const params = input({
+      isProcessAlive: (pid) => pid === replacement.pid,
+    });
+    const stale: AriadneLockRecord = {
+      schemaVersion: 1,
+      pid: 9,
+      startedAt: "2026-01-01T00:00:00.000Z",
+      runId: "legacy-old",
+    };
+    writeLegacyLock(params.lockPath, stale);
+    const originalRename = fs.renameSync.bind(fs);
+    let injected = false;
+    vi.spyOn(fs, "renameSync").mockImplementation((source, destination) => {
+      if (!injected && source.toString() === params.lockPath) {
+        injected = true;
+        const candidate = `${params.lockPath}.live-replacement`;
+        fs.writeFileSync(candidate, JSON.stringify(replacement), {
+          flag: "wx",
+          mode: 0o600,
+        });
+        originalRename(candidate, params.lockPath);
+      }
+      originalRename(source, destination);
+    });
+
+    expect(() => acquireProjectLock(params)).toThrow(/changed.*recovery/i);
+
+    expect(injected).toBe(true);
+    expect(readLock(params.lockPath)).toEqual(replacement);
+    expect(fs.statSync(params.lockPath).mode & 0o777).toBe(0o600);
+  });
+
   it("conditionally releases only a still-matching public record", () => {
     const params = input();
     const handle = acquireProjectLock(params);
