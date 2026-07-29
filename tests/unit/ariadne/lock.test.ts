@@ -33,10 +33,7 @@ function input(
   };
 }
 
-function writeLegacyLock(
-  lockPath: string,
-  record: AriadneLockRecord,
-): void {
+function writeLegacyLock(lockPath: string, record: AriadneLockRecord): void {
   fs.mkdirSync(path.dirname(lockPath), { recursive: true });
   fs.writeFileSync(lockPath, JSON.stringify(record), {
     flag: "wx",
@@ -131,10 +128,10 @@ describe("acquireProjectLock", () => {
       .readdirSync(params.runDir)
       .filter((filename) => filename.startsWith("recovered-lock-"));
     expect(diagnostics).toHaveLength(1);
+    const [diagnostic] = diagnostics;
+    if (!diagnostic) throw new Error("Expected a recovered lock diagnostic.");
     expect(
-      JSON.parse(
-        fs.readFileSync(path.join(params.runDir, diagnostics[0]!), "utf8"),
-      ),
+      JSON.parse(fs.readFileSync(path.join(params.runDir, diagnostic), "utf8")),
     ).toEqual(stale);
     handle.release();
   });

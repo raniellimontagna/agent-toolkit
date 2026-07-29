@@ -92,10 +92,7 @@ function coordinatorPath(lockPath: string): string {
   return `${lockPath}.coordinator`;
 }
 
-function generationRecordPath(
-  coordinator: string,
-  generation: string,
-): string {
+function generationRecordPath(coordinator: string, generation: string): string {
   return path.join(coordinator, `${generation}.json`);
 }
 
@@ -169,9 +166,7 @@ function readRecord(recordPath: string): AriadneLockRecord | null {
   }
 }
 
-function readTransition(
-  transitionPath: string,
-): CoordinatorTransition | null {
+function readTransition(transitionPath: string): CoordinatorTransition | null {
   try {
     return parseTransition(fs.readFileSync(transitionPath, "utf8"));
   } catch (error: unknown) {
@@ -241,18 +236,13 @@ function claimCoordinator(
   if (!publishRecord(coordinator, replacementGeneration, record)) {
     throw changedDuringRecovery();
   }
-  if (
-    !publishTransition(coordinator, generation, replacementGeneration)
-  ) {
+  if (!publishTransition(coordinator, generation, replacementGeneration)) {
     throw changedDuringRecovery();
   }
   return replacementGeneration;
 }
 
-function releaseCoordinator(
-  coordinator: string,
-  generation: string,
-): void {
+function releaseCoordinator(coordinator: string, generation: string): void {
   if (findTailGeneration(coordinator) !== generation) return;
   publishTransition(coordinator, generation, newGeneration());
 }
@@ -328,23 +318,13 @@ export function acquireProjectLock(
 
   try {
     if (writePublicLockExclusive(input.lockPath, record)) {
-      return createHandle(
-        input.lockPath,
-        coordinator,
-        generation,
-        record,
-      );
+      return createHandle(input.lockPath, coordinator, generation, record);
     }
 
     const existing = readPublicLock(input.lockPath);
     if (!existing) throw changedDuringRecovery();
     if (sameRecord(existing, record)) {
-      return createHandle(
-        input.lockPath,
-        coordinator,
-        generation,
-        record,
-      );
+      return createHandle(input.lockPath, coordinator, generation, record);
     }
     if (input.isProcessAlive(existing.pid)) {
       throw new Error(
