@@ -22,11 +22,11 @@ Normal `run` is autonomous and mutates the repository. Use `run --dry-run` for
 non-mutating inspection. Use `--runtime <claude|codex|opencode|gemini|antigravity>`
 to override automatic runtime selection explicitly, `--max-iterations <n>` or
 `--max-runtime <duration>` to bound a run, and `--json` for machine-readable
-output. `run` first honors its explicit runtime, then the configured project
-runtime; otherwise it selects a single healthy candidate (or a sole unverified
-candidate), uses a healthy global preference when set, prompts interactively
-when candidates remain ambiguous, and reports an error in non-interactive
-ambiguity.
+output. `run` first honors its explicit runtime, then a healthy configured
+project runtime. An unverified, unavailable, or incompatible configured runtime
+falls through to automatic selection: a single healthy candidate (or a sole
+unverified candidate), a healthy global preference when set, an interactive
+prompt when candidates remain ambiguous, or a non-interactive ambiguity error.
 
 During `init`, Ariadne detects package quality checks automatically: it uses a
 `check` script when present, otherwise it collects `lint`, `typecheck`, and

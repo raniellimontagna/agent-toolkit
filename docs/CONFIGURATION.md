@@ -129,18 +129,21 @@ The version-1 `.ariadne/config.json` contract is:
 ```
 
 During `init`, `runtime` may be omitted: Ariadne uses an existing configured
-runtime or selects a sole healthy or unverified detected runtime when available.
+runtime only when it is healthy. An unverified, unavailable, or incompatible
+configured runtime falls through to automatic selection of a sole healthy or
+unverified detected runtime when available.
 `qualityChecks` are also detected automatically: a package `check` script wins;
 otherwise Ariadne collects available `lint`, `typecheck`, and `test` scripts in
 that order. Explicit repeated `--check` values replace detected checks. A
 non-interactive init with no explicit, existing, or detected check fails and
 requires `--check`.
 
-For `run`, `--runtime` wins, followed by the configured project runtime. Without
-either, Ariadne selects a sole healthy candidate (or a sole unverified one),
-then a healthy global preference when one is configured; remaining ambiguity
-prompts interactively and errors in non-interactive mode, asking for
-`--runtime`. `maxAttemptsPerStory` defaults to exactly `3`. Its retry/blocking
+For `run`, `--runtime` wins, followed by a healthy configured project runtime.
+An unverified, unavailable, or incompatible configured runtime falls through to
+automatic selection: a sole healthy candidate (or a sole unverified one), then a
+healthy global preference when one is configured; remaining ambiguity prompts
+interactively and errors in non-interactive mode, asking for `--runtime`.
+`maxAttemptsPerStory` defaults to exactly `3`. Its retry/blocking
 limit applies to process, result, criterion, and quality-check failures. A
 commit failure is recorded while the story remains `in_progress`; Ariadne keeps
 the staged diff and run progress intact for manual resolution and deliberate
