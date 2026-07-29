@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { validateConfig, validatePrd } from "./schema.js";
+import { AriadneStateError, validateConfig, validatePrd } from "./schema.js";
 import type { AriadneConfig, AriadnePrd } from "./types.js";
 
 export type AriadnePaths = {
@@ -98,7 +98,17 @@ export class AriadneStore {
   }
 
   private readJson(source: string): unknown {
-    return JSON.parse(fs.readFileSync(source, "utf8")) as unknown;
+    let contents: string;
+    try {
+      contents = fs.readFileSync(source, "utf8");
+    } catch {
+      throw new AriadneStateError(source, "unable to read Ariadne state");
+    }
+    try {
+      return JSON.parse(contents) as unknown;
+    } catch {
+      throw new AriadneStateError(source, "contains malformed JSON");
+    }
   }
 
   private writeJsonAtomic(destination: string, value: unknown): void {

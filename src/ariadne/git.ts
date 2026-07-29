@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { AriadneStateError } from "./schema.js";
 import type { AriadneStory } from "./types.js";
 
 export type GitExec = (
@@ -28,7 +29,8 @@ export class AriadneGit {
     const result = this.capture(args);
     if (!result.ok) {
       const detail = result.stderr.trim() || result.stdout.trim();
-      throw new Error(
+      throw new AriadneStateError(
+        "$git",
         `Unable to ${description} (git exited ${result.status})${detail ? `: ${detail}` : ""}`,
       );
     }
@@ -38,7 +40,10 @@ export class AriadneGit {
   assertRepository(): void {
     const result = this.capture(["rev-parse", "--show-toplevel"]);
     if (!result.ok) {
-      throw new Error(`Ariadne requires a Git repository: ${this.root}`);
+      throw new AriadneStateError(
+        "$git",
+        `Ariadne requires a Git repository: ${this.root}`,
+      );
     }
 
     let configuredRoot: string;
@@ -47,10 +52,14 @@ export class AriadneGit {
       configuredRoot = fs.realpathSync(this.root);
       discoveredRoot = fs.realpathSync(result.stdout.trim());
     } catch {
-      throw new Error(`Ariadne could not resolve the Git repository root`);
+      throw new AriadneStateError(
+        "$git",
+        "Ariadne could not resolve the Git repository root",
+      );
     }
     if (configuredRoot !== discoveredRoot) {
-      throw new Error(
+      throw new AriadneStateError(
+        "$git",
         `Ariadne must run from the repository root: ${discoveredRoot}`,
       );
     }
@@ -72,7 +81,8 @@ export class AriadneGit {
     ]);
     if (!result.ok) {
       const detail = result.stderr.trim() || result.stdout.trim();
-      throw new Error(
+      throw new AriadneStateError(
+        "$git",
         `Unable to read worktree status (git exited ${result.status})${detail ? `: ${detail}` : ""}`,
       );
     }
@@ -83,12 +93,16 @@ export class AriadneGit {
     this.assertRepository();
     const actualBranch = this.currentBranch();
     if (actualBranch !== expectedBranch) {
-      throw new Error(
+      throw new AriadneStateError(
+        "$git",
         `Ariadne expected branch ${JSON.stringify(expectedBranch)}, found ${JSON.stringify(actualBranch)}`,
       );
     }
     if (!allowActiveDiff && this.statusPorcelain() !== "") {
-      throw new Error("Ariadne requires a clean worktree before starting");
+      throw new AriadneStateError(
+        "$git",
+        "Ariadne requires a clean worktree before starting",
+      );
     }
   }
 
@@ -98,7 +112,10 @@ export class AriadneGit {
 
   commit(story: AriadneStory): string {
     if (/\r|\n/.test(story.id) || /\r|\n/.test(story.title)) {
-      throw new Error("Ariadne commit IDs and titles cannot contain newlines");
+      throw new AriadneStateError(
+        "$git",
+        "Ariadne commit IDs and titles cannot contain newlines",
+      );
     }
     const message = `feat(ariadne): ${story.id} ${story.title}`;
     this.require(["commit", "-m", message], "create Ariadne commit");

@@ -1,7 +1,26 @@
-import { describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ariadneExitCode, runAriadne } from "../../../src/ariadne/cli.js";
 import { AriadneStateError } from "../../../src/ariadne/schema.js";
+import { AriadneStore } from "../../../src/ariadne/store.js";
 import { runCli } from "../../../src/cli.js";
+
+const directories: string[] = [];
+
+function temporaryProject(): string {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-cli-"));
+  directories.push(root);
+  return root;
+}
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  for (const directory of directories.splice(0)) {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
 
 describe("runCli", () => {
   it("routes ariadne arguments without invoking the legacy installer", async () => {
@@ -67,6 +86,54 @@ describe("runAriadne", () => {
         findProjectRoot: () => {
           throw new AriadneStateError("$git", "not a repository");
         },
+      }),
+    ).resolves.toBe(4);
+  });
+
+  it.each([
+    ["missing", (store: AriadneStore) => store.ensureLayout()],
+    [
+      "malformed",
+      (store: AriadneStore) => {
+        store.ensureLayout();
+        fs.writeFileSync(store.paths.config, "{not-json", "utf8");
+      },
+    ],
+  ])("maps %s Ariadne store state to exit code 4", async (_kind, prepare) => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const root = temporaryProject();
+    const store = new AriadneStore(root);
+    prepare(store);
+
+    await expect(
+      runAriadne(["run"], {
+        cwd: () => root,
+        findProjectRoot: () => root,
+      }),
+    ).resolves.toBe(4);
+  });
+
+  it("maps a real Git repository state failure to exit code 4", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const root = temporaryProject();
+    const store = new AriadneStore(root);
+    store.savePrd({
+      schemaVersion: 1,
+      project: "CLI fixture",
+      branchName: "main",
+      description: "A project without Git",
+      userStories: [],
+    });
+    store.saveConfig({
+      schemaVersion: 1,
+      qualityChecks: [],
+      maxAttemptsPerStory: 1,
+    });
+
+    await expect(
+      runAriadne(["status"], {
+        cwd: () => root,
+        findProjectRoot: () => root,
       }),
     ).resolves.toBe(4);
   });
