@@ -3,6 +3,34 @@ import type { RuntimeName } from "../state.js";
 export type AriadneRuntimeName = RuntimeName;
 export type StoryStatus = "pending" | "in_progress" | "completed" | "blocked";
 
+export type AriadneRunOutcome =
+  | "complete"
+  | "incomplete"
+  | "blocked"
+  | "budget_exhausted"
+  | "interrupted"
+  | "structural_error";
+
+export type AriadneRunOptions = {
+  runtime: AriadneRuntimeName;
+  maxIterations?: number;
+  maxRuntimeMs?: number;
+  dryRun: boolean;
+};
+
+export type AriadneRunSummary = {
+  schemaVersion: 1;
+  command: "run";
+  outcome: AriadneRunOutcome;
+  runtime: AriadneRuntimeName;
+  iterations: number;
+  completedStoryIds: string[];
+  activeStoryId?: string;
+  blockedStoryId?: string;
+  lastRunId?: string;
+  commit?: string;
+};
+
 export type AriadneStory = {
   id: string;
   title: string;
