@@ -137,4 +137,65 @@ describe("runAriadne", () => {
       }),
     ).resolves.toBe(4);
   });
+
+  it("maps a malformed public lock during status to the state exit code", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const root = temporaryProject();
+    const store = new AriadneStore(root);
+    store.savePrd({
+      schemaVersion: 1,
+      project: "CLI fixture",
+      branchName: "main",
+      description: "A project with a malformed lock",
+      userStories: [],
+    });
+    store.saveConfig({
+      schemaVersion: 1,
+      qualityChecks: [],
+      maxAttemptsPerStory: 1,
+    });
+    fs.writeFileSync(store.paths.lock, "not json", "utf8");
+
+    await expect(
+      runAriadne(["status"], {
+        cwd: () => root,
+        findProjectRoot: () => root,
+        createGit: () =>
+          ({
+            assertRepository: () => undefined,
+            currentBranch: () => "main",
+            statusPorcelain: () => "",
+          }) as never,
+      }),
+    ).resolves.toBe(4);
+    expect(console.error).toHaveBeenCalledWith(
+      ".ariadne/lock: Ariadne lock is malformed.",
+    );
+  });
+
+  it("maps a contended public lock during run to the state exit code", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const root = temporaryProject();
+    const store = new AriadneStore(root);
+    store.saveConfig({
+      schemaVersion: 1,
+      runtime: "codex",
+      qualityChecks: ["pnpm test"],
+      maxAttemptsPerStory: 1,
+    });
+
+    await expect(
+      runAriadne(["run"], {
+        cwd: () => root,
+        findProjectRoot: () => root,
+        selectRuntime: async () => ({ name: "codex", adapter: {} }) as never,
+        runLoop: async () => {
+          throw new Error("Ariadne project is already locked by PID 1234.");
+        },
+      }),
+    ).resolves.toBe(4);
+    expect(console.error).toHaveBeenCalledWith(
+      ".ariadne/lock: Ariadne project is already locked by PID 1234.",
+    );
+  });
 });
