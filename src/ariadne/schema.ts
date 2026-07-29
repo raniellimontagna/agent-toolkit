@@ -1,5 +1,10 @@
 import { isRuntimeName } from "../state.js";
 import type {
+  AgentCriterionResult,
+  AgentResult,
+  ExpectedAgentResult,
+} from "./result.js";
+import type {
   AriadneConfig,
   AriadnePrd,
   AriadneStory,
@@ -163,4 +168,108 @@ export function assertStoryTransition(
       `invalid story transition from ${from} to ${to}`,
     );
   }
+}
+
+function booleanAt(input: unknown, jsonPath: string): boolean {
+  if (typeof input !== "boolean") stateError(jsonPath, "expected a boolean");
+  return input;
+}
+
+function safeRelativePathAt(input: unknown, jsonPath: string): string {
+  const value = stringAt(input, jsonPath);
+  if (
+    value.includes("\0") ||
+    value.startsWith("/") ||
+    value.startsWith("\\") ||
+    /^[A-Za-z]:[\\/]/.test(value) ||
+    value
+      .split(/[\\/]+/)
+      .some((part) => part === "" || part === "." || part === "..")
+  ) {
+    stateError(jsonPath, "expected a safe relative path");
+  }
+  return value;
+}
+
+function validateAgentCriterion(
+  input: unknown,
+  jsonPath: string,
+): AgentCriterionResult {
+  const criterion = recordAt(input, jsonPath);
+  return {
+    criterion: stringAt(criterion.criterion, `${jsonPath}.criterion`),
+    passed: booleanAt(criterion.passed, `${jsonPath}.passed`),
+    evidence: stringAt(criterion.evidence, `${jsonPath}.evidence`),
+  };
+}
+
+export function validateAgentResult(
+  input: unknown,
+  expected: ExpectedAgentResult,
+): AgentResult {
+  const result = recordAt(input, "$"),
+    criteria = arrayAt(result.criteria, "$.criteria").map((criterion, index) =>
+      validateAgentCriterion(criterion, `$.criteria[${index}]`),
+    ),
+    filesChanged = arrayAt(result.filesChanged, "$.filesChanged").map(
+      (file, index) => safeRelativePathAt(file, `$.filesChanged[${index}]`),
+    ),
+    checksAttempted = arrayAt(result.checksAttempted, "$.checksAttempted").map(
+      (check, index) => stringAt(check, `$.checksAttempted[${index}]`),
+    ),
+    learnings = arrayAt(result.learnings, "$.learnings").map(
+      (learning, index) => stringAt(learning, `$.learnings[${index}]`),
+    );
+  const outcome = result.outcome;
+  if (outcome !== "completed" && outcome !== "failed") {
+    stateError("$.outcome", "expected completed or failed");
+  }
+  const runId = stringAt(result.runId, "$.runId");
+  if (runId !== expected.runId) stateError("$.runId", "does not match run");
+  const storyId = stringAt(result.storyId, "$.storyId");
+  if (storyId !== expected.storyId)
+    stateError("$.storyId", "does not match story");
+
+  const criteriaByName = new Map<string, AgentCriterionResult>();
+  for (const [index, criterion] of criteria.entries()) {
+    if (criteriaByName.has(criterion.criterion)) {
+      stateError(`$.criteria[${index}].criterion`, "duplicate criterion");
+    }
+    criteriaByName.set(criterion.criterion, criterion);
+  }
+  for (const criterion of expected.acceptanceCriteria) {
+    if (!criteriaByName.has(criterion)) {
+      stateError("$.criteria", `missing criterion: ${criterion}`);
+    }
+  }
+  if (criteriaByName.size !== expected.acceptanceCriteria.length) {
+    stateError("$.criteria", "contains an unexpected criterion");
+  }
+  if (
+    outcome === "completed" &&
+    criteria.some((criterion) => !criterion.passed)
+  ) {
+    stateError("$.criteria", "completed results require passing criteria");
+  }
+
+  const failureReason =
+    result.failureReason === undefined
+      ? undefined
+      : stringAt(result.failureReason, "$.failureReason");
+  if (outcome === "failed" && failureReason === undefined) {
+    stateError("$.failureReason", "is required for failed results");
+  }
+
+  return {
+    schemaVersion: schemaVersionAt(result.schemaVersion, "$.schemaVersion"),
+    runId,
+    storyId,
+    outcome,
+    criteria,
+    summary: stringAt(result.summary, "$.summary"),
+    filesChanged,
+    checksAttempted,
+    learnings,
+    ...(failureReason === undefined ? {} : { failureReason }),
+  };
 }
