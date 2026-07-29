@@ -15,6 +15,7 @@ import type {
   RuntimeDetectionState,
   RuntimeRegistry,
 } from "../../../src/ariadne/runtimes/types.js";
+import { AriadneStateError } from "../../../src/ariadne/schema.js";
 import { buildAriadneStatus } from "../../../src/ariadne/status.js";
 import { AriadneStore } from "../../../src/ariadne/store.js";
 import type {
@@ -166,6 +167,24 @@ afterEach(() => {
 });
 
 describe("Ariadne status", () => {
+  it("throws a typed state error for a malformed public lock", () => {
+    const root = repository();
+    const store = writeProject(root);
+    fs.writeFileSync(store.paths.lock, "not json", "utf8");
+
+    expect(() =>
+      buildAriadneStatus({
+        projectRoot: root,
+        registry: detectionRegistry(),
+        git: {
+          assertRepository: () => undefined,
+          currentBranch: () => "main",
+          statusPorcelain: () => "",
+        } as unknown as AriadneGit,
+      }),
+    ).toThrow(AriadneStateError);
+  });
+
   it("reports stories, active attempts, latest run, Git, paths, and live/stale locks without writes", () => {
     const root = repository();
     const store = writeProject(root, { storyStatus: "in_progress" });

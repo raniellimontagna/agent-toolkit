@@ -6,6 +6,7 @@ import {
   type AriadneLockRecord,
   acquireProjectLock,
 } from "../../../src/ariadne/lock.js";
+import { AriadneStateError } from "../../../src/ariadne/schema.js";
 
 const directories: string[] = [];
 
@@ -81,7 +82,7 @@ describe("acquireProjectLock", () => {
         pid: 4321,
         isProcessAlive: (pid) => pid === handle.record.pid,
       }),
-    ).toThrow(/already locked/i);
+    ).toThrow(AriadneStateError);
     expect(readLock(params.lockPath)).toEqual(handle.record);
     handle.release();
   });
@@ -91,7 +92,7 @@ describe("acquireProjectLock", () => {
     fs.mkdirSync(path.dirname(params.lockPath), { recursive: true });
     fs.writeFileSync(params.lockPath, "not json");
 
-    expect(() => acquireProjectLock(params)).toThrow(/malformed/i);
+    expect(() => acquireProjectLock(params)).toThrow(AriadneStateError);
     expect(fs.readFileSync(params.lockPath, "utf8")).toBe("not json");
   });
 
@@ -105,7 +106,7 @@ describe("acquireProjectLock", () => {
     };
     writeLegacyLock(params.lockPath, live);
 
-    expect(() => acquireProjectLock(params)).toThrow(/already locked/i);
+    expect(() => acquireProjectLock(params)).toThrow(AriadneStateError);
     expect(readLock(params.lockPath)).toEqual(live);
     expect(fs.existsSync(params.runDir)).toBe(false);
   });

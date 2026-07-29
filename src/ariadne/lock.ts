@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { AriadneStateError } from "./schema.js";
 
 export type AriadneLockRecord = {
   schemaVersion: 1;
@@ -32,12 +33,22 @@ type CoordinatorTransition = {
 const ROOT_GENERATION = "root";
 const GENERATION_PATTERN = /^(?:root|gen-[0-9a-f-]{36})$/;
 
-function malformedLock(): Error {
-  return new Error("Ariadne lock is malformed.");
+function lockStateError(message: string): AriadneStateError {
+  return new AriadneStateError(".ariadne/lock", message);
 }
 
-function changedDuringRecovery(): Error {
-  return new Error("Ariadne project lock changed during stale-lock recovery.");
+function malformedLock(): AriadneStateError {
+  return lockStateError("Ariadne lock is malformed.");
+}
+
+function changedDuringRecovery(): AriadneStateError {
+  return lockStateError(
+    "Ariadne project lock changed during stale-lock recovery.",
+  );
+}
+
+function contendedLock(pid: number): AriadneStateError {
+  return lockStateError(`Ariadne project is already locked by PID ${pid}.`);
 }
 
 function parseLockRecord(raw: string): AriadneLockRecord {
@@ -240,7 +251,7 @@ function claimCoordinator(
     return claimCoordinator(coordinator, record, isProcessAlive);
   }
   if (isProcessAlive(current.pid)) {
-    throw new Error(`Ariadne project is already locked by PID ${current.pid}.`);
+    throw contendedLock(current.pid);
   }
 
   const replacementGeneration = newGeneration();
@@ -360,9 +371,7 @@ export function acquireProjectLock(
       return createHandle(input.lockPath, coordinator, generation, record);
     }
     if (input.isProcessAlive(existing.pid)) {
-      throw new Error(
-        `Ariadne project is already locked by PID ${existing.pid}.`,
-      );
+      throw contendedLock(existing.pid);
     }
 
     recoverPublicLock(input, existing);

@@ -86,19 +86,6 @@ function errorExitCode(error: unknown): number {
   return ARIADNE_RUNTIME_EXIT_CODE;
 }
 
-function stateErrorForLock(error: unknown): AriadneStateError | undefined {
-  if (!(error instanceof Error)) return undefined;
-  if (
-    error.message === "Ariadne lock is malformed." ||
-    error.message ===
-      "Ariadne project lock changed during stale-lock recovery." ||
-    /^Ariadne project is already locked by PID \d+\.$/.test(error.message)
-  ) {
-    return new AriadneStateError(".ariadne/lock", error.message);
-  }
-  return undefined;
-}
-
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
@@ -196,9 +183,7 @@ export async function runAriadne(
     );
     return ariadneExitCode(result.outcome);
   } catch (error) {
-    const stateError = stateErrorForLock(error);
-    const normalizedError = stateError ?? error;
-    console.error(errorMessage(normalizedError));
-    return errorExitCode(normalizedError);
+    console.error(errorMessage(error));
+    return errorExitCode(error);
   }
 }

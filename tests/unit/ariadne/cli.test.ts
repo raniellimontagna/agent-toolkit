@@ -173,7 +173,36 @@ describe("runAriadne", () => {
     );
   });
 
-  it("maps a contended public lock during run to the state exit code", async () => {
+  it("maps a typed contended public lock during run to the state exit code", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const root = temporaryProject();
+    const store = new AriadneStore(root);
+    store.saveConfig({
+      schemaVersion: 1,
+      runtime: "codex",
+      qualityChecks: ["pnpm test"],
+      maxAttemptsPerStory: 1,
+    });
+
+    await expect(
+      runAriadne(["run"], {
+        cwd: () => root,
+        findProjectRoot: () => root,
+        selectRuntime: async () => ({ name: "codex", adapter: {} }) as never,
+        runLoop: async () => {
+          throw new AriadneStateError(
+            ".ariadne/lock",
+            "Ariadne project is already locked by PID 1234.",
+          );
+        },
+      }),
+    ).resolves.toBe(4);
+    expect(console.error).toHaveBeenCalledWith(
+      ".ariadne/lock: Ariadne project is already locked by PID 1234.",
+    );
+  });
+
+  it("does not classify arbitrary errors by their lock-like message", async () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     const root = temporaryProject();
     const store = new AriadneStore(root);
@@ -193,9 +222,9 @@ describe("runAriadne", () => {
           throw new Error("Ariadne project is already locked by PID 1234.");
         },
       }),
-    ).resolves.toBe(4);
+    ).resolves.toBe(3);
     expect(console.error).toHaveBeenCalledWith(
-      ".ariadne/lock: Ariadne project is already locked by PID 1234.",
+      "Ariadne project is already locked by PID 1234.",
     );
   });
 });

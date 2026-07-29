@@ -9,6 +9,7 @@ import type {
   RuntimeDetectionState,
   RuntimeRegistry,
 } from "./runtimes/types.js";
+import { AriadneStateError } from "./schema.js";
 import { AriadneStore } from "./store.js";
 import type { AriadneConfig, AriadnePrd, AriadneRuntimeName } from "./types.js";
 
@@ -95,10 +96,10 @@ function lockRecord(source: string): AriadneLockRecord {
   try {
     value = JSON.parse(source);
   } catch {
-    throw new Error("Ariadne lock is malformed.");
+    throw new AriadneStateError(".ariadne/lock", "Ariadne lock is malformed.");
   }
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error("Ariadne lock is malformed.");
+    throw new AriadneStateError(".ariadne/lock", "Ariadne lock is malformed.");
   }
   const record = value as Record<string, unknown>;
   if (
@@ -110,7 +111,7 @@ function lockRecord(source: string): AriadneLockRecord {
     typeof record.runId !== "string" ||
     record.runId === ""
   ) {
-    throw new Error("Ariadne lock is malformed.");
+    throw new AriadneStateError(".ariadne/lock", "Ariadne lock is malformed.");
   }
   return record as AriadneLockRecord;
 }
