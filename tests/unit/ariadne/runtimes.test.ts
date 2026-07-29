@@ -378,6 +378,26 @@ describe("automatic runtime selection", () => {
     expect(selection.name).toBe("codex");
   });
 
+  it("falls back to a healthy runtime when the configured runtime is unverified", async () => {
+    const selection = await selectRuntime({
+      configured: "gemini",
+      interactive: false,
+      registry: fakeRegistry({ codex: "healthy", gemini: "unverified" }),
+    });
+
+    expect(selection.name).toBe("codex");
+  });
+
+  it("falls back to automatic selection when the configured runtime is unavailable", async () => {
+    const selection = await selectRuntime({
+      configured: "gemini",
+      interactive: false,
+      registry: fakeRegistry({ codex: "healthy" }),
+    });
+
+    expect(selection.name).toBe("codex");
+  });
+
   it("allows an explicit unverified runtime override", async () => {
     const selection = await selectRuntime({
       explicit: "gemini",

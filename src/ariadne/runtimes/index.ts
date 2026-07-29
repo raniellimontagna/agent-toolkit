@@ -42,17 +42,20 @@ function requireSelectablePreference(
   name: AriadneRuntimeName,
   registry: RuntimeRegistry,
   detections: Map<AriadneRuntimeName, RuntimeDetection>,
-): RuntimeSelection {
+): RuntimeSelection | undefined {
   const candidate = selection(name, registry, detections);
-  if (
-    candidate.detection.state !== "healthy" &&
-    candidate.detection.state !== "unverified"
-  ) {
-    throw new AriadneRuntimeError(
-      `The ${source} runtime ${name} is ${candidate.detection.state}: ${candidate.detection.reason}`,
-    );
+  if (candidate.detection.state === "healthy") {
+    return candidate;
   }
-  return candidate;
+  if (source === "explicit" && candidate.detection.state === "unverified") {
+    return candidate;
+  }
+  if (source === "configured") {
+    return undefined;
+  }
+  throw new AriadneRuntimeError(
+    `The ${source} runtime ${name} is ${candidate.detection.state}: ${candidate.detection.reason}`,
+  );
 }
 
 export async function selectRuntime(
@@ -64,20 +67,22 @@ export async function selectRuntime(
   );
 
   if (input.explicit) {
-    return requireSelectablePreference(
+    const explicit = requireSelectablePreference(
       "explicit",
       input.explicit,
       input.registry,
       detections,
     );
+    if (explicit) return explicit;
   }
   if (input.configured) {
-    return requireSelectablePreference(
+    const configured = requireSelectablePreference(
       "configured",
       input.configured,
       input.registry,
       detections,
     );
+    if (configured) return configured;
   }
 
   const healthy = names.filter(
