@@ -1,6 +1,8 @@
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import process from "node:process";
+import * as prompts from "@clack/prompts";
+import { isRuntimeName } from "../state.js";
 import { capture, findCommand } from "../system.js";
 import { parseAriadneArgs } from "./args.js";
 import { runQualityChecks } from "./checks.js";
@@ -12,6 +14,7 @@ import { runAgentProcess } from "./process.js";
 import {
   formatAriadneDoctor,
   formatAriadneJson,
+  formatAriadneRun,
   formatAriadneStatus,
 } from "./render.js";
 import { createRuntimeRegistry, selectRuntime } from "./runtimes/index.js";
@@ -19,7 +22,12 @@ import { AriadneRuntimeError } from "./runtimes/types.js";
 import { AriadneStateError } from "./schema.js";
 import { buildAriadneStatus, createAriadneGit } from "./status.js";
 import { AriadneStore } from "./store.js";
-import { type AriadneRunOutcome, AriadneUsageError } from "./types.js";
+import {
+  AriadneCancelledError,
+  type AriadneRunOutcome,
+  type AriadneRuntimeName,
+  AriadneUsageError,
+} from "./types.js";
 import { ariadneUsage } from "./usage.js";
 
 export const ARIADNE_USAGE_EXIT_CODE = 2;
@@ -42,8 +50,37 @@ type AriadneCliDeps = {
   runChecks: typeof runQualityChecks;
   now: () => Date;
   createRunId: () => string;
+  isInteractive: () => boolean;
+  globalPreferredRuntime: () => AriadneRuntimeName | undefined;
+  chooseRuntime: NonNullable<Parameters<typeof selectRuntime>[0]["choose"]>;
   write: (line: string) => void;
 };
+
+function globalPreferredRuntime(): AriadneRuntimeName | undefined {
+  const preferred = process.env.AGENT_TOOLKIT_PREFERRED_RUNTIME;
+  return typeof preferred === "string" && isRuntimeName(preferred)
+    ? preferred
+    : undefined;
+}
+
+async function chooseRuntime(
+  choices: Parameters<
+    NonNullable<Parameters<typeof selectRuntime>[0]["choose"]>
+  >[0],
+): Promise<AriadneRuntimeName> {
+  const answer = await prompts.select({
+    message: "Ariadne runtime",
+    options: choices.map((choice) => ({
+      value: choice.name,
+      label: `${choice.name}${choice.version ? ` ${choice.version}` : ""}`,
+      hint: choice.state,
+    })),
+  });
+  if (prompts.isCancel(answer)) {
+    throw new AriadneCancelledError("Ariadne runtime selection cancelled.");
+  }
+  return answer as AriadneRuntimeName;
+}
 
 function findProjectRoot(cwd: string): string {
   try {
@@ -76,6 +113,10 @@ const defaultDeps: AriadneCliDeps = {
   runChecks: runQualityChecks,
   now: () => new Date(),
   createRunId: randomUUID,
+  isInteractive: () =>
+    process.stdin.isTTY === true && process.stdout.isTTY === true,
+  globalPreferredRuntime,
+  chooseRuntime,
   write: (line) => console.log(line),
 };
 
@@ -83,6 +124,7 @@ function errorExitCode(error: unknown): number {
   if (error instanceof AriadneUsageError) return ARIADNE_USAGE_EXIT_CODE;
   if (error instanceof AriadneRuntimeError) return ARIADNE_RUNTIME_EXIT_CODE;
   if (error instanceof AriadneStateError) return ARIADNE_STATE_EXIT_CODE;
+  if (error instanceof AriadneCancelledError) return 130;
   return ARIADNE_RUNTIME_EXIT_CODE;
 }
 
@@ -92,6 +134,21 @@ function errorMessage(error: unknown): string {
 
 export function ariadneExitCode(outcome: AriadneRunOutcome): number {
   return ARIADNE_EXIT_CODES[outcome];
+}
+
+export function ariadneDoctorExitCode(
+  report: ReturnType<typeof buildAriadneDoctor>,
+): number {
+  if (!report.issues.some((issue) => issue.severity === "error")) return 0;
+  if (
+    report.issues.some(
+      (issue) =>
+        issue.severity === "error" && issue.code.startsWith("runtime_"),
+    )
+  ) {
+    return ARIADNE_RUNTIME_EXIT_CODE;
+  }
+  return ARIADNE_STATE_EXIT_CODE;
 }
 
 export async function runAriadne(
@@ -112,16 +169,21 @@ export async function runAriadne(
 
     const projectRoot = deps.findProjectRoot(deps.cwd());
     if (command.kind === "init") {
+      const interactive = deps.isInteractive() && !command.json;
       const report = await deps.initialize({
         cwd: projectRoot,
         runtime: command.runtime,
         qualityChecks: command.qualityChecks,
-        interactive: !command.json,
+        interactive,
       });
       deps.write(
-        command.json ? JSON.stringify(report, null, 2) : "Ariadne initialized.",
+        command.json
+          ? JSON.stringify(report, null, 2)
+          : report.outcome === "cancelled"
+            ? "Ariadne initialization cancelled."
+            : "Ariadne initialized.",
       );
-      return 0;
+      return report.outcome === "cancelled" ? 130 : 0;
     }
 
     const store = deps.createStore(projectRoot);
@@ -144,19 +206,25 @@ export async function runAriadne(
       deps.write(
         command.json ? formatAriadneJson(report) : formatAriadneDoctor(report),
       );
-      return report.ok ? 0 : ARIADNE_STATE_EXIT_CODE;
+      return ariadneDoctorExitCode(report);
     }
 
     const config = store.loadConfig();
+    const interactive = deps.isInteractive() && !command.json;
     const selection = await deps.selectRuntime({
       explicit: command.runtime,
       configured: config.runtime,
-      interactive: false,
+      globalPreferred: deps.globalPreferredRuntime(),
+      interactive,
+      ...(interactive ? { choose: deps.chooseRuntime } : {}),
       registry,
     });
     const result = await deps.runLoop(
       {
         runtime: selection.name,
+        ...(selection.source === "interactive"
+          ? { persistRuntimeSelection: true }
+          : {}),
         ...(command.maxIterations === undefined
           ? {}
           : { maxIterations: command.maxIterations }),
@@ -177,11 +245,9 @@ export async function runAriadne(
       },
     );
     deps.write(
-      command.json
-        ? JSON.stringify(result, null, 2)
-        : `Ariadne run: ${result.outcome}.`,
+      command.json ? JSON.stringify(result, null, 2) : formatAriadneRun(result),
     );
-    return ariadneExitCode(result.outcome);
+    return command.dryRun ? 0 : ariadneExitCode(result.outcome);
   } catch (error) {
     console.error(errorMessage(error));
     return errorExitCode(error);

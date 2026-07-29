@@ -164,10 +164,10 @@ export function assertRunnableConfig(config: AriadneConfig): void {
 }
 
 const transitions: Record<StoryStatus, readonly StoryStatus[]> = {
-  pending: ["in_progress", "blocked"],
-  in_progress: ["completed", "blocked", "pending"],
+  pending: ["in_progress"],
+  in_progress: ["completed", "blocked", "in_progress"],
   completed: [],
-  blocked: ["pending", "in_progress"],
+  blocked: [],
 };
 
 export function assertStoryTransition(

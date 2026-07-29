@@ -41,6 +41,7 @@ export type AriadneStatusReport = {
     initialHead?: string;
     finalHead?: string;
   };
+  consecutiveFailures: number;
   dirty: boolean;
   lock: {
     state: "absent" | "live" | "stale";
@@ -234,24 +235,7 @@ function runCandidate(runsPath: string, id: string): RunCandidate | undefined {
 export function inspectLastAriadneRun(
   runsPath: string,
 ): AriadneStatusReport["lastRun"] {
-  let entries: fs.Dirent[];
-  try {
-    entries = fs.readdirSync(runsPath, { withFileTypes: true });
-  } catch (error: unknown) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
-    throw error;
-  }
-  const candidates = entries
-    .filter(
-      (entry) => entry.isDirectory() && entry.name !== ".lock-coordinator",
-    )
-    .map((entry) => runCandidate(runsPath, entry.name))
-    .filter((candidate): candidate is RunCandidate => candidate !== undefined)
-    .sort(
-      (left, right) =>
-        right.timestamp - left.timestamp || right.id.localeCompare(left.id),
-    );
-  const latest = candidates[0];
+  const latest = inspectRunCandidates(runsPath)[0];
   return latest
     ? {
         id: latest.id,
@@ -261,6 +245,37 @@ export function inspectLastAriadneRun(
         ...(latest.finalHead ? { finalHead: latest.finalHead } : {}),
       }
     : undefined;
+}
+
+function inspectRunCandidates(runsPath: string): RunCandidate[] {
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(runsPath, { withFileTypes: true });
+  } catch (error: unknown) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw error;
+  }
+  return entries
+    .filter(
+      (entry) => entry.isDirectory() && entry.name !== ".lock-coordinator",
+    )
+    .map((entry) => runCandidate(runsPath, entry.name))
+    .filter((candidate): candidate is RunCandidate => candidate !== undefined)
+    .sort(
+      (left, right) =>
+        right.timestamp - left.timestamp || right.id.localeCompare(left.id),
+    );
+}
+
+function consecutiveFailures(runsPath: string): number {
+  let count = 0;
+  for (const candidate of inspectRunCandidates(runsPath)) {
+    if (candidate.outcome !== "failed" && candidate.outcome !== "blocked") {
+      break;
+    }
+    count += 1;
+  }
+  return count;
 }
 
 function storyCounts(prd: AriadnePrd): AriadneStoryCounts {
@@ -323,6 +338,7 @@ export function buildAriadneStatus(
         }
       : {}),
     ...(lastRun ? { lastRun } : {}),
+    consecutiveFailures: consecutiveFailures(store.paths.runs),
     dirty: git.statusPorcelain() !== "",
     lock:
       input.lock ??

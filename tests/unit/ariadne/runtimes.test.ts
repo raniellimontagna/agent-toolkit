@@ -376,6 +376,7 @@ describe("automatic runtime selection", () => {
     });
 
     expect(selection.name).toBe("codex");
+    expect(selection.source).toBe("configured");
   });
 
   it("falls back to a healthy runtime when the configured runtime is unverified", async () => {
@@ -442,6 +443,7 @@ describe("automatic runtime selection", () => {
     });
 
     expect(selection.name).toBe("claude");
+    expect(selection.source).toBe("global");
   });
 
   it("asks for an interactive choice when healthy candidates are ambiguous", async () => {
@@ -453,6 +455,7 @@ describe("automatic runtime selection", () => {
     });
 
     expect(selection.name).toBe("codex");
+    expect(selection.source).toBe("interactive");
     expect(choose).toHaveBeenCalledWith([
       expect.objectContaining({ name: "claude", state: "healthy" }),
       expect.objectContaining({ name: "codex", state: "healthy" }),

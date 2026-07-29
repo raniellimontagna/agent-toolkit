@@ -56,6 +56,7 @@ export type RuntimeSelection = {
   name: AriadneRuntimeName;
   adapter: AriadneRuntimeAdapter;
   detection: RuntimeDetection;
+  source: "explicit" | "configured" | "automatic" | "global" | "interactive";
 };
 
 export class AriadneRuntimeError extends Error {}

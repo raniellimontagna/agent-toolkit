@@ -202,6 +202,26 @@ describe("Ariadne init", () => {
     ).toBe(original);
   });
 
+  it("classifies malformed imported JSON as typed Ariadne state", () => {
+    const root = repository();
+    const source = path.join(root, "prd.json");
+    fs.writeFileSync(source, "{malformed", "utf8");
+
+    expect(() =>
+      buildInitPlan({
+        cwd: root,
+        runtime: "codex",
+        qualityChecks: ["pnpm test"],
+        interactive: false,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        name: "AriadneStateError",
+        jsonPath: path.join(fs.realpathSync(root), "prd.json"),
+      }),
+    );
+  });
+
   it("detects package checks in order and lets repeated --check values override them", () => {
     const root = repository();
     writeJson(path.join(root, "package.json"), {

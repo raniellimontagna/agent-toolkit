@@ -147,6 +147,7 @@ function minimalStatus(
       : {}),
     dirty,
     lock,
+    consecutiveFailures: 0,
     paths: { progress: store.paths.progress, runs: store.paths.runs },
   };
 }
@@ -307,7 +308,7 @@ export function buildAriadneDoctor(
   return {
     schemaVersion: 1,
     command: "doctor",
-    ok: issues.length === 0,
+    ok: !issues.some((candidate) => candidate.severity === "error"),
     issues,
     status,
   };

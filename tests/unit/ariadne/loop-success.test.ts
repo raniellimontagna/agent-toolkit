@@ -68,7 +68,13 @@ type Harness = {
 
 function createHarness(
   stories: AriadneStory[],
-  options: { commitFails?: boolean } = {},
+  options: {
+    stageFails?: boolean;
+    commitFails?: boolean;
+    agentCommits?: boolean;
+    agentEditsPrd?: boolean;
+    agentEditsProgress?: boolean;
+  } = {},
 ): Harness {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-loop-"));
   directories.push(root);
@@ -88,9 +94,11 @@ function createHarness(
     description: "A deterministic loop fixture.",
     userStories: stories,
   });
+  fs.writeFileSync(store.paths.progress, "", "utf8");
   store.recording = true;
 
   let commitNumber = 0;
+  let currentHead = "initial-head";
   const git = {
     assertReady(expectedBranch: string, allowActiveDiff: boolean) {
       expect(expectedBranch).toBe("main");
@@ -99,14 +107,18 @@ function createHarness(
     },
     stageAll() {
       events.push("git.stageAll");
+      if (options.stageFails) throw new Error("git add failed");
+    },
+    head() {
+      return currentHead;
     },
     commit(activeStory: AriadneStory) {
       events.push("git.commit");
       if (options.commitFails) throw new Error("commit hook failed");
       commitNumber += 1;
-      return commitNumber === 1
-        ? "commit-head"
-        : `commit-head-${activeStory.id}`;
+      currentHead =
+        commitNumber === 1 ? "commit-head" : `commit-head-${activeStory.id}`;
+      return currentHead;
     },
   } as unknown as AriadneGit;
 
@@ -116,11 +128,14 @@ function createHarness(
     detect: () => ({
       name: "codex",
       state: "healthy",
+      version: "0.145.0",
       reason: "deterministic test adapter",
     }),
     buildInvocation(context: IterationContext): AgentInvocation {
-      expect(fs.existsSync(context.promptPath)).toBe(true);
-      events.push("prompt.write");
+      if (context.runId !== "dry-run") {
+        expect(fs.existsSync(context.promptPath)).toBe(true);
+        events.push("prompt.write");
+      }
       return {
         command: "fake-codex",
         args: [context.promptPath],
@@ -161,6 +176,13 @@ function createHarness(
       })}\n`,
       "utf8",
     );
+    if (options.agentCommits) currentHead = "agent-owned-head";
+    if (options.agentEditsPrd) {
+      fs.writeFileSync(store.paths.prd, '{"agent":"edited canonical state"}\n');
+    }
+    if (options.agentEditsProgress) {
+      fs.writeFileSync(store.paths.progress, "agent edited progress\n", "utf8");
+    }
     return {
       status: 0,
       signal: null,
@@ -290,7 +312,40 @@ describe("runAriadneLoop successful lifecycle", () => {
       "process.json",
       "prompt.md",
       "result.json",
+      "summary.json",
     ]);
+    expect(
+      JSON.parse(
+        fs.readFileSync(
+          path.join(harness.store.paths.runs, "run-1", "attempt.json"),
+          "utf8",
+        ),
+      ),
+    ).toMatchObject({
+      runtimeVersion: "0.145.0",
+      initialHead: "initial-head",
+      invocation: {
+        command: "fake-codex",
+        args: [expect.stringContaining("prompt.md")],
+        cwd: harness.root,
+      },
+    });
+    expect(
+      JSON.parse(
+        fs.readFileSync(
+          path.join(harness.store.paths.runs, "run-1", "summary.json"),
+          "utf8",
+        ),
+      ),
+    ).toMatchObject({
+      outcome: "completed",
+      initialHead: "initial-head",
+      finalHead: "commit-head",
+      validatedResult: {
+        summary: "Completed US-001.",
+        filesChanged: ["src/fixture.ts"],
+      },
+    });
   });
 
   it("selects multiple stories by priority then source order", async () => {
@@ -313,6 +368,57 @@ describe("runAriadneLoop successful lifecycle", () => {
     expect(new Set(harness.runtimeRunIds).size).toBe(3);
   });
 
+  it("does not rewrite a completed attempt when a later loop budget stops", async () => {
+    const harness = createHarness([story("US-001", 1), story("US-002", 2)]);
+    const { runAriadneLoop } = await import("../../../src/ariadne/loop.js");
+
+    const result = await runAriadneLoop(
+      { runtime: "codex", dryRun: false, maxIterations: 1 },
+      harness.deps,
+    );
+
+    expect(result).toMatchObject({
+      outcome: "budget_exhausted",
+      completedStoryIds: ["US-001"],
+      activeStoryId: "US-002",
+      lastRunId: "run-1",
+    });
+    expect(
+      JSON.parse(
+        fs.readFileSync(
+          path.join(harness.store.paths.runs, "run-1", "summary.json"),
+          "utf8",
+        ),
+      ),
+    ).toMatchObject({
+      storyId: "US-001",
+      outcome: "completed",
+      finalHead: "commit-head",
+    });
+  });
+
+  it("persists an interactive runtime preference only inside the coordinator", async () => {
+    const harness = createHarness([story("US-001", 1)]);
+    const config = harness.store.loadConfig();
+    delete config.runtime;
+    harness.store.saveConfig(config);
+    const { runAriadneLoop } = await import("../../../src/ariadne/loop.js");
+
+    await runAriadneLoop(
+      {
+        runtime: "codex",
+        persistRuntimeSelection: true,
+        dryRun: false,
+      },
+      harness.deps,
+    );
+
+    expect(harness.events.indexOf("git.assertReady")).toBeLessThan(
+      harness.events.indexOf("story.US-001.in_progress"),
+    );
+    expect(harness.store.loadConfig().runtime).toBe("codex");
+  });
+
   it("keeps dry-run inspection non-mutating", async () => {
     const harness = createHarness([story("US-001", 1)]);
     const before = snapshotDirectory(harness.root);
@@ -325,7 +431,7 @@ describe("runAriadneLoop successful lifecycle", () => {
 
     expect(snapshotDirectory(harness.root)).toEqual(before);
     expect(harness.events).toEqual(["git.assertReady"]);
-    expect(summary).toEqual({
+    expect(summary).toMatchObject({
       schemaVersion: 1,
       command: "run",
       outcome: "incomplete",
@@ -333,7 +439,55 @@ describe("runAriadneLoop successful lifecycle", () => {
       iterations: 0,
       completedStoryIds: [],
       activeStoryId: "US-001",
+      inspection: {
+        project: {
+          root: harness.root,
+          name: "Loop fixture",
+          branch: "main",
+        },
+        selectedStory: {
+          id: "US-001",
+          title: "Implement US-001",
+          priority: 1,
+          status: "pending",
+          attempts: 0,
+        },
+        blockedStory: null,
+        promptPath: path.join(harness.store.paths.runs, "dry-run", "prompt.md"),
+        invocation: {
+          command: "fake-codex",
+          args: [path.join(harness.store.paths.runs, "dry-run", "prompt.md")],
+          cwd: harness.root,
+        },
+        runtime: { name: "codex", state: "healthy", version: "0.145.0" },
+        checks: ["pnpm test"],
+        limits: {
+          maxAttemptsPerStory: 3,
+          maxIterations: null,
+          maxRuntimeMs: null,
+        },
+      },
     });
+  });
+
+  it("inspects a dry run without requiring executable quality checks", async () => {
+    const harness = createHarness([story("US-001", 1)]);
+    const config = harness.store.loadConfig();
+    config.qualityChecks = [];
+    harness.store.saveConfig(config);
+    const before = snapshotDirectory(harness.root);
+    const { runAriadneLoop } = await import("../../../src/ariadne/loop.js");
+
+    const result = await runAriadneLoop(
+      { runtime: "codex", dryRun: true },
+      harness.deps,
+    );
+
+    expect(result).toMatchObject({
+      outcome: "incomplete",
+      inspection: { checks: [] },
+    });
+    expect(snapshotDirectory(harness.root)).toEqual(before);
   });
 
   it("reports a blocked story in a non-mutating dry run", async () => {
@@ -353,15 +507,16 @@ describe("runAriadneLoop successful lifecycle", () => {
 
     expect(snapshotDirectory(harness.root)).toEqual(before);
     expect(harness.events).toEqual(["git.assertReady"]);
-    expect(summary).toEqual({
-      schemaVersion: 1,
-      command: "run",
+    expect(summary).toMatchObject({
       outcome: "blocked",
-      runtime: "codex",
       iterations: 0,
-      completedStoryIds: [],
       activeStoryId: "US-001",
       blockedStoryId: "US-001",
+      inspection: {
+        selectedStory: { id: "US-001", status: "blocked" },
+        blockedStory: { id: "US-001", status: "blocked" },
+        invocation: { command: "fake-codex", cwd: harness.root },
+      },
     });
   });
 
@@ -418,5 +573,68 @@ describe("runAriadneLoop successful lifecycle", () => {
       "progress.append",
       "lock.release",
     ]);
+  });
+
+  it("restores in-progress state when staging fails before the owned commit", async () => {
+    const harness = createHarness([story("US-001", 1)], {
+      stageFails: true,
+    });
+    const { runAriadneLoop } = await import("../../../src/ariadne/loop.js");
+
+    await expect(
+      runAriadneLoop({ runtime: "codex", dryRun: false }, harness.deps),
+    ).rejects.toThrow("git add failed");
+
+    expect(harness.store.loadPrd().userStories[0]).toMatchObject({
+      id: "US-001",
+      status: "in_progress",
+      attempts: 1,
+    });
+    expect(harness.events).toContain("git.stageAll");
+    expect(harness.events).not.toContain("git.commit");
+    expect(
+      JSON.parse(
+        fs.readFileSync(
+          path.join(harness.store.paths.runs, "run-1", "summary.json"),
+          "utf8",
+        ),
+      ),
+    ).toMatchObject({ outcome: "failed", failureCategory: "commit" });
+    expect(fs.readFileSync(harness.store.paths.progress, "utf8")).toContain(
+      "failure category: commit_failure",
+    );
+  });
+
+  it("refuses to certify work when the runtime creates a commit", async () => {
+    const harness = createHarness([story("US-001", 1)], {
+      agentCommits: true,
+    });
+    const { runAriadneLoop } = await import("../../../src/ariadne/loop.js");
+
+    await expect(
+      runAriadneLoop({ runtime: "codex", dryRun: false }, harness.deps),
+    ).rejects.toThrow(/runtime changed Git HEAD/i);
+
+    expect(harness.events).not.toContain("git.stageAll");
+    expect(harness.events).not.toContain("git.commit");
+    expect(harness.store.loadPrd().userStories[0]).toMatchObject({
+      status: "in_progress",
+      attempts: 1,
+    });
+  });
+
+  it.each([
+    ["prd", { agentEditsPrd: true }],
+    ["progress", { agentEditsProgress: true }],
+  ] as const)("refuses runtime edits to canonical %s state", async (_label, options) => {
+    const harness = createHarness([story("US-001", 1)], options);
+    const { runAriadneLoop } = await import("../../../src/ariadne/loop.js");
+
+    await expect(
+      runAriadneLoop({ runtime: "codex", dryRun: false }, harness.deps),
+    ).rejects.toThrow(/runtime edited canonical Ariadne state/i);
+
+    expect(harness.events).not.toContain("git.stageAll");
+    expect(harness.events).not.toContain("git.commit");
   });
 });

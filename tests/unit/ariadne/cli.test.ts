@@ -2,7 +2,11 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ariadneExitCode, runAriadne } from "../../../src/ariadne/cli.js";
+import {
+  ariadneDoctorExitCode,
+  ariadneExitCode,
+  runAriadne,
+} from "../../../src/ariadne/cli.js";
 import { AriadneStateError } from "../../../src/ariadne/schema.js";
 import { AriadneStore } from "../../../src/ariadne/store.js";
 import { runCli } from "../../../src/cli.js";
@@ -75,6 +79,191 @@ describe("runAriadne", () => {
       expect.stringContaining("agent-toolkit ariadne init"),
     );
     expect(findProjectRoot).not.toHaveBeenCalled();
+  });
+
+  it("uses real terminal interactivity for init instead of treating human output as a TTY", async () => {
+    const root = temporaryProject();
+    const initialize = vi.fn(async (input) => ({
+      schemaVersion: 1 as const,
+      command: "init" as const,
+      outcome: "initialized" as const,
+      projectRoot: input.cwd,
+      runtime: "codex" as const,
+      qualityChecks: ["pnpm test"],
+    }));
+
+    await expect(
+      runAriadne(["init"], {
+        cwd: () => root,
+        findProjectRoot: () => root,
+        initialize,
+        isInteractive: () => false,
+        write: vi.fn(),
+      }),
+    ).resolves.toBe(0);
+
+    expect(initialize).toHaveBeenCalledWith(
+      expect.objectContaining({ interactive: false }),
+    );
+  });
+
+  it("renders init cancellation distinctly and returns interruption status", async () => {
+    const root = temporaryProject();
+    const write = vi.fn();
+
+    await expect(
+      runAriadne(["init"], {
+        cwd: () => root,
+        findProjectRoot: () => root,
+        initialize: async () => ({
+          schemaVersion: 1,
+          command: "init",
+          outcome: "cancelled",
+          projectRoot: root,
+          qualityChecks: ["pnpm test"],
+        }),
+        isInteractive: () => true,
+        write,
+      }),
+    ).resolves.toBe(130);
+
+    expect(write).toHaveBeenCalledWith("Ariadne initialization cancelled.");
+    expect(write).not.toHaveBeenCalledWith("Ariadne initialized.");
+  });
+
+  it("passes TTY choice and global preference into runtime selection and persists an interactive choice", async () => {
+    const root = temporaryProject();
+    const store = new AriadneStore(root);
+    store.saveConfig({
+      schemaVersion: 1,
+      qualityChecks: ["pnpm test"],
+      maxAttemptsPerStory: 3,
+    });
+    const chooseRuntime = vi.fn(async () => "codex" as const);
+    const selectRuntime = vi.fn(async (_input) => ({
+      name: "codex" as const,
+      adapter: {} as never,
+      detection: {
+        name: "codex" as const,
+        state: "healthy" as const,
+        reason: "ready",
+      },
+      source: "interactive" as const,
+    }));
+    const runLoop = vi.fn(async () => ({
+      schemaVersion: 1 as const,
+      command: "run" as const,
+      outcome: "incomplete" as const,
+      runtime: "codex" as const,
+      iterations: 0,
+      completedStoryIds: [],
+    }));
+
+    await expect(
+      runAriadne(["run"], {
+        cwd: () => root,
+        findProjectRoot: () => root,
+        createStore: () => store,
+        createGit: () => ({}) as never,
+        createRegistry: () => ({}) as never,
+        isInteractive: () => true,
+        globalPreferredRuntime: () => "claude",
+        chooseRuntime,
+        selectRuntime,
+        runLoop,
+        write: vi.fn(),
+      }),
+    ).resolves.toBe(1);
+
+    expect(selectRuntime).toHaveBeenCalledWith(
+      expect.objectContaining({
+        configured: undefined,
+        globalPreferred: "claude",
+        interactive: true,
+        choose: chooseRuntime,
+      }),
+    );
+    expect(runLoop).toHaveBeenCalledWith(
+      expect.objectContaining({
+        runtime: "codex",
+        persistRuntimeSelection: true,
+      }),
+      expect.any(Object),
+    );
+    // The coordinator persists only after its Git preflight; the CLI itself
+    // must not dirty the worktree before runLoop starts.
+    expect(store.loadConfig().runtime).toBeUndefined();
+  });
+
+  it("returns success for a binding dry-run inspection", async () => {
+    const root = temporaryProject();
+    const store = new AriadneStore(root);
+    store.saveConfig({
+      schemaVersion: 1,
+      runtime: "codex",
+      qualityChecks: ["pnpm test"],
+      maxAttemptsPerStory: 3,
+    });
+
+    await expect(
+      runAriadne(["run", "--dry-run"], {
+        cwd: () => root,
+        findProjectRoot: () => root,
+        createStore: () => store,
+        createGit: () => ({}) as never,
+        createRegistry: () => ({ codex: {} }) as never,
+        selectRuntime: async () => ({
+          name: "codex",
+          adapter: {} as never,
+          detection: { name: "codex", state: "healthy", reason: "ready" },
+          source: "configured",
+        }),
+        runLoop: async () => ({
+          schemaVersion: 1,
+          command: "run",
+          outcome: "incomplete",
+          runtime: "codex",
+          iterations: 0,
+          completedStoryIds: [],
+        }),
+        write: vi.fn(),
+      }),
+    ).resolves.toBe(0);
+  });
+
+  it("classifies doctor runtime readiness separately while warnings remain successful", () => {
+    const base = {
+      schemaVersion: 1 as const,
+      command: "doctor" as const,
+      status: {} as never,
+    };
+    expect(
+      ariadneDoctorExitCode({
+        ...base,
+        ok: false,
+        issues: [
+          { code: "runtime_incompatible", severity: "error", message: "old" },
+        ],
+      }),
+    ).toBe(3);
+    expect(
+      ariadneDoctorExitCode({
+        ...base,
+        ok: true,
+        issues: [
+          { code: "runtime_unverified", severity: "warning", message: "local" },
+        ],
+      }),
+    ).toBe(0);
+    expect(
+      ariadneDoctorExitCode({
+        ...base,
+        ok: false,
+        issues: [
+          { code: "wrong_branch", severity: "error", message: "branch" },
+        ],
+      }),
+    ).toBe(4);
   });
 
   it("maps invalid input and Git state failures to stable exit codes", async () => {

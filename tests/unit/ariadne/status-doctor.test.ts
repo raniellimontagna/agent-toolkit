@@ -276,6 +276,7 @@ describe("Ariadne status", () => {
         initialHead: "head-before",
         finalHead: "head-after",
       },
+      consecutiveFailures: 0,
       dirty: true,
       lock: { state: "live", pid: 4242, runId: "run-latest" },
       paths: { progress: store.paths.progress, runs: store.paths.runs },
@@ -284,6 +285,33 @@ describe("Ariadne status", () => {
       buildAriadneStatus({ ...input, isProcessAlive: () => false }).lock,
     ).toEqual({ state: "stale", pid: 4242, runId: "run-latest" });
     expect(snapshot(root)).toEqual(before);
+  });
+
+  it("reports durable consecutive failure count from completed run metadata", () => {
+    const root = repository();
+    const store = writeProject(root, { storyStatus: "in_progress" });
+    for (const [runId, timestamp, outcome] of [
+      ["run-1", "2026-07-28T10:00:00.000Z", "completed"],
+      ["run-2", "2026-07-28T11:00:00.000Z", "failed"],
+      ["run-3", "2026-07-28T12:00:00.000Z", "failed"],
+    ] as const) {
+      store.writeRunJson(runId, "summary.json", {
+        schemaVersion: 1,
+        runId,
+        outcome,
+        startedAt: timestamp,
+        finishedAt: timestamp,
+        durationMs: 0,
+      });
+    }
+
+    expect(
+      buildAriadneStatus({
+        projectRoot: root,
+        registry: detectionRegistry(),
+        isProcessAlive: () => false,
+      }).consecutiveFailures,
+    ).toBe(2);
   });
 });
 
@@ -367,6 +395,8 @@ describe("Ariadne doctor", () => {
   ] as const)("reports %s configured runtimes", (state, code, severity) => {
     const root = repository();
     writeProject(root);
+    git(root, "add", ".");
+    git(root, "commit", "-m", "test: initialize doctor fixture");
     const report = buildAriadneDoctor({
       projectRoot: root,
       registry: detectionRegistry(state),
@@ -375,6 +405,7 @@ describe("Ariadne doctor", () => {
     expect(report.issues).toContainEqual(
       expect.objectContaining({ code, severity }),
     );
+    expect(report.ok).toBe(state === "unverified");
   });
 
   it("reports invalid schemas instead of throwing or mutating state", () => {
@@ -438,6 +469,7 @@ describe("Ariadne rendering", () => {
     expect(formatAriadneStatus(status)).toContain(
       "Ariadne status\nProject: Demo",
     );
+    expect(formatAriadneStatus(status)).toContain("Consecutive failures: 0");
     expect(formatAriadneDoctor(doctor)).toContain(
       "WARNING [runtime_unverified]",
     );

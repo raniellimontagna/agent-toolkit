@@ -6,7 +6,7 @@ import { findCommand, type RunResult, windowsSpawnPlan } from "../system.js";
 import { normalizeImportedPrd } from "./import.js";
 import { createRuntimeRegistry } from "./runtimes/index.js";
 import type { RuntimeDetection } from "./runtimes/types.js";
-import { validateConfig, validatePrd } from "./schema.js";
+import { AriadneStateError, validateConfig, validatePrd } from "./schema.js";
 import { AriadneStore } from "./store.js";
 import type { AriadneConfig, AriadnePrd, AriadneRuntimeName } from "./types.js";
 import { AriadneUsageError } from "./types.js";
@@ -95,7 +95,14 @@ function repositoryRoot(cwd: string): string {
 }
 
 function readJson(source: string): unknown {
-  return JSON.parse(fs.readFileSync(source, "utf8")) as unknown;
+  try {
+    return JSON.parse(fs.readFileSync(source, "utf8")) as unknown;
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      throw new AriadneStateError(source, "contains malformed JSON");
+    }
+    throw error;
+  }
 }
 
 function readPackage(root: string): Record<string, unknown> | undefined {

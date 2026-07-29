@@ -67,7 +67,15 @@ export function formatProgressEntry(input: ProgressEntryInput): string {
     `- runtime: ${input.runtime}`,
     `- outcome: ${input.result.outcome}`,
     `- criteria: ${input.result.criteria.filter((criterion) => criterion.passed).length}/${input.result.criteria.length} passed`,
-    `- files changed: ${input.result.filesChanged.length}`,
+    `- summary: ${input.result.summary}`,
+    "- changed files:",
+    ...(input.result.filesChanged.length > 0
+      ? input.result.filesChanged.map((file) => `  - ${file}`)
+      : ["  - none"]),
+    "- learnings:",
+    ...(input.result.learnings.length > 0
+      ? input.result.learnings.map((learning) => `  - ${learning}`)
+      : ["  - none"]),
     `- checks attempted: ${input.result.checksAttempted.length}`,
     ...checks,
     ...(input.commit ? [`- commit: ${input.commit}`] : []),

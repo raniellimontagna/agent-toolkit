@@ -130,14 +130,14 @@ Default Ariadne tests use fake runtime detection, subprocess, Git, clock, signal
 
 The compiled fake-runtime suite additionally records every argument as a JSON array so argument boundaries are checked independently of shell rendering. Its Git proxy delegates to the real local Git executable while recording command arrays; the suite rejects push, reset, checkout, clean, and revert and requires exactly one Ariadne-owned commit for each completed story.
 
-Package integration uses `npm pack --dry-run --json --ignore-scripts` to require compiled Ariadne sources, both companion skills and notices, `tools.lock.json`, and the repository license while rejecting project-local `.ariadne` state. Before release, also inspect and install the real tarball as documented below:
+Package integration first uses `npm pack --dry-run --json --ignore-scripts` to require the compiled bin and Ariadne sources, both companion skills and notices, `tools.lock.json`, and the repository license while rejecting project-local `.ariadne` state. It then creates a real tarball, installs that exact artifact into a temporary consumer, and proves both public help surfaces through local-only `npx --no-install` commands:
 
 ```bash
-pnpm pack --pack-destination ./work/package-check
-tar -tf ./work/package-check/ranimontagna-agent-toolkit-*.tgz | rg 'dist/src/ariadne|skills/workflow/ariadne|tools.lock.json|NOTICE.md'
+rtk pnpm run build
+rtk pnpm run test:ariadne:package
 ```
 
-Install that explicit tarball in a temporary directory and run `npx agent-toolkit ariadne --help` plus `npx agent-toolkit --help`. Remove only `work/package-check` after the inspection.
+This proof is part of `test:integration`, therefore `pnpm run check` and the release workflow fail before publication if the packed bin, install, Ariadne help, or legacy help regresses.
 
 ## Timing-Sensitive Network Tests
 
@@ -163,7 +163,7 @@ The `CI` workflow in `.github/workflows/ci.yml` runs on pushes to `main` and pul
 | Job | Triggers | Proof |
 |---|---|---|
 | `Check` | Push to `main`; pull request targeting `main` | Checks out the repository, uses Node.js 24, activates the `packageManager` value through Corepack, installs with `pnpm install --frozen-lockfile`, and runs `pnpm run check`. |
-| `Ariadne cross-platform` | Push to `main`; pull request targeting `main` | Runs Ariadne units, typecheck, and the production build on Ubuntu, macOS, and Windows with Node.js 24 and pnpm resolved from `packageManager`; it deliberately excludes Bash integration and authenticated smoke. |
+| `Ariadne cross-platform` | Push to `main`; pull request targeting `main` | Runs Ariadne units, typecheck, the production build, and the compiled fake-runtime smoke on Ubuntu, macOS, and Windows with Node.js 24 and pnpm resolved from `packageManager`. Windows fake runtimes are real npm-style `.cmd` shims, so this exercises the production spawn boundary without authentication or model calls. |
 | `Secret scan` | Push to `main`; pull request targeting `main` | Checks out full history and runs Gitleaks with the workflow token. |
 | `Dependency audit` | Push to `main`; pull request targeting `main` | Uses Node.js 24, installs the frozen lockfile with lifecycle scripts disabled, and runs `pnpm run security`. |
 | `Dependency review` | Pull request targeting `main` only | Reviews dependency changes and fails on moderate-or-higher severity. |

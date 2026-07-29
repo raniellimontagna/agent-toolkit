@@ -97,6 +97,7 @@ function createHarness(
     description: "Exercise deterministic recovery.",
     userStories: Array.isArray(initialStory) ? initialStory : [initialStory],
   });
+  fs.writeFileSync(store.paths.progress, "", "utf8");
   fs.writeFileSync(path.join(root, "kept.diff"), "preserve me\n", "utf8");
 
   const prompts: string[] = [];
@@ -105,15 +106,20 @@ function createHarness(
   let commits = 0;
   let runNumber = 0;
   let nowMs = Date.parse("2026-07-29T00:00:00.000Z");
+  let currentHead = "initial-head";
 
   const git = {
     assertReady(_branch: string, allowActiveDiff: boolean) {
       readyDiffFlags.push(allowActiveDiff);
     },
     stageAll() {},
+    head() {
+      return currentHead;
+    },
     commit() {
       commits += 1;
-      return "commit-head";
+      currentHead = `commit-head-${commits}`;
+      return currentHead;
     },
   } as unknown as AriadneGit;
 
@@ -123,6 +129,7 @@ function createHarness(
     detect: () => ({
       name: "codex",
       state: "healthy",
+      version: "0.145.0",
       reason: "fake adapter",
     }),
     buildInvocation(context: IterationContext): AgentInvocation {
@@ -346,6 +353,52 @@ describe("runAriadneLoop recovery", () => {
     expect(harness.store.loadPrd().userStories[0]).toMatchObject({
       status: "blocked",
       attempts: 3,
+    });
+    expect(
+      JSON.parse(
+        fs.readFileSync(
+          path.join(harness.store.paths.runs, "run-3", "summary.json"),
+          "utf8",
+        ),
+      ),
+    ).toMatchObject({
+      outcome: "blocked",
+      failureCategory: "process",
+    });
+  });
+
+  it("blocks an exhausted persisted in-progress story before a fourth process", async () => {
+    const harness = createHarness(["success"], story("in_progress", 3));
+
+    const result = await runAriadneLoop(
+      { runtime: "codex", dryRun: false },
+      harness.deps,
+    );
+
+    expect(result).toMatchObject({
+      outcome: "blocked",
+      iterations: 0,
+      activeStoryId: "US-008",
+      blockedStoryId: "US-008",
+    });
+    expect(harness.processStarts).toBe(0);
+    expect(harness.store.loadPrd().userStories[0]).toMatchObject({
+      status: "blocked",
+      attempts: 3,
+    });
+    expect(
+      JSON.parse(
+        fs.readFileSync(
+          path.join(harness.store.paths.runs, "run-1", "summary.json"),
+          "utf8",
+        ),
+      ),
+    ).toMatchObject({
+      storyId: "US-008",
+      outcome: "blocked",
+      reason: "max_attempts",
+      initialHead: "initial-head",
+      finalHead: "initial-head",
     });
   });
 

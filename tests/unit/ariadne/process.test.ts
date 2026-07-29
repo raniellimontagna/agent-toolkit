@@ -3,7 +3,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { runAgentProcess } from "../../../src/ariadne/process.js";
+import {
+  planAgentSpawn,
+  runAgentProcess,
+} from "../../../src/ariadne/process.js";
 
 const directories: string[] = [];
 
@@ -80,6 +83,30 @@ function sigtermIgnoringProgram(readyPath: string): string {
 }
 
 describe("runAgentProcess", () => {
+  it("routes Windows npm command shims through cmd.exe for real agent execution", () => {
+    expect(
+      planAgentSpawn(
+        {
+          command: "codex",
+          args: ["exec", "Read .ariadne/runs/run-1/prompt.md"],
+          cwd: "C:\\repo",
+          env: {},
+        },
+        "win32",
+        () => "C:\\tools\\codex.cmd",
+      ),
+    ).toEqual({
+      command: "cmd.exe",
+      args: [
+        "/d",
+        "/s",
+        "/c",
+        '""C:\\tools\\codex.cmd" "exec" "Read .ariadne/runs/run-1/prompt.md""',
+      ],
+      verbatim: true,
+    });
+  });
+
   it("captures output, writes complete logs, and returns exit metadata", async () => {
     const { root, stdoutPath, stderrPath } = fixture();
 

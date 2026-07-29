@@ -13,13 +13,20 @@ export type AriadneRunOutcome =
 
 export type AttemptFailure = {
   runId: string;
-  category: "process" | "result" | "criterion" | "check" | "commit";
+  category:
+    | "process"
+    | "result"
+    | "criterion"
+    | "check"
+    | "commit"
+    | "invariant";
   message: string;
   timestamp: string;
 };
 
 export type AriadneRunOptions = {
   runtime: AriadneRuntimeName;
+  persistRuntimeSelection?: boolean;
   maxIterations?: number;
   maxRuntimeMs?: number;
   signal?: AbortSignal;
@@ -37,6 +44,37 @@ export type AriadneRunSummary = {
   blockedStoryId?: string;
   lastRunId?: string;
   commit?: string;
+  inspection?: AriadneDryRunInspection;
+};
+
+export type AriadneDryRunStory = Pick<
+  AriadneStory,
+  | "id"
+  | "title"
+  | "description"
+  | "acceptanceCriteria"
+  | "priority"
+  | "status"
+  | "attempts"
+>;
+
+export type AriadneDryRunInspection = {
+  project: { root: string; name: string; branch: string };
+  selectedStory: AriadneDryRunStory | null;
+  blockedStory: AriadneDryRunStory | null;
+  promptPath: string;
+  invocation: { command: string; args: string[]; cwd: string };
+  runtime: {
+    name: AriadneRuntimeName;
+    state: "unavailable" | "incompatible" | "unverified" | "healthy";
+    version?: string;
+  };
+  checks: string[];
+  limits: {
+    maxAttemptsPerStory: number;
+    maxIterations: number | null;
+    maxRuntimeMs: number | null;
+  };
 };
 
 export type AriadneStory = {
@@ -77,6 +115,8 @@ export type ProcessResult = {
 };
 
 export class AriadneUsageError extends Error {}
+
+export class AriadneCancelledError extends Error {}
 
 export type AriadneCommand =
   | {

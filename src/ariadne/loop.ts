@@ -1,13 +1,24 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { runQualityChecks } from "./checks.js";
+import type { QualityCheckResult, runQualityChecks } from "./checks.js";
 import type { AriadneGit } from "./git.js";
 import type { AriadneLockHandle, acquireProjectLock } from "./lock.js";
 import type { runAgentProcess } from "./process.js";
 import { buildIterationPrompt } from "./prompt.js";
-import { formatProgressEntry, readAgentResult } from "./result.js";
-import type { AriadneRuntimeAdapter } from "./runtimes/types.js";
-import { assertRunnableConfig } from "./schema.js";
+import {
+  type AgentResult,
+  formatProgressEntry,
+  readAgentResult,
+} from "./result.js";
+import type {
+  AgentInvocation,
+  AriadneRuntimeAdapter,
+} from "./runtimes/types.js";
+import {
+  AriadneStateError,
+  assertRunnableConfig,
+  assertStoryTransition,
+} from "./schema.js";
 import type { AriadneStore } from "./store.js";
 import type {
   AriadnePrd,
@@ -38,6 +49,52 @@ export type AriadneLoopDeps = {
   createRunId: () => string;
 };
 
+type SanitizedInvocation = Pick<AgentInvocation, "command" | "args" | "cwd">;
+
+type CanonicalSnapshot = {
+  initialHead: string;
+  prd: string | null;
+  progress: string | null;
+};
+
+type AttemptMetadata = {
+  runId: string;
+  storyId: string;
+  attempt: number;
+  startedAt: string;
+  startedMs: number;
+  runtimeVersion?: string;
+  initialHead: string;
+  invocation: SanitizedInvocation;
+  process?: {
+    status: number | null;
+    signal: NodeJS.Signals | null;
+    durationMs: number;
+    timedOut: boolean;
+    aborted: boolean;
+    stdoutPath: string;
+    stderrPath: string;
+  };
+  validatedResult?: {
+    outcome: AgentResult["outcome"];
+    summary: string;
+    filesChanged: string[];
+    learnings: string[];
+  };
+  checks?: Array<
+    Pick<
+      QualityCheckResult,
+      | "command"
+      | "status"
+      | "signal"
+      | "durationMs"
+      | "timedOut"
+      | "timeoutOrigin"
+      | "aborted"
+    >
+  >;
+};
+
 function selectStory(prd: AriadnePrd): AriadneStory | undefined {
   const active = prd.userStories.find(
     (story) => story.status === "in_progress",
@@ -50,6 +107,14 @@ function selectStory(prd: AriadnePrd): AriadneStory | undefined {
     if (!selected || story.priority < selected.priority) selected = story;
   }
   return selected;
+}
+
+function transitionStory(
+  story: AriadneStory,
+  status: AriadneStory["status"],
+): void {
+  assertStoryTransition(story.status, status);
+  story.status = status;
 }
 
 function isProcessAlive(pid: number): boolean {
@@ -70,6 +135,7 @@ function summary(input: {
   blockedStoryId?: string;
   lastRunId?: string;
   commit?: string;
+  inspection?: AriadneRunSummary["inspection"];
 }): AriadneRunSummary {
   return {
     schemaVersion: 1,
@@ -82,6 +148,7 @@ function summary(input: {
     ...(input.blockedStoryId ? { blockedStoryId: input.blockedStoryId } : {}),
     ...(input.lastRunId ? { lastRunId: input.lastRunId } : {}),
     ...(input.commit ? { commit: input.commit } : {}),
+    ...(input.inspection ? { inspection: input.inspection } : {}),
   };
 }
 
@@ -113,6 +180,7 @@ const FAILURE_CATEGORIES = new Set<AttemptFailure["category"]>([
   "criterion",
   "check",
   "commit",
+  "invariant",
 ]);
 
 function readPriorAttemptFailure(
@@ -177,7 +245,7 @@ export function recordFailedAttempt(
     );
   }
   const blocked = story.attempts >= maxAttempts;
-  story.status = blocked ? "blocked" : "in_progress";
+  transitionStory(story, blocked ? "blocked" : "in_progress");
   return { prd, blocked };
 }
 
@@ -206,36 +274,118 @@ function acquireIterationLock(
   });
 }
 
+function readOptionalFile(source: string): string | null {
+  try {
+    return fs.readFileSync(source, "utf8");
+  } catch (error: unknown) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw error;
+  }
+}
+
+function sanitizeInvocation(invocation: AgentInvocation): SanitizedInvocation {
+  const credential =
+    /(?:api[-_]?key|token|password|secret|authorization|credential)/i;
+  let redactNext = false;
+  const args = invocation.args.map((argument) => {
+    if (redactNext) {
+      redactNext = false;
+      return "[REDACTED]";
+    }
+    const equals = argument.indexOf("=");
+    if (equals > 0 && credential.test(argument.slice(0, equals))) {
+      return `${argument.slice(0, equals + 1)}[REDACTED]`;
+    }
+    if (credential.test(argument) && argument.startsWith("-")) {
+      redactNext = true;
+    }
+    return argument;
+  });
+  return { command: invocation.command, args, cwd: invocation.cwd };
+}
+
+function captureCanonicalSnapshot(deps: AriadneLoopDeps): CanonicalSnapshot {
+  return {
+    initialHead: deps.git.head(),
+    prd: readOptionalFile(deps.store.paths.prd),
+    progress: readOptionalFile(deps.store.paths.progress),
+  };
+}
+
+function assertRuntimeOwnership(
+  snapshot: CanonicalSnapshot,
+  deps: AriadneLoopDeps,
+): void {
+  if (deps.git.head() !== snapshot.initialHead) {
+    throw new AriadneStateError(
+      "$git",
+      "Ariadne runtime changed Git HEAD; runtime agents must not commit",
+    );
+  }
+  if (
+    readOptionalFile(deps.store.paths.prd) !== snapshot.prd ||
+    readOptionalFile(deps.store.paths.progress) !== snapshot.progress
+  ) {
+    throw new AriadneStateError(
+      "$.ariadne",
+      "Ariadne runtime edited canonical Ariadne state; only the coordinator may update prd.json or progress.md",
+    );
+  }
+}
+
 function inspectDryRun(
   options: AriadneRunOptions,
   deps: AriadneLoopDeps,
 ): AriadneRunSummary {
-  deps.store.loadConfig();
+  const config = deps.store.loadConfig();
   const prd = deps.store.loadPrd();
   const blocked = prd.userStories.find((story) => story.status === "blocked");
-  const active = selectStory(prd);
+  const active = blocked ?? selectStory(prd);
   deps.git.assertReady(
     prd.branchName,
     prd.userStories.some(
       (story) => story.status === "in_progress" || story.status === "blocked",
     ),
   );
-  if (blocked) {
-    return summary({
-      options,
-      outcome: "blocked",
-      iterations: 0,
-      completedStoryIds: [],
-      activeStoryId: blocked.id,
-      blockedStoryId: blocked.id,
-    });
-  }
+
+  const promptPath = path.join(deps.store.paths.runs, "dry-run", "prompt.md");
+  const invocation = deps.adapter.buildInvocation({
+    runId: "dry-run",
+    projectRoot: deps.store.projectRoot,
+    promptPath,
+    relativePromptPath: path.relative(deps.store.projectRoot, promptPath),
+  });
+  const detection = deps.adapter.detect();
+  const inspection: NonNullable<AriadneRunSummary["inspection"]> = {
+    project: {
+      root: deps.store.projectRoot,
+      name: prd.project,
+      branch: prd.branchName,
+    },
+    selectedStory: active ? { ...active } : null,
+    blockedStory: blocked ? { ...blocked } : null,
+    promptPath,
+    invocation: sanitizeInvocation(invocation),
+    runtime: {
+      name: detection.name,
+      state: detection.state,
+      ...(detection.version ? { version: detection.version } : {}),
+    },
+    checks: [...config.qualityChecks],
+    limits: {
+      maxAttemptsPerStory: config.maxAttemptsPerStory,
+      maxIterations: options.maxIterations ?? null,
+      maxRuntimeMs: options.maxRuntimeMs ?? null,
+    },
+  };
   return summary({
     options,
-    outcome: active ? "incomplete" : "complete",
+    outcome: blocked ? "blocked" : active ? "incomplete" : "complete",
     iterations: 0,
     completedStoryIds: [],
     ...(active ? { activeStoryId: active.id } : {}),
+    ...(blocked ? { blockedStoryId: blocked.id } : {}),
+    inspection,
   });
 }
 
@@ -250,6 +400,8 @@ export async function runAriadneLoop(
   let iterations = 0;
   let lastRunId: string | undefined;
   let commit: string | undefined;
+  let currentAttempt: AttemptMetadata | undefined;
+  const finalizedAttemptRunIds = new Set<string>();
   const startedAt = deps.now().getTime();
   const priorFailures = new Map<string, AttemptFailure>();
   let parentSignal: "SIGINT" | "SIGTERM" | undefined;
@@ -267,6 +419,79 @@ export async function runAriadneLoop(
   const activeStoryId = () => {
     const prd = deps.store.loadPrd();
     return selectStory(prd)?.id;
+  };
+
+  const finishAttempt = (
+    outcome:
+      | "completed"
+      | "failed"
+      | "blocked"
+      | "interrupted"
+      | "budget_exhausted"
+      | "structural_error",
+    failureCategory?: AttemptFailure["category"],
+  ): void => {
+    if (!currentAttempt) return;
+    const attempt = currentAttempt;
+    const finishedAt = deps.now();
+    let finalHead: string | undefined;
+    try {
+      finalHead = deps.git.head();
+    } catch {
+      // Preserve the original failure if Git itself is no longer readable.
+    }
+    deps.store.writeRunJson(attempt.runId, "summary.json", {
+      schemaVersion: 1,
+      runId: attempt.runId,
+      storyId: attempt.storyId,
+      runtime: options.runtime,
+      ...(attempt.runtimeVersion
+        ? { runtimeVersion: attempt.runtimeVersion }
+        : {}),
+      attempt: attempt.attempt,
+      invocation: attempt.invocation,
+      startedAt: attempt.startedAt,
+      finishedAt: finishedAt.toISOString(),
+      durationMs: Math.max(0, finishedAt.getTime() - attempt.startedMs),
+      outcome,
+      ...(failureCategory ? { failureCategory } : {}),
+      initialHead: attempt.initialHead,
+      ...(finalHead ? { finalHead } : {}),
+      ...(attempt.process ? { process: attempt.process } : {}),
+      ...(attempt.validatedResult
+        ? { validatedResult: attempt.validatedResult }
+        : {}),
+      ...(attempt.checks ? { checks: attempt.checks } : {}),
+    });
+    finalizedAttemptRunIds.add(attempt.runId);
+    currentAttempt = undefined;
+  };
+
+  const finishCoordinatorRun = (
+    runId: string,
+    storyId: string | undefined,
+    outcome: "blocked" | "interrupted" | "budget_exhausted",
+    reason: string,
+  ): void => {
+    const timestamp = deps.now().toISOString();
+    let head: string | undefined;
+    try {
+      head = deps.git.head();
+    } catch {
+      // The stop record remains useful when Git metadata is unavailable.
+    }
+    deps.store.writeRunJson(runId, "summary.json", {
+      schemaVersion: 1,
+      runId,
+      ...(storyId ? { storyId } : {}),
+      runtime: options.runtime,
+      startedAt: timestamp,
+      finishedAt: timestamp,
+      durationMs: 0,
+      outcome,
+      reason,
+      ...(head ? { initialHead: head, finalHead: head } : {}),
+    });
   };
 
   const stop = (
@@ -292,6 +517,10 @@ export async function runAriadneLoop(
         timestamp: deps.now().toISOString(),
         iterations,
       });
+      if (currentAttempt?.runId === runId) finishAttempt(outcome);
+      else if (!finalizedAttemptRunIds.has(runId)) {
+        finishCoordinatorRun(runId, storyId, outcome, reason);
+      }
     }
     return result;
   };
@@ -313,6 +542,7 @@ export async function runAriadneLoop(
       }),
     );
     priorFailures.set(story.id, failure);
+    finishAttempt(state.blocked ? "blocked" : "failed", failure.category);
     return state.blocked;
   };
 
@@ -337,6 +567,7 @@ export async function runAriadneLoop(
       timestamp: deps.now().toISOString(),
       iterations,
     });
+    finishAttempt("blocked");
     return result;
   };
 
@@ -352,6 +583,26 @@ export async function runAriadneLoop(
         runtime: options.runtime,
       }),
     );
+  };
+
+  const rejectOwnershipViolation = (
+    error: unknown,
+    story: AriadneStory,
+    runId: string,
+  ): never => {
+    const failure: AttemptFailure = {
+      runId,
+      category: "invariant",
+      message: errorMessage(error),
+      timestamp: deps.now().toISOString(),
+    };
+    deps.store.writeRunJson(runId, "failure.json", failure);
+    finishAttempt("structural_error", "invariant");
+    // Canonical state may be attacker-controlled here, so do not load, save,
+    // append, stage, or reset it. Preserve the evidence for manual recovery.
+    throw error instanceof AriadneStateError
+      ? error
+      : new AriadneStateError(`$.userStories[${story.id}]`, failure.message);
   };
 
   process.on("SIGINT", onParentSigint);
@@ -426,6 +677,37 @@ export async function runAriadneLoop(
           });
         }
 
+        if (
+          activeStory.status === "in_progress" &&
+          activeStory.attempts >= config.maxAttemptsPerStory
+        ) {
+          transitionStory(activeStory, "blocked");
+          deps.store.savePrd(prd);
+          deps.store.writeRunJson(runId, "stop.json", {
+            schemaVersion: 1,
+            outcome: "blocked",
+            reason: "max_attempts",
+            timestamp: deps.now().toISOString(),
+            iterations,
+          });
+          finishCoordinatorRun(
+            runId,
+            activeStory.id,
+            "blocked",
+            "max_attempts",
+          );
+          return summary({
+            options,
+            outcome: "blocked",
+            iterations,
+            completedStoryIds,
+            activeStoryId: activeStory.id,
+            blockedStoryId: activeStory.id,
+            lastRunId: runId,
+            ...(commit ? { commit } : {}),
+          });
+        }
+
         if (runtimeBudgetReached()) {
           return stop("budget_exhausted", "max_runtime", runId, activeStory.id);
         }
@@ -438,8 +720,16 @@ export async function runAriadneLoop(
           );
         }
 
+        if (
+          options.persistRuntimeSelection &&
+          config.runtime !== options.runtime
+        ) {
+          config.runtime = options.runtime;
+          deps.store.saveConfig(config);
+        }
+
         const continuedStory = activeStory.status === "in_progress";
-        activeStory.status = "in_progress";
+        transitionStory(activeStory, "in_progress");
         deps.store.savePrd(prd);
 
         const runDir = deps.store.createRunDir(runId);
@@ -458,24 +748,40 @@ export async function runAriadneLoop(
           hasExistingDiff: continuedStory,
         });
         fs.writeFileSync(promptPath, prompt, "utf8");
-        const attempt = activeStory.attempts + 1;
-        deps.store.writeRunJson(runId, "attempt.json", {
-          schemaVersion: 1,
-          runId,
-          storyId: activeStory.id,
-          runtime: options.runtime,
-          attempt,
-          startedAt: deps.now().toISOString(),
-        });
-
         const invocation = deps.adapter.buildInvocation({
           runId,
           projectRoot: deps.store.projectRoot,
           promptPath,
           relativePromptPath: path.relative(deps.store.projectRoot, promptPath),
         });
+        const detection = deps.adapter.detect();
+        const attempt = activeStory.attempts + 1;
         activeStory.attempts = attempt;
         deps.store.savePrd(prd);
+        const canonicalSnapshot = captureCanonicalSnapshot(deps);
+        const attemptStartedAt = deps.now();
+        currentAttempt = {
+          runId,
+          storyId: activeStory.id,
+          attempt,
+          startedAt: attemptStartedAt.toISOString(),
+          startedMs: attemptStartedAt.getTime(),
+          ...(detection.version ? { runtimeVersion: detection.version } : {}),
+          initialHead: canonicalSnapshot.initialHead,
+          invocation: sanitizeInvocation(invocation),
+        };
+        deps.store.writeRunJson(runId, "attempt.json", {
+          schemaVersion: 1,
+          runId,
+          storyId: activeStory.id,
+          runtime: options.runtime,
+          ...(detection.version ? { runtimeVersion: detection.version } : {}),
+          attempt,
+          startedAt: attemptStartedAt.toISOString(),
+          initialHead: canonicalSnapshot.initialHead,
+          invocation: currentAttempt.invocation,
+        });
+
         iterations += 1;
         lastRunId = runId;
         const remainingRuntime =
@@ -485,17 +791,30 @@ export async function runAriadneLoop(
                 1,
                 options.maxRuntimeMs - (deps.now().getTime() - startedAt),
               );
+        const processPaths = {
+          stdoutPath: path.join(runDir, "runtime.stdout.log"),
+          stderrPath: path.join(runDir, "runtime.stderr.log"),
+        };
         let processResult: Awaited<ReturnType<typeof deps.runProcess>>;
         try {
           processResult = await deps.runProcess(invocation, {
-            stdoutPath: path.join(runDir, "runtime.stdout.log"),
-            stderrPath: path.join(runDir, "runtime.stderr.log"),
+            ...processPaths,
             ...(remainingRuntime === undefined
               ? {}
               : { timeoutMs: remainingRuntime }),
             ...(options.signal ? { signal: options.signal } : {}),
           });
+          try {
+            assertRuntimeOwnership(canonicalSnapshot, deps);
+          } catch (error) {
+            rejectOwnershipViolation(error, activeStory, runId);
+          }
         } catch (error) {
+          try {
+            assertRuntimeOwnership(canonicalSnapshot, deps);
+          } catch (ownershipError) {
+            rejectOwnershipViolation(ownershipError, activeStory, runId);
+          }
           if (options.signal?.aborted || parentSignal) {
             return stop(
               "interrupted",
@@ -525,6 +844,14 @@ export async function runAriadneLoop(
           }
           continue;
         }
+        currentAttempt.process = {
+          status: processResult.status,
+          signal: processResult.signal,
+          durationMs: processResult.durationMs,
+          timedOut: processResult.timedOut,
+          aborted: processResult.aborted,
+          ...processPaths,
+        };
         deps.store.writeRunJson(runId, "process.json", processResult);
 
         if (processResult.timedOut && options.maxRuntimeMs !== undefined) {
@@ -629,6 +956,12 @@ export async function runAriadneLoop(
           }
           continue;
         }
+        currentAttempt.validatedResult = {
+          outcome: result.outcome,
+          summary: result.summary,
+          filesChanged: [...result.filesChanged],
+          learnings: [...result.learnings],
+        };
         if (result.outcome !== "completed") {
           const category = result.criteria.some(
             (criterion) => !criterion.passed,
@@ -682,7 +1015,17 @@ export async function runAriadneLoop(
               ? {}
               : { timeoutMs: remainingCheckRuntime }),
           });
+          try {
+            assertRuntimeOwnership(canonicalSnapshot, deps);
+          } catch (error) {
+            rejectOwnershipViolation(error, activeStory, runId);
+          }
         } catch (error) {
+          try {
+            assertRuntimeOwnership(canonicalSnapshot, deps);
+          } catch (ownershipError) {
+            rejectOwnershipViolation(ownershipError, activeStory, runId);
+          }
           if (options.signal?.aborted || parentSignal) {
             return stop(
               "interrupted",
@@ -712,6 +1055,15 @@ export async function runAriadneLoop(
           }
           continue;
         }
+        currentAttempt.checks = checks.map((check) => ({
+          command: check.command,
+          status: check.status,
+          signal: check.signal,
+          durationMs: check.durationMs,
+          timedOut: check.timedOut,
+          timeoutOrigin: check.timeoutOrigin,
+          aborted: check.aborted,
+        }));
         deps.store.writeRunJson(runId, "checks.json", checks);
         const timedOutCheck = checks.find((check) => check.timedOut);
         if (timedOutCheck?.timeoutOrigin === "global_budget") {
@@ -795,7 +1147,12 @@ export async function runAriadneLoop(
           continue;
         }
 
-        activeStory.status = "completed";
+        try {
+          assertRuntimeOwnership(canonicalSnapshot, deps);
+        } catch (error) {
+          rejectOwnershipViolation(error, activeStory, runId);
+        }
+        transitionStory(activeStory, "completed");
         deps.store.savePrd(prd);
         deps.store.appendProgress(
           formatProgressEntry({
@@ -807,10 +1164,13 @@ export async function runAriadneLoop(
             checks,
           }),
         );
-        deps.git.stageAll();
         try {
+          deps.git.stageAll();
           commit = deps.git.commit(activeStory);
+          finishAttempt("completed");
         } catch (error) {
+          // Commit failure is the sole recovery transition from completed back
+          // to in-progress; the completed state was never durably certified.
           activeStory.status = "in_progress";
           deps.store.savePrd(prd);
           deps.store.appendProgress(
@@ -824,6 +1184,14 @@ export async function runAriadneLoop(
               failureCategory: "commit_failure",
             }),
           );
+          const failure: AttemptFailure = {
+            runId,
+            category: "commit",
+            message: errorMessage(error),
+            timestamp: deps.now().toISOString(),
+          };
+          deps.store.writeRunJson(runId, "failure.json", failure);
+          finishAttempt("failed", "commit");
           throw error;
         }
         completedStoryIds.push(activeStory.id);

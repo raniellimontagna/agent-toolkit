@@ -20,7 +20,22 @@ const gitProxySource = path.join(
   "fixtures",
   "ariadne-git-proxy.mjs",
 );
-const realGit = process.env.ARIADNE_REAL_GIT ?? "git";
+const platformSmoke = process.argv.includes("--platform-smoke");
+
+function discoverExecutable(name) {
+  const lookup = spawnSync(
+    process.platform === "win32" ? "where.exe" : "which",
+    [name],
+    { encoding: "utf8" },
+  );
+  const executable = lookup.stdout?.split(/\r?\n/).find(Boolean);
+  if (lookup.status !== 0 || !executable) {
+    throw new Error(`Unable to resolve executable: ${name}`);
+  }
+  return executable.trim();
+}
+
+const realGit = process.env.ARIADNE_REAL_GIT ?? discoverExecutable("git");
 const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-e2e-"));
 const runtimeExecutables = {
   claude: "claude",
@@ -68,13 +83,31 @@ function writeJson(destination, value) {
 function createBin(name, runtimes) {
   const bin = path.join(temporaryRoot, `${name}-bin`);
   fs.mkdirSync(bin, { recursive: true });
-  const gitProxy = path.join(bin, "git");
-  fs.copyFileSync(gitProxySource, gitProxy);
-  fs.chmodSync(gitProxy, 0o755);
+  if (process.platform !== "win32") {
+    const gitProxy = path.join(bin, "git");
+    fs.copyFileSync(gitProxySource, gitProxy);
+    fs.chmodSync(gitProxy, 0o755);
+  }
   for (const runtime of runtimes) {
-    const executable = path.join(bin, runtimeExecutables[runtime]);
-    fs.copyFileSync(fakeRuntimeSource, executable);
-    fs.chmodSync(executable, 0o755);
+    const executableName = runtimeExecutables[runtime];
+    if (process.platform === "win32") {
+      const executable = path.join(bin, `${executableName}.cmd`);
+      fs.writeFileSync(
+        executable,
+        [
+          "@echo off",
+          `set "ARIADNE_FAKE_RUNTIME=${runtime}"`,
+          `"${process.execPath}" "${fakeRuntimeSource}" %*`,
+          "exit /b %errorlevel%",
+          "",
+        ].join("\r\n"),
+        "utf8",
+      );
+    } else {
+      const executable = path.join(bin, executableName);
+      fs.copyFileSync(fakeRuntimeSource, executable);
+      fs.chmodSync(executable, 0o755);
+    }
   }
   return bin;
 }
@@ -196,13 +229,12 @@ function initialize(fixture) {
     blocked: 0,
   });
   const doctor = runCli(fixture, ["doctor", "--json"]);
-  const expectedDoctor =
-    fixture.runtime === "gemini" || fixture.runtime === "antigravity" ? 4 : 0;
-  requireStatus(doctor, expectedDoctor, `${fixture.runtime} doctor`);
+  requireStatus(doctor, 0, `${fixture.runtime} doctor`);
   const report = parseJson(doctor, "doctor");
   assert.equal(report.status.runtime.name, fixture.runtime);
-  if (expectedDoctor === 4) {
+  if (fixture.runtime === "gemini" || fixture.runtime === "antigravity") {
     assert.equal(report.issues[0].code, "runtime_unverified");
+    assert.equal(report.ok, true);
   } else {
     assert.equal(report.ok, true);
   }
@@ -257,6 +289,15 @@ function expectedArgs(runtime, project, instruction) {
 }
 
 function assertSafeGit(fixture, expectedCommits) {
+  if (process.platform === "win32") {
+    const subjects = git(fixture.project, "log", "--format=%s").split("\n");
+    assert.equal(
+      subjects.filter((subject) => subject.startsWith("feat(ariadne):")).length,
+      expectedCommits,
+      `Unexpected Ariadne commit history: ${JSON.stringify(subjects)}`,
+    );
+    return;
+  }
   const calls = jsonLines(fixture.gitLog);
   const destructive = new Set(["push", "reset", "checkout", "clean", "revert"]);
   assert.equal(
@@ -333,164 +374,169 @@ try {
   for (const runtime of Object.keys(runtimeExecutables))
     runHappyRuntime(runtime);
 
-  const repair = createProject("repair", "codex");
-  initialize(repair);
-  requireStatus(
-    runCli(repair, ["run", "--runtime", "codex", "--json"], {
-      ARIADNE_FAKE_MODE: "repair",
-    }),
-    0,
-    "check failure followed by repair",
-  );
-  assert.equal(runtimeCalls(repair).length, 2);
-  assertSuccessfulRun(repair, 2);
-  assertSafeGit(repair, 1);
+  if (!platformSmoke) {
+    const repair = createProject("repair", "codex");
+    initialize(repair);
+    requireStatus(
+      runCli(repair, ["run", "--runtime", "codex", "--json"], {
+        ARIADNE_FAKE_MODE: "repair",
+      }),
+      0,
+      "check failure followed by repair",
+    );
+    assert.equal(runtimeCalls(repair).length, 2);
+    assertSuccessfulRun(repair, 2);
+    assertSafeGit(repair, 1);
 
-  const blocked = createProject("blocked", "codex");
-  initialize(blocked);
-  const blockedRun = requireStatus(
-    runCli(blocked, ["run", "--runtime", "codex", "--json"], {
-      ARIADNE_FAKE_MODE: "blocked",
-    }),
-    1,
-    "three failed checks",
-  );
-  assert.equal(parseJson(blockedRun, "blocked run").outcome, "blocked");
-  assert.equal(runtimeCalls(blocked).length, 3);
-  assert.equal(
-    JSON.parse(
-      fs.readFileSync(path.join(blocked.project, ".ariadne", "prd.json")),
-    ).userStories[0].status,
-    "blocked",
-  );
-  assertSafeGit(blocked, 0);
+    const blocked = createProject("blocked", "codex");
+    initialize(blocked);
+    const blockedRun = requireStatus(
+      runCli(blocked, ["run", "--runtime", "codex", "--json"], {
+        ARIADNE_FAKE_MODE: "blocked",
+      }),
+      1,
+      "three failed checks",
+    );
+    assert.equal(parseJson(blockedRun, "blocked run").outcome, "blocked");
+    assert.equal(runtimeCalls(blocked).length, 3);
+    assert.equal(
+      JSON.parse(
+        fs.readFileSync(path.join(blocked.project, ".ariadne", "prd.json")),
+      ).userStories[0].status,
+      "blocked",
+    );
+    assertSafeGit(blocked, 0);
 
-  const missing = createProject("missing-result", "codex");
-  initialize(missing);
-  requireStatus(
-    runCli(missing, ["run", "--runtime", "codex", "--json"], {
-      ARIADNE_FAKE_MODE: "missing-result",
-    }),
-    1,
-    "missing result",
-  );
-  assert.equal(runtimeCalls(missing).length, 3);
-  assert.match(
-    fs.readFileSync(
-      path.join(missing.project, ".ariadne", "progress.md"),
+    const missing = createProject("missing-result", "codex");
+    initialize(missing);
+    requireStatus(
+      runCli(missing, ["run", "--runtime", "codex", "--json"], {
+        ARIADNE_FAKE_MODE: "missing-result",
+      }),
+      1,
+      "missing result",
+    );
+    assert.equal(runtimeCalls(missing).length, 3);
+    assert.match(
+      fs.readFileSync(
+        path.join(missing.project, ".ariadne", "progress.md"),
+        "utf8",
+      ),
+      /failure category: result/,
+    );
+    assertSafeGit(missing, 0);
+
+    const dryRun = createProject("dry-run", "codex");
+    initialize(dryRun);
+    const beforeDryRun = git(dryRun.project, "status", "--porcelain=v1");
+    const beforePrd = fs.readFileSync(
+      path.join(dryRun.project, ".ariadne", "prd.json"),
       "utf8",
-    ),
-    /failure category: result/,
-  );
-  assertSafeGit(missing, 0);
+    );
+    const dryResult = requireStatus(
+      runCli(dryRun, ["run", "--runtime", "codex", "--dry-run", "--json"]),
+      0,
+      "dry run",
+    );
+    assert.equal(parseJson(dryResult, "dry run").outcome, "incomplete");
+    assert.equal(runtimeCalls(dryRun).length, 0);
+    assert.equal(git(dryRun.project, "status", "--porcelain=v1"), beforeDryRun);
+    assert.equal(
+      fs.readFileSync(
+        path.join(dryRun.project, ".ariadne", "prd.json"),
+        "utf8",
+      ),
+      beforePrd,
+    );
+    assertSafeGit(dryRun, 0);
 
-  const dryRun = createProject("dry-run", "codex");
-  initialize(dryRun);
-  const beforeDryRun = git(dryRun.project, "status", "--porcelain=v1");
-  const beforePrd = fs.readFileSync(
-    path.join(dryRun.project, ".ariadne", "prd.json"),
-    "utf8",
-  );
-  const dryResult = requireStatus(
-    runCli(dryRun, ["run", "--runtime", "codex", "--dry-run", "--json"]),
-    1,
-    "dry run",
-  );
-  assert.equal(parseJson(dryResult, "dry run").outcome, "incomplete");
-  assert.equal(runtimeCalls(dryRun).length, 0);
-  assert.equal(git(dryRun.project, "status", "--porcelain=v1"), beforeDryRun);
-  assert.equal(
-    fs.readFileSync(path.join(dryRun.project, ".ariadne", "prd.json"), "utf8"),
-    beforePrd,
-  );
-  assertSafeGit(dryRun, 0);
+    const dirty = createProject("dirty", "codex");
+    initialize(dirty);
+    fs.writeFileSync(path.join(dirty.project, "dirty.txt"), "dirty\n", "utf8");
+    requireStatus(
+      runCli(dirty, ["run", "--runtime", "codex", "--json"]),
+      4,
+      "dirty initial worktree",
+    );
+    assert.equal(runtimeCalls(dirty).length, 0);
+    assertSafeGit(dirty, 0);
 
-  const dirty = createProject("dirty", "codex");
-  initialize(dirty);
-  fs.writeFileSync(path.join(dirty.project, "dirty.txt"), "dirty\n", "utf8");
-  requireStatus(
-    runCli(dirty, ["run", "--runtime", "codex", "--json"]),
-    4,
-    "dirty initial worktree",
-  );
-  assert.equal(runtimeCalls(dirty).length, 0);
-  assertSafeGit(dirty, 0);
+    const ambiguous = createProject("ambiguous", "codex", "ralph", true);
+    initialize(ambiguous);
+    const configPath = path.join(ambiguous.project, ".ariadne", "config.json");
+    const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    delete config.runtime;
+    writeJson(configPath, config);
+    git(ambiguous.project, "add", configPath);
+    git(ambiguous.project, "commit", "-m", "test: remove configured runtime");
+    fs.writeFileSync(ambiguous.gitLog, "", "utf8");
+    requireStatus(runCli(ambiguous, ["run", "--json"]), 3, "ambiguous runtime");
+    assert.equal(runtimeCalls(ambiguous).length, 0);
+    assertSafeGit(ambiguous, 0);
 
-  const ambiguous = createProject("ambiguous", "codex", "ralph", true);
-  initialize(ambiguous);
-  const configPath = path.join(ambiguous.project, ".ariadne", "config.json");
-  const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-  delete config.runtime;
-  writeJson(configPath, config);
-  git(ambiguous.project, "add", configPath);
-  git(ambiguous.project, "commit", "-m", "test: remove configured runtime");
-  fs.writeFileSync(ambiguous.gitLog, "", "utf8");
-  requireStatus(runCli(ambiguous, ["run", "--json"]), 3, "ambiguous runtime");
-  assert.equal(runtimeCalls(ambiguous).length, 0);
-  assertSafeGit(ambiguous, 0);
+    const stale = createProject("stale-lock", "codex");
+    initialize(stale);
+    writeJson(path.join(stale.project, ".ariadne", "lock"), {
+      schemaVersion: 1,
+      pid: 99999999,
+      startedAt: "2026-01-01T00:00:00.000Z",
+      runId: "stale-run",
+    });
+    requireStatus(
+      runCli(stale, ["run", "--runtime", "codex", "--json"]),
+      0,
+      "stale lock",
+    );
+    assert.equal(
+      fs
+        .readdirSync(path.join(stale.project, ".ariadne", "runs"), {
+          recursive: true,
+        })
+        .some((entry) => String(entry).includes("recovered-lock-stale-run")),
+      true,
+    );
+    assertSuccessfulRun(stale);
+    assertSafeGit(stale, 1);
 
-  const stale = createProject("stale-lock", "codex");
-  initialize(stale);
-  writeJson(path.join(stale.project, ".ariadne", "lock"), {
-    schemaVersion: 1,
-    pid: 99999999,
-    startedAt: "2026-01-01T00:00:00.000Z",
-    runId: "stale-run",
-  });
-  requireStatus(
-    runCli(stale, ["run", "--runtime", "codex", "--json"]),
-    0,
-    "stale lock",
-  );
-  assert.equal(
-    fs
-      .readdirSync(path.join(stale.project, ".ariadne", "runs"), {
-        recursive: true,
-      })
-      .some((entry) => String(entry).includes("recovered-lock-stale-run")),
-    true,
-  );
-  assertSuccessfulRun(stale);
-  assertSafeGit(stale, 1);
+    const interrupted = createProject("interrupted", "codex");
+    initialize(interrupted);
+    const interruptedRun = requireStatus(
+      runCli(interrupted, ["run", "--runtime", "codex", "--json"], {
+        ARIADNE_FAKE_MODE: "interrupt",
+      }),
+      130,
+      "interrupted run",
+    );
+    assert.equal(
+      parseJson(interruptedRun, "interrupted run").outcome,
+      "interrupted",
+    );
+    assert.equal(
+      JSON.parse(
+        fs.readFileSync(path.join(interrupted.project, ".ariadne", "prd.json")),
+      ).userStories[0].status,
+      "in_progress",
+    );
+    requireStatus(
+      runCli(interrupted, ["run", "--runtime", "codex", "--json"], {
+        ARIADNE_FAKE_MODE: "happy",
+      }),
+      0,
+      "interrupted resume",
+    );
+    assertSuccessfulRun(interrupted, 2);
+    assertSafeGit(interrupted, 1);
 
-  const interrupted = createProject("interrupted", "codex");
-  initialize(interrupted);
-  const interruptedRun = requireStatus(
-    runCli(interrupted, ["run", "--runtime", "codex", "--json"], {
-      ARIADNE_FAKE_MODE: "interrupt",
-    }),
-    130,
-    "interrupted run",
-  );
-  assert.equal(
-    parseJson(interruptedRun, "interrupted run").outcome,
-    "interrupted",
-  );
-  assert.equal(
-    JSON.parse(
-      fs.readFileSync(path.join(interrupted.project, ".ariadne", "prd.json")),
-    ).userStories[0].status,
-    "in_progress",
-  );
-  requireStatus(
-    runCli(interrupted, ["run", "--runtime", "codex", "--json"], {
-      ARIADNE_FAKE_MODE: "happy",
-    }),
-    0,
-    "interrupted resume",
-  );
-  assertSuccessfulRun(interrupted, 2);
-  assertSafeGit(interrupted, 1);
-
-  const helix = createProject("helix-import", "codex", "helix");
-  initialize(helix);
-  requireStatus(
-    runCli(helix, ["run", "--runtime", "codex", "--json"]),
-    0,
-    "Helix import",
-  );
-  assertSuccessfulRun(helix);
-  assertSafeGit(helix, 1);
+    const helix = createProject("helix-import", "codex", "helix");
+    initialize(helix);
+    requireStatus(
+      runCli(helix, ["run", "--runtime", "codex", "--json"]),
+      0,
+      "Helix import",
+    );
+    assertSuccessfulRun(helix);
+    assertSafeGit(helix, 1);
+  }
 
   const usage = createProject("usage", "codex");
   requireStatus(

@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import { finished } from "node:stream/promises";
+import { findCommand, windowsSpawnPlan } from "../system.js";
 import type { AgentInvocation } from "./runtimes/types.js";
 import type { ProcessResult } from "./types.js";
 
@@ -8,6 +9,26 @@ export type { ProcessResult } from "./types.js";
 
 const MAX_CAPTURE_BYTES = 1024 * 1024;
 const DEFAULT_GRACE_PERIOD_MS = 5_000;
+
+export type AgentSpawnPlan = {
+  command: string;
+  args: string[];
+  verbatim: boolean;
+};
+
+export function planAgentSpawn(
+  invocation: AgentInvocation,
+  platform: NodeJS.Platform = process.platform,
+  resolve: (command: string) => string | null = findCommand,
+): AgentSpawnPlan {
+  return platform === "win32"
+    ? windowsSpawnPlan(invocation.command, invocation.args, resolve)
+    : {
+        command: invocation.command,
+        args: invocation.args,
+        verbatim: false,
+      };
+}
 
 export type ProcessRunOptions = {
   stdoutPath: string;
@@ -48,11 +69,13 @@ export function runAgentProcess(
     const stderrStream = fs.createWriteStream(options.stderrPath, {
       flags: "w",
     });
-    const child = spawn(invocation.command, invocation.args, {
+    const plan = planAgentSpawn(invocation);
+    const child = spawn(plan.command, plan.args, {
       cwd: invocation.cwd,
       env: invocation.env,
       shell: false,
       stdio: ["ignore", "pipe", "pipe"],
+      windowsVerbatimArguments: plan.verbatim || undefined,
     });
     let timedOut = false;
     let aborted = false;

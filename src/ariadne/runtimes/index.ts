@@ -31,10 +31,11 @@ function selection(
   name: AriadneRuntimeName,
   registry: RuntimeRegistry,
   detections: Map<AriadneRuntimeName, RuntimeDetection>,
+  source: RuntimeSelection["source"],
 ): RuntimeSelection {
   const adapter = registry[name];
   const detection = detections.get(name) ?? adapter.detect();
-  return { name, adapter, detection };
+  return { name, adapter, detection, source };
 }
 
 function requireSelectablePreference(
@@ -43,7 +44,7 @@ function requireSelectablePreference(
   registry: RuntimeRegistry,
   detections: Map<AriadneRuntimeName, RuntimeDetection>,
 ): RuntimeSelection | undefined {
-  const candidate = selection(name, registry, detections);
+  const candidate = selection(name, registry, detections, source);
   if (candidate.detection.state === "healthy") {
     return candidate;
   }
@@ -93,6 +94,7 @@ export async function selectRuntime(
       healthy[0] as AriadneRuntimeName,
       input.registry,
       detections,
+      "automatic",
     );
   }
   if (
@@ -100,7 +102,12 @@ export async function selectRuntime(
     input.globalPreferred &&
     healthy.includes(input.globalPreferred)
   ) {
-    return selection(input.globalPreferred, input.registry, detections);
+    return selection(
+      input.globalPreferred,
+      input.registry,
+      detections,
+      "global",
+    );
   }
   if (healthy.length > 1) {
     if (!input.interactive) {
@@ -122,7 +129,7 @@ export async function selectRuntime(
         `Interactive runtime selection returned invalid choice: ${chosen}.`,
       );
     }
-    return selection(chosen, input.registry, detections);
+    return selection(chosen, input.registry, detections, "interactive");
   }
 
   const unverified = names.filter(
@@ -133,6 +140,7 @@ export async function selectRuntime(
       unverified[0] as AriadneRuntimeName,
       input.registry,
       detections,
+      "automatic",
     );
   }
   if (unverified.length > 1) {

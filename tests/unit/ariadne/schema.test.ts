@@ -69,6 +69,19 @@ describe("Ariadne schemas", () => {
     expect(() =>
       assertStoryTransition("in_progress", "completed"),
     ).not.toThrow();
+    expect(() =>
+      assertStoryTransition("in_progress", "in_progress"),
+    ).not.toThrow();
+    expect(() => assertStoryTransition("in_progress", "blocked")).not.toThrow();
+    expect(() => assertStoryTransition("pending", "blocked")).toThrow(
+      AriadneStateError,
+    );
+    expect(() => assertStoryTransition("in_progress", "pending")).toThrow(
+      AriadneStateError,
+    );
+    expect(() => assertStoryTransition("blocked", "pending")).toThrow(
+      AriadneStateError,
+    );
     expect(() => assertStoryTransition("completed", "pending")).toThrow(
       AriadneStateError,
     );
@@ -87,6 +100,47 @@ describe("Ariadne schemas", () => {
 });
 
 describe("normalizeImportedPrd", () => {
+  it("rejects a missing legacy story collection with a typed exact path", () => {
+    expect(() => normalizeImportedPrd({ project: "Missing stories" })).toThrow(
+      expect.objectContaining({
+        name: "AriadneStateError",
+        jsonPath: "$.userStories",
+      }),
+    );
+  });
+
+  it("uses the source collection path for malformed Ralph and Helix stories", () => {
+    expect(() => normalizeImportedPrd({ userStories: [null] })).toThrow(
+      expect.objectContaining({ jsonPath: "$.userStories[0]" }),
+    );
+    expect(() => normalizeImportedPrd({ stories: [null] })).toThrow(
+      expect.objectContaining({ jsonPath: "$.stories[0]" }),
+    );
+    expect(() =>
+      normalizeImportedPrd({ stories: [{ id: 42, title: "Bad id" }] }),
+    ).toThrow(expect.objectContaining({ jsonPath: "$.stories[0].id" }));
+    expect(() =>
+      normalizeImportedPrd({
+        userStories: [
+          { title: "Bad criteria", acceptanceCriteria: "not-an-array" },
+        ],
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        jsonPath: "$.userStories[0].acceptanceCriteria",
+      }),
+    );
+    expect(() =>
+      normalizeImportedPrd({
+        stories: [{ title: "Bad criterion", acceptanceCriteria: [false] }],
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        jsonPath: "$.stories[0].acceptanceCriteria[0]",
+      }),
+    );
+  });
+
   it("normalizes Ralph userStories and passes without mutating the source", () => {
     const source = {
       project: "Ralph",

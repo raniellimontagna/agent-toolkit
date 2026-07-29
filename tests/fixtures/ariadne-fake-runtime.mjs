@@ -5,7 +5,9 @@ import path from "node:path";
 import process from "node:process";
 
 const executable = path.basename(process.argv[1] ?? "");
-const runtime = executable === "agy" ? "antigravity" : executable;
+const runtime =
+  process.env.ARIADNE_FAKE_RUNTIME ??
+  (executable === "agy" ? "antigravity" : executable);
 const args = process.argv.slice(2);
 const logPath = process.env.ARIADNE_FAKE_LOG;
 const stateDir = process.env.ARIADNE_FAKE_STATE_DIR;

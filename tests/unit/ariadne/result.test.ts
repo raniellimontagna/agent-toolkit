@@ -89,7 +89,7 @@ describe("agent result files and durable progress", () => {
     expect(readAgentResult(source, expected)).toEqual(result);
   });
 
-  it("formats deterministic metadata-only progress without raw process output", () => {
+  it("formats validated durable memory without raw process output", () => {
     const progress = formatProgressEntry({
       timestamp: "2026-07-29T00:00:00.000Z",
       runId: "run-1",
@@ -117,10 +117,13 @@ describe("agent result files and durable progress", () => {
     expect(progress).toContain("completed");
     expect(progress).toContain("pnpm test: passed (123ms)");
     expect(progress).toContain("commit: abc123");
+    expect(progress).toContain(`summary: ${result.summary}`);
+    expect(progress).toContain("changed files:\n  - src/ariadne/loop.ts");
+    expect(progress).toContain(
+      "learnings:\n  - Loop state is owned by Ariadne.",
+    );
     expect(progress).not.toContain("/private/stdout.log");
     expect(progress).not.toContain("/private/stderr.log");
-    expect(progress).not.toContain(result.summary);
-    expect(progress).not.toContain(result.learnings[0] ?? "");
     expect(progress).toMatch(/---\n$/);
   });
 });

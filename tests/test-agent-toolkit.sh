@@ -84,6 +84,8 @@ const packageJson = JSON.parse(
 );
 const expectedScripts = {
   "test:ariadne": "vitest run tests/unit/ariadne",
+  "test:ariadne:compiled": "node tests/ariadne-e2e.mjs --platform-smoke",
+  "test:ariadne:package": "node tests/ariadne-package-e2e.mjs",
   "test:ariadne:real": "node tests/ariadne-smoke.mjs",
 };
 for (const [name, command] of Object.entries(expectedScripts)) {
@@ -101,6 +103,7 @@ PACKAGE_DRY_RUN_JSON="$PACKAGE_DRY_RUN_JSON" "$REAL_NODE" --input-type=module <<
 const report = JSON.parse(process.env.PACKAGE_DRY_RUN_JSON);
 const files = new Set(report[0]?.files?.map(({ path }) => path));
 const required = [
+  "dist/bin/agent-toolkit.js",
   "dist/src/ariadne/cli.js",
   "skills/workflow/ariadne/SKILL.md",
   "skills/workflow/ariadne/NOTICE.md",

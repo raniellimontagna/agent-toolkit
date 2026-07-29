@@ -35,6 +35,7 @@ describe("buildIterationPrompt", () => {
     expect(prompt).toContain("The typecheck previously failed.");
     expect(prompt).toContain("existing uncommitted diff");
     expect(prompt).toContain("Do not create commits.");
+    expect(prompt).toContain("Do not push or otherwise publish Git changes.");
     expect(prompt).toContain("Do not edit .ariadne/prd.json.");
     expect(prompt).toContain("Do not edit .ariadne/progress.md.");
     expect(prompt).toContain("Work on US-001 only.");
