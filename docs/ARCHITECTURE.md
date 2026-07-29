@@ -29,6 +29,29 @@ A normal invocation follows this path:
 5. [`src/main.ts`](../src/main.ts) dispatches selected installers in a fixed order: RTK, Caveman, Superpowers, Graphify, GSD, Improve, Agent Browser, Frontend Skills, Planning Skills, and Custom Skills. Each adapter returns success or failure; nonfatal failures are accumulated so independent later installers can still run.
 6. Successful Custom Skill installations call `recordSkillInstall()`; when Gemini CLI performs the install, the toolkit records the expected runtime destination after that command succeeds. At the end of dispatch, [`src/manifest.ts`](../src/manifest.ts) writes any pending manifest atomically, the UI prints the final scope and source summary, and any accumulated failure sets `process.exitCode` to `1`. Fatal validation errors propagate to the CLI boundary and terminate immediately.
 
+## Ariadne Subsystem Boundary
+
+The top-level CLI routes `agent-toolkit ariadne` away from the installer and into [`src/ariadne/`](../src/ariadne/). Ariadne keeps its own argument parser, schema validation, atomic store, Git/check adapters, process lifecycle, runtime registry, loop, diagnostics, and rendering. Its runtime-neutral control flow is:
+
+```mermaid
+flowchart LR
+  Command["init, doctor, run, or status"] --> Store[".ariadne canonical state"]
+  Store --> Loop["Ariadne orchestrator"]
+  Loop --> Adapter["Selected runtime adapter"]
+  Adapter --> Agent["One headless story iteration"]
+  Agent --> Evidence["Structured result and run artifacts"]
+  Evidence --> Checks["Ariadne quality checks"]
+  Checks --> Commit["Ariadne-owned Git commit"]
+```
+
+`.ariadne/config.json`, `.ariadne/prd.json`, `.ariadne/progress.md`, and `.ariadne/archive/` are canonical versionable state. `.ariadne/lock` and `.ariadne/runs/` are operational and ignored. The runtime agent may edit project files and durable applicable `AGENTS.md`, but the generated prompt forbids commits and edits to the canonical PRD or progress log. Ariadne alone transitions story state, runs configured checks, stages the successful story delta, and commits it.
+
+Normal runs are autonomous and use each runtime's supported headless permission mode. The Git boundary therefore requires the configured branch and either a clean worktree or a preserved `in_progress`/`blocked` story diff. Ariadne never pushes, resets, reverts, cleans, checks out over changes, or discards a failed diff. `run --dry-run`, `status`, and `doctor` provide non-mutating inspection paths.
+
+The `tools.ariadne` lock entry is a provenance record for the first-party `ariadne` and `ariadne-prd` adaptations. It pins `snarktank/ralph`, the reviewed MIT license, and both upstream source hashes. It is not an installer source: normal Ariadne execution performs no upstream download or prompt execution, and the adapted skills travel through the existing Custom Skills pipeline.
+
+Ariadne does not schedule multiple stories concurrently, push branches, open pull requests, rewrite Git history, manage remote CI, choose product requirements, or replace repository-specific quality checks. Runtime adapters translate the same bounded iteration contract; they do not own orchestration policy or canonical state.
+
 ## Module Map
 
 The top-level `src/` modules each have one primary responsibility:
@@ -53,7 +76,7 @@ The top-level `src/` modules each have one primary responsibility:
 | [`state.ts`](../src/state.ts) | Define tool/runtime names and hold the lock-backed mutable invocation state. |
 | [`status.ts`](../src/status.ts) | Detect installed or available tools and runtimes and format the install plan. |
 | [`system.ts`](../src/system.ts) | Wrap command execution, command lookup, and bounded HTTP fetch/download behavior. |
-| [`tool-lock.ts`](../src/tool-lock.ts) | Define and validate the external-tool lock and Agent Skills catalog schema. |
+| [`tool-lock.ts`](../src/tool-lock.ts) | Define and validate the external-tool lock, Agent Skills catalog, and Ariadne attribution schema. |
 | [`ui.ts`](../src/ui.ts) | Render the install header, resolved selections, and final summary. |
 | [`usage.ts`](../src/usage.ts) | Own public CLI help text. |
 

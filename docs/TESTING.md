@@ -84,6 +84,7 @@ rtk pnpm run check
 | `tests/unit/system.test.ts` | Process planning and bounded local HTTP request, redirect, timeout, cleanup, and download behavior. |
 | `tests/unit/release.test.ts` | Version changes, repository preflights, tags, atomic push behavior, and workflow defenses. |
 | `tests/unit/tooling-config.test.ts` | Biome and Vitest worktree exclusions. |
+| `tests/unit/ariadne/*.test.ts` | Ariadne parsing, schema/store, runtime adapters, prompts/results, process/lock, Git/checks, loop success/recovery, init, status, Doctor, and CLI exit mapping. |
 | `tests/test-agent-toolkit.sh` | Compiled CLI and wrapper contracts plus isolated end-to-end install behavior. |
 | `tests/publish-npm-with-retry.test.sh` | Deterministic npm publication retry behavior. |
 
@@ -96,6 +97,24 @@ rtk pnpm run check
 - Extend `tests/publish-npm-with-retry.test.sh` for publish-helper state transitions. Keep retry delays deterministic and replace network-facing `npm` calls with the local fake.
 
 There is no shared unit-test helper or global bootstrap today. Add shared infrastructure only when it removes real duplication without hiding setup, cleanup, or security-sensitive assertions.
+
+## Ariadne Tests
+
+Run the complete Ariadne unit surface without invoking a model or requiring runtime authentication:
+
+```bash
+rtk pnpm exec vitest run tests/unit/ariadne
+```
+
+Validate the companion skills and immutable upstream attribution separately:
+
+```bash
+rtk pnpm exec vitest run tests/unit/tool-lock.test.ts tests/unit/skills-audit.test.ts
+rtk pnpm run build
+node dist/bin/agent-toolkit.js --skills-audit
+```
+
+Default Ariadne tests use fake runtime detection, subprocess, Git, clock, signal, and filesystem boundaries. They must not call a live model, depend on external authentication, or spend provider credits. Adapter tests assert the exact headless flags and version contracts for Claude Code, Codex CLI, OpenCode, Gemini CLI, and Antigravity; loop tests prove successful commits, failed-diff preservation, retry/blocking, budgets, interruption, and stable exit mapping.
 
 ## Timing-Sensitive Network Tests
 

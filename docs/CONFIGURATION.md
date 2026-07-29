@@ -106,6 +106,40 @@ Package filtering runs first, scope filtering narrows that result, and exact pat
 | `--allow-mutable-sources` | Permit mutable sources, source-identity changes, a non-default Antigravity installer URL, RTK release-source exceptions, or an alternate lock for this invocation. This changes the trust policy and emits warnings. |
 | `--help`, `-h` | Print CLI help and exit. No other short flags are defined. |
 
+## Ariadne Configuration
+
+`agent-toolkit ariadne` has an isolated command surface; installer selectors and environment overrides do not alter its project state.
+
+| Command | Supported flags |
+|---|---|
+| `init` | `--runtime <name>`, repeatable `--check <command>`, `--json` |
+| `run` | `--runtime <name>`, `--max-iterations <positive-integer>`, `--max-runtime <number><ms|s|m|h>`, `--dry-run`, `--json` |
+| `status` | `--json` |
+| `doctor` | `--json` |
+
+The version-1 `.ariadne/config.json` contract is:
+
+```json
+{
+  "schemaVersion": 1,
+  "runtime": "codex",
+  "qualityChecks": ["pnpm test"],
+  "maxAttemptsPerStory": 3
+}
+```
+
+`runtime` may be omitted during initialization, but a normal run needs one healthy configured runtime or an explicit `run --runtime`. `qualityChecks` defaults to an empty array during initialization and must contain at least one real command before a normal run. `maxAttemptsPerStory` defaults to exactly `3`. There is no default global iteration or wall-clock limit; add `--max-iterations` or `--max-runtime` when a bounded run is required.
+
+| Ariadne runtime | Version contract | Headless permission mode |
+|---|---|---|
+| Claude Code (`claude`) | exactly `2.1.220` | `--print --dangerously-skip-permissions` |
+| Codex CLI (`codex`) | exactly `0.145.0` | `exec --dangerously-bypass-approvals-and-sandbox --ephemeral` |
+| OpenCode (`opencode`) | exactly `1.18.8` | `run --auto` |
+| Gemini CLI (`gemini`) | exactly `0.52.0` | `--approval-mode yolo --skip-trust` |
+| Antigravity CLI (`agy`) | minimum `1.1.8` | `--print --dangerously-skip-permissions` |
+
+These modes intentionally grant autonomous project access. Run `ariadne doctor` and `ariadne run --dry-run`, review `.ariadne/prd.json` and configured checks, and preserve unrelated work before a normal run. Ariadne constrains Git ownership but cannot make an underspecified story or unsafe repository command safe.
+
 ## Runtime Skill Targets
 
 Local targets are always relative to the directory where Agent Toolkit runs. Global environment overrides affect only global scope.
@@ -191,6 +225,7 @@ Graphify executable discovery checks the active `PATH` first, then `UV_TOOL_BIN_
 | `tools.caveman` | Defines a GitHub repository and full 40-character commit SHA. |
 | `tools.graphify`, `tools.gsd`, and `tools.agentBrowser` | Define package names with exact immutable versions. |
 | `tools.agentSkills` | Defines the exact Agent Skills CLI, full-commit repository identities, supported bundle metadata, and safe repository-relative skill paths. |
+| `tools.ariadne` | Records the exact reviewed `snarktank/ralph` commit, MIT license path/hash, and the safe paths/hashes of the PRD and Ralph source skills. It is attribution metadata, not a runtime download source. |
 | `runtimeClis` | Defines exact npm package versions for Claude Code, Codex CLI, OpenCode, and Gemini CLI. |
 
 The lock rejects mutable package versions, short Git refs, invalid SHA-256 values, unsupported bundle identifiers, unknown repository references, and unsafe relative paths. Prefer a reviewed lock change when intentionally updating project defaults. `TOOLS_LOCK_PATH` replaces the entire trust catalog and therefore requires the mutable-source permission gate for applicable provenance checks.

@@ -13,6 +13,12 @@ Agent Toolkit has evolved from a hardened installer foundation into a catalog-dr
 
 The release entries below are based on Git tag ranges and npm publication metadata. Publication uses Git tags plus GitHub Actions, not GitHub Release objects.
 
+## [Unreleased]
+
+- Added Ariadne, a runtime-neutral autonomous coding loop for Claude Code, Codex CLI, OpenCode, Gemini CLI, and Antigravity, with safe Git ownership, retries, recovery, diagnostics, and stable exit codes.
+- Added first-party `ariadne` and `ariadne-prd` companion skills through the existing Custom Skills pipeline, plus immutable MIT-licensed upstream attribution in `tools.lock.json` and per-skill notices.
+- Documented Ariadne setup, configuration, permissions, migration, runtime support, logs, recovery, testing, architecture boundaries, and non-goals without creating a release.
+
 ## [0.2.1] - 2026-07-14
 
 Published to npm

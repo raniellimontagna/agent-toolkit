@@ -30,6 +30,12 @@ afterEach(() => {
 
 type MutableCatalogLock = {
   tools: {
+    ariadne: {
+      repository: string;
+      ref: string;
+      license: { path: string; sha256: string };
+      sources: Record<string, { path: string; sha256: string }>;
+    };
     agentSkills: {
       repositories: Record<string, { ref: string }>;
       bundles: Record<
@@ -45,6 +51,28 @@ type MutableCatalogLock = {
     };
   };
 };
+
+const expectedAriadneLock = {
+  source: "github",
+  repository: "snarktank/ralph",
+  ref: "6c53cb0b831ebe8739c6a003e22af14902d8b0b5",
+  license: {
+    path: "LICENSE",
+    sha256: "102b6470e861e782d90a42d9086f48b8a2f38cbc4c0229216bcf0364f79ea5a3",
+  },
+  sources: {
+    prd: {
+      path: "skills/prd/SKILL.md",
+      sha256:
+        "f5395f014448e1e970cac40b8f814949b7fdbfe0b6db6be275be750895e955ca",
+    },
+    ralph: {
+      path: "skills/ralph/SKILL.md",
+      sha256:
+        "1de69bb4e0d53a32facbbc8a8732b945e6721ab0955fdefb27136e43fae860be",
+    },
+  },
+} as const;
 
 function writeMutatedLock(mutate: (lock: MutableCatalogLock) => void): string {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "tool-lock-test-"));
@@ -193,7 +221,45 @@ describe("external tool lock", () => {
         skill: "improve-codebase-architecture",
       },
     ]);
+    expect(lock.tools.ariadne).toEqual(expectedAriadneLock);
     expect(lock.runtimeClis.gemini.version).toBe("0.52.0");
+  });
+
+  it.each([
+    [
+      "mutable ref",
+      (lock: MutableCatalogLock) => (lock.tools.ariadne.ref = "main"),
+    ],
+    [
+      "unsafe license path",
+      (lock: MutableCatalogLock) =>
+        (lock.tools.ariadne.license.path = "../LICENSE"),
+    ],
+    [
+      "malformed source hash",
+      (lock: MutableCatalogLock) =>
+        (lock.tools.ariadne.sources.prd = {
+          path: "skills/prd/SKILL.md",
+          sha256: "not-a-sha256",
+        }),
+    ],
+    [
+      "wrong repository identity",
+      (lock: MutableCatalogLock) =>
+        (lock.tools.ariadne.repository = "other/ralph"),
+    ],
+    [
+      "missing PRD source",
+      (lock: MutableCatalogLock) => delete lock.tools.ariadne.sources.prd,
+    ],
+    [
+      "missing Ralph source",
+      (lock: MutableCatalogLock) => delete lock.tools.ariadne.sources.ralph,
+    ],
+  ])("rejects Ariadne provenance with %s", (_label, mutate) => {
+    expect(() => loadToolLock(writeMutatedLock(mutate))).toThrow(
+      "Invalid tools.lock.json",
+    );
   });
 
   it.each(
