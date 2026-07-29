@@ -53,6 +53,24 @@ describe("acquireProjectLock", () => {
     expect(fs.existsSync(params.lockPath)).toBe(false);
   });
 
+  it("does not release a lock record that replaced its own", () => {
+    const params = input();
+    const handle = acquireProjectLock(params);
+    const replacement = {
+      schemaVersion: 1,
+      pid: 4321,
+      startedAt: "2026-07-29T01:00:00.000Z",
+      runId: "run-replacement",
+    };
+    fs.writeFileSync(params.lockPath, JSON.stringify(replacement));
+
+    handle.release();
+
+    expect(JSON.parse(fs.readFileSync(params.lockPath, "utf8"))).toEqual(
+      replacement,
+    );
+  });
+
   it("rejects a malformed existing lock without removing it", () => {
     const params = input({ isProcessAlive: () => false });
     fs.mkdirSync(path.dirname(params.lockPath), { recursive: true });
@@ -88,9 +106,79 @@ describe("acquireProjectLock", () => {
     fs.writeFileSync(params.lockPath, JSON.stringify(stale));
     const handle = acquireProjectLock(params);
     expect(handle.recovered).toEqual(stale);
+    const diagnostic = fs
+      .readdirSync(params.runDir)
+      .find((filename) => filename.startsWith("recovered-lock-"));
+    expect(diagnostic).toBeDefined();
     expect(
-      fs.readFileSync(path.join(params.runDir, "recovered-lock.json"), "utf8"),
+      fs.readFileSync(path.join(params.runDir, diagnostic as string), "utf8"),
     ).toContain('"runId":"old"');
     handle.release();
+  });
+
+  it("does not move or remove a lock replaced during stale validation", () => {
+    const params = input();
+    const stale = {
+      schemaVersion: 1,
+      pid: 9,
+      startedAt: "2026-01-01T00:00:00.000Z",
+      runId: "old",
+    };
+    const replacement = {
+      schemaVersion: 1,
+      pid: 10,
+      startedAt: "2026-07-29T01:00:00.000Z",
+      runId: "replacement",
+    };
+    fs.mkdirSync(path.dirname(params.lockPath), { recursive: true });
+    fs.writeFileSync(params.lockPath, JSON.stringify(stale));
+    params.isProcessAlive = () => {
+      fs.writeFileSync(params.lockPath, JSON.stringify(replacement));
+      return false;
+    };
+
+    expect(() => acquireProjectLock(params)).toThrow(/changed.*recovery/i);
+    expect(JSON.parse(fs.readFileSync(params.lockPath, "utf8"))).toEqual(
+      replacement,
+    );
+    expect(fs.existsSync(params.runDir)).toBe(false);
+  });
+
+  it("uses a distinct diagnostic filename for each recovered stale lock", () => {
+    const params = input();
+    fs.mkdirSync(path.dirname(params.lockPath), { recursive: true });
+
+    for (const [pid, runId] of [
+      [9, "old-one"],
+      [10, "old-two"],
+    ] as const) {
+      fs.writeFileSync(
+        params.lockPath,
+        JSON.stringify({
+          schemaVersion: 1,
+          pid,
+          startedAt: `2026-01-0${pid - 8}T00:00:00.000Z`,
+          runId,
+        }),
+      );
+      const handle = acquireProjectLock({
+        ...params,
+        runId: `new-${runId}`,
+      });
+      handle.release();
+    }
+
+    const diagnostics = fs
+      .readdirSync(params.runDir)
+      .filter((filename) => filename.startsWith("recovered-lock-"));
+    expect(diagnostics).toHaveLength(2);
+    expect(
+      diagnostics.map(
+        (filename) =>
+          JSON.parse(
+            fs.readFileSync(path.join(params.runDir, filename), "utf8"),
+          ).runId,
+      ),
+    ).toEqual(["old-one", "old-two"]);
   });
 });

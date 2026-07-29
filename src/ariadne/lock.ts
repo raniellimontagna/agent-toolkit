@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -53,6 +54,25 @@ function sameRecord(a: AriadneLockRecord, b: AriadneLockRecord): boolean {
   return a.pid === b.pid && a.runId === b.runId;
 }
 
+function sameRecoveryRecord(
+  a: AriadneLockRecord,
+  b: AriadneLockRecord,
+): boolean {
+  return (
+    sameRecord(a, b) &&
+    a.schemaVersion === b.schemaVersion &&
+    a.startedAt === b.startedAt
+  );
+}
+
+function changedDuringRecovery(): Error {
+  return new Error("Ariadne project lock changed during stale-lock recovery.");
+}
+
+function diagnosticSegment(value: string): string {
+  return value.replace(/[^a-zA-Z0-9._-]/g, "_");
+}
+
 function writeExclusive(lockPath: string, record: AriadneLockRecord): boolean {
   fs.mkdirSync(path.dirname(lockPath), { recursive: true });
   try {
@@ -87,11 +107,49 @@ export function acquireProjectLock(
     throw new Error(`Ariadne project is already locked by PID ${stale.pid}.`);
   }
 
+  let revalidated: AriadneLockRecord;
+  try {
+    revalidated = parseLockRecord(fs.readFileSync(input.lockPath, "utf8"));
+  } catch {
+    throw changedDuringRecovery();
+  }
+  if (!sameRecoveryRecord(stale, revalidated)) throw changedDuringRecovery();
+
   fs.mkdirSync(input.runDir, { recursive: true });
-  const recoveryMarker = path.join(input.runDir, "recovered-lock.json");
-  fs.renameSync(input.lockPath, recoveryMarker);
+  const recoveryMarker = path.join(
+    input.runDir,
+    `recovered-lock-${diagnosticSegment(stale.runId)}-${randomUUID()}.json`,
+  );
+  try {
+    fs.linkSync(input.lockPath, recoveryMarker);
+  } catch (error: unknown) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT")
+      throw changedDuringRecovery();
+    throw error;
+  }
+
+  let recoveryCandidateIsCurrent = false;
+  try {
+    const candidate = parseLockRecord(fs.readFileSync(recoveryMarker, "utf8"));
+    const current = parseLockRecord(fs.readFileSync(input.lockPath, "utf8"));
+    const candidateStat = fs.statSync(recoveryMarker);
+    const currentStat = fs.statSync(input.lockPath);
+    recoveryCandidateIsCurrent =
+      sameRecoveryRecord(stale, candidate) &&
+      sameRecoveryRecord(stale, current) &&
+      candidateStat.dev === currentStat.dev &&
+      candidateStat.ino === currentStat.ino;
+  } catch {
+    recoveryCandidateIsCurrent = false;
+  }
+  if (!recoveryCandidateIsCurrent) {
+    fs.unlinkSync(recoveryMarker);
+    throw changedDuringRecovery();
+  }
+
+  fs.unlinkSync(input.lockPath);
   if (!writeExclusive(input.lockPath, record)) {
-    throw new Error("Ariadne project lock changed during stale-lock recovery.");
+    throw changedDuringRecovery();
   }
   return createHandle(input.lockPath, record, stale);
 }

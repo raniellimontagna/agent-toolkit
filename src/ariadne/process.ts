@@ -63,6 +63,10 @@ export function runAgentProcess(
     let settled = false;
     let killTimer: NodeJS.Timeout | undefined;
 
+    const removeSupervisorListeners = () => {
+      process.removeListener("SIGINT", onSupervisorSigint);
+      process.removeListener("SIGTERM", onSupervisorSigterm);
+    };
     const endStreams = () => {
       stdoutStream.end();
       stderrStream.end();
@@ -76,10 +80,11 @@ export function runAgentProcess(
       source.pause();
       destination.once("drain", () => source.resume());
     };
-    const terminate = () => {
+    const forwardSignal = (signal: NodeJS.Signals) => {
       if (settled || child.exitCode !== null || child.signalCode !== null)
         return;
-      child.kill("SIGTERM");
+      child.kill(signal);
+      if (killTimer) return;
       killTimer = setTimeout(() => {
         if (child.exitCode !== null || child.signalCode !== null) return;
         if (process.platform === "win32") child.kill();
@@ -87,6 +92,13 @@ export function runAgentProcess(
       }, options.gracePeriodMs ?? DEFAULT_GRACE_PERIOD_MS);
       killTimer.unref();
     };
+    function onSupervisorSigint() {
+      forwardSignal("SIGINT");
+    }
+    function onSupervisorSigterm() {
+      forwardSignal("SIGTERM");
+    }
+    const terminate = () => forwardSignal("SIGTERM");
     const onAbort = () => {
       aborted = true;
       terminate();
@@ -100,6 +112,8 @@ export function runAgentProcess(
           }, options.timeoutMs);
     timeout?.unref();
 
+    process.on("SIGINT", onSupervisorSigint);
+    process.on("SIGTERM", onSupervisorSigterm);
     child.stdout.on("data", (chunk: Buffer) => {
       stdout.append(chunk);
       writeOutput(child.stdout, stdoutStream, chunk);
@@ -120,6 +134,7 @@ export function runAgentProcess(
       settled = true;
       if (timeout) clearTimeout(timeout);
       if (killTimer) clearTimeout(killTimer);
+      removeSupervisorListeners();
       options.signal?.removeEventListener("abort", onAbort);
       endStreams();
       void streamsClosed.then(() => {
