@@ -336,6 +336,62 @@ describe("runAriadneLoop successful lifecycle", () => {
     });
   });
 
+  it("reports a blocked story in a non-mutating dry run", async () => {
+    const blocked = { ...story("US-001", 1), status: "blocked" as const };
+    const harness = createHarness([blocked]);
+    const before = snapshotDirectory(harness.root);
+    harness.deps.git.assertReady = (_branch, allowPreservedDiff) => {
+      if (!allowPreservedDiff) throw new Error("working tree is dirty");
+      harness.events.push("git.assertReady");
+    };
+    const { runAriadneLoop } = await import("../../../src/ariadne/loop.js");
+
+    const summary = await runAriadneLoop(
+      { runtime: "codex", dryRun: true },
+      harness.deps,
+    );
+
+    expect(snapshotDirectory(harness.root)).toEqual(before);
+    expect(harness.events).toEqual(["git.assertReady"]);
+    expect(summary).toEqual({
+      schemaVersion: 1,
+      command: "run",
+      outcome: "blocked",
+      runtime: "codex",
+      iterations: 0,
+      completedStoryIds: [],
+      activeStoryId: "US-001",
+      blockedStoryId: "US-001",
+    });
+  });
+
+  it("does not select a pending story when dry run finds a blocked diff", async () => {
+    const blocked = { ...story("US-001", 1), status: "blocked" as const };
+    const pending = story("US-002", 2);
+    const harness = createHarness([blocked, pending]);
+    const before = snapshotDirectory(harness.root);
+    harness.deps.git.assertReady = (_branch, allowPreservedDiff) => {
+      if (!allowPreservedDiff) throw new Error("working tree is dirty");
+      harness.events.push("git.assertReady");
+    };
+    const { runAriadneLoop } = await import("../../../src/ariadne/loop.js");
+
+    const summary = await runAriadneLoop(
+      { runtime: "codex", dryRun: true },
+      harness.deps,
+    );
+
+    expect(snapshotDirectory(harness.root)).toEqual(before);
+    expect(harness.events).toEqual(["git.assertReady"]);
+    expect(summary).toMatchObject({
+      outcome: "blocked",
+      iterations: 0,
+      blockedStoryId: "US-001",
+      activeStoryId: "US-001",
+    });
+    expect(summary.activeStoryId).not.toBe("US-002");
+  });
+
   it("restores in-progress state and records commit failure without cleanup", async () => {
     const harness = createHarness([story("US-001", 1)], {
       commitFails: true,

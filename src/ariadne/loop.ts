@@ -212,11 +212,24 @@ function inspectDryRun(
 ): AriadneRunSummary {
   deps.store.loadConfig();
   const prd = deps.store.loadPrd();
+  const blocked = prd.userStories.find((story) => story.status === "blocked");
   const active = selectStory(prd);
   deps.git.assertReady(
     prd.branchName,
-    prd.userStories.some((story) => story.status === "in_progress"),
+    prd.userStories.some(
+      (story) => story.status === "in_progress" || story.status === "blocked",
+    ),
   );
+  if (blocked) {
+    return summary({
+      options,
+      outcome: "blocked",
+      iterations: 0,
+      completedStoryIds: [],
+      activeStoryId: blocked.id,
+      blockedStoryId: blocked.id,
+    });
+  }
   return summary({
     options,
     outcome: active ? "incomplete" : "complete",
