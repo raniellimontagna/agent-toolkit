@@ -13,15 +13,26 @@ runtime agent implements one story at a time.
 
 | Command | Purpose |
 | --- | --- |
-| `agent-toolkit ariadne init` | Create or migrate `.ariadne/` state and configure runtime/checks. |
+| `agent-toolkit ariadne init` | Create or migrate `.ariadne/` state, auto-detect available checks, and configure a runtime when unambiguous. |
 | `agent-toolkit ariadne doctor` | Diagnose Git, schema, lock, runtime, and quality-check readiness without running a story. |
 | `agent-toolkit ariadne run` | Autonomously select and execute stories, verify them, and let Ariadne commit successful work. |
 | `agent-toolkit ariadne status` | Report backlog counts, active story, branch, lock, latest run, and runtime health. |
 
 Normal `run` is autonomous and mutates the repository. Use `run --dry-run` for
 non-mutating inspection. Use `--runtime <claude|codex|opencode|gemini|antigravity>`
-to choose explicitly, `--max-iterations <n>` or `--max-runtime <duration>` to
-bound a run, and `--json` for machine-readable output.
+to override automatic runtime selection explicitly, `--max-iterations <n>` or
+`--max-runtime <duration>` to bound a run, and `--json` for machine-readable
+output. `run` first honors its explicit runtime, then the configured project
+runtime; otherwise it selects a single healthy candidate (or a sole unverified
+candidate), uses a healthy global preference when set, prompts interactively
+when candidates remain ambiguous, and reports an error in non-interactive
+ambiguity.
+
+During `init`, Ariadne detects package quality checks automatically: it uses a
+`check` script when present, otherwise it collects `lint`, `typecheck`, and
+`test` scripts in that order. Repeated `--check` values replace those detected
+checks. In a non-interactive project with no detected or explicit check, init
+reports an error and requires `--check`.
 
 ## Safe operation
 
@@ -40,10 +51,15 @@ reverts, cleans, checks out over changes, or discards a failed diff.
 
 ## Retry and recovery
 
-A failed process, result, criterion, check, or commit attempt is recorded in
-`.ariadne/runs/` and `.ariadne/progress.md`. Ariadne preserves the story diff
-and retries the same `in_progress` story. The default limit is three attempts;
-exhaustion marks the story `blocked` and stops subsequent runs. Diagnose with
-`doctor` and the latest run artifacts, repair the underlying problem, then have
-the operator deliberately reset the story to `pending` or `in_progress` before
-resuming. Never hide failures or discard the preserved diff to force progress.
+Failed processes, results, criteria, and checks are recorded in `.ariadne/runs/`
+and `.ariadne/progress.md`. Ariadne preserves the story diff and retries the
+same `in_progress` story. The default limit is three attempts; exhaustion marks
+the story `blocked` and stops subsequent runs. Diagnose with `doctor` and the
+latest run artifacts, repair the underlying problem, then have the operator
+deliberately reset the story to `pending` or `in_progress` before resuming.
+
+A commit failure is different: Ariadne records it, restores the story to
+`in_progress`, and preserves both the staged diff and run progress for manual
+resolution and a deliberate resume. It does not automatically retry or block a
+commit failure, and it never hides failures or discards the preserved diff to
+force progress.

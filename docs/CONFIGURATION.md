@@ -128,7 +128,25 @@ The version-1 `.ariadne/config.json` contract is:
 }
 ```
 
-`runtime` may be omitted during initialization, but a normal run needs one healthy configured runtime or an explicit `run --runtime`. `qualityChecks` defaults to an empty array during initialization and must contain at least one real command before a normal run. `maxAttemptsPerStory` defaults to exactly `3`. There is no default global iteration or wall-clock limit; add `--max-iterations` or `--max-runtime` when a bounded run is required.
+During `init`, `runtime` may be omitted: Ariadne uses an existing configured
+runtime or selects a sole healthy or unverified detected runtime when available.
+`qualityChecks` are also detected automatically: a package `check` script wins;
+otherwise Ariadne collects available `lint`, `typecheck`, and `test` scripts in
+that order. Explicit repeated `--check` values replace detected checks. A
+non-interactive init with no explicit, existing, or detected check fails and
+requires `--check`.
+
+For `run`, `--runtime` wins, followed by the configured project runtime. Without
+either, Ariadne selects a sole healthy candidate (or a sole unverified one),
+then a healthy global preference when one is configured; remaining ambiguity
+prompts interactively and errors in non-interactive mode, asking for
+`--runtime`. `maxAttemptsPerStory` defaults to exactly `3`. Its retry/blocking
+limit applies to process, result, criterion, and quality-check failures. A
+commit failure is recorded while the story remains `in_progress`; Ariadne keeps
+the staged diff and run progress intact for manual resolution and deliberate
+resume, without automatic retry or blocking. There is no default global
+iteration or wall-clock limit; add `--max-iterations` or `--max-runtime` when a
+bounded run is required.
 
 | Ariadne runtime | Version contract | Headless permission mode |
 |---|---|---|

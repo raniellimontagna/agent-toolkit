@@ -172,7 +172,12 @@ Uninstall removes only manifest-recorded Custom Skill destinations created by th
 
 ## Run Ariadne
 
-Run Ariadne from the Git repository it will modify. Initialize state with a real quality check and, when more than one supported runtime is installed, choose one explicitly:
+Run Ariadne from the Git repository it will modify. `init` auto-detects package
+quality checks: it prefers `check`; otherwise it uses available `lint`,
+`typecheck`, and `test` scripts in that order. It can also select a runtime when
+exactly one healthy or unverified supported runtime is available. Pass `--check`
+or `--runtime` to override those choices; a non-interactive init with no
+detected check requires `--check`.
 
 ```bash
 npx -y @ranimontagna/agent-toolkit ariadne init \
@@ -190,7 +195,15 @@ A normal run is autonomous: the selected runtime receives headless project acces
 
 ### Recovery and logs
 
-Process, result, criterion, check, or commit failures preserve the diff and retry the same `in_progress` story. After the configured attempt limit (default `3`), Ariadne marks it `blocked` and later runs stop. Use `status`, `doctor`, `.ariadne/progress.md`, and the latest `.ariadne/runs/<run-id>/` artifacts to identify the failure. A run directory can contain `prompt.md`, `attempt.json`, `process.json`, `result.json`, `checks.json`, `failure.json`, or `stop.json`, depending on where it stopped.
+Process, result, criterion, and check failures preserve the diff and retry the
+same `in_progress` story. After the configured attempt limit (default `3`),
+Ariadne marks it `blocked` and later runs stop. A commit failure instead leaves
+the story `in_progress`, records the failure, and preserves the staged diff and
+run progress for manual resolution and a deliberate resume; it is not retried
+or blocked automatically. Use `status`, `doctor`, `.ariadne/progress.md`, and
+the latest `.ariadne/runs/<run-id>/` artifacts to identify the failure. A run
+directory can contain `prompt.md`, `attempt.json`, `process.json`, `result.json`,
+`checks.json`, `failure.json`, or `stop.json`, depending on where it stopped.
 
 Repair the cause without discarding the preserved diff. A human operator may then deliberately change the blocked story in `.ariadne/prd.json` to `pending` or `in_progress` and rerun `doctor` before resuming. A stale lock is reported by `doctor`; do not remove a live lock. Interrupted and budget-exhausted runs preserve the active story for continuation.
 
