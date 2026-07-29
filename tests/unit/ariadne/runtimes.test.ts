@@ -188,11 +188,16 @@ describe("Ariadne runtime adapters", () => {
 
     expect(adapter.interpretResult(base)).toEqual({ ok: true, status: 0 });
     expect(
-      adapter.interpretResult({ ...base, status: 1, stderr: "failed" }),
+      adapter.interpretResult({
+        ...base,
+        status: 1,
+        stdout: "ghp_stdout_secret",
+        stderr: "arbitrary stderr that must stay in the run log",
+      }),
     ).toEqual({
       ok: false,
       status: 1,
-      reason: "failed",
+      reason: "Runtime exited with status 1; inspect machine-local logs.",
     });
     expect(adapter.interpretResult({ ...base, timedOut: true })).toEqual({
       ok: false,

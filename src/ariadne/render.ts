@@ -20,6 +20,12 @@ export function formatAriadneStatus(report: AriadneStatusReport): string {
     report.activeStory
       ? `Active story: ${report.activeStory.id} ${report.activeStory.title} (attempts: ${report.activeStory.attempts})`
       : "Active story: none",
+    report.blockedStory
+      ? `Blocked story: ${report.blockedStory.id} ${report.blockedStory.title} (attempts: ${report.blockedStory.attempts})`
+      : "Blocked story: none",
+    report.ownershipViolation
+      ? `Ownership violation: run ${report.ownershipViolation.runId} (${report.ownershipViolation.changed.join(", ")})`
+      : "Ownership violation: none",
     report.lastRun
       ? `Last run: ${report.lastRun.id} (${report.lastRun.outcome}, ${report.lastRun.durationMs}ms)`
       : "Last run: none",

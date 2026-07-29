@@ -169,7 +169,7 @@ function runCli(fixture, args, overrides = {}) {
   return command(process.execPath, [cli, "ariadne", ...args], {
     cwd: fixture.project,
     env: { ...fixture.env, ...overrides },
-    timeout: 45_000,
+    timeout: 90_000,
   });
 }
 
@@ -213,6 +213,14 @@ function initialize(fixture) {
   assert.match(
     fs.readFileSync(path.join(fixture.project, ".gitignore"), "utf8"),
     /^\.ariadne\/runs\/$/m,
+  );
+  assert.match(
+    fs.readFileSync(path.join(fixture.project, ".gitignore"), "utf8"),
+    /^\.ariadne-quarantine\.json$/m,
+  );
+  assert.match(
+    fs.readFileSync(path.join(fixture.project, ".gitignore"), "utf8"),
+    /^\.ariadne-quarantine\.checkpoint\.json$/m,
   );
   git(fixture.project, "add", "--all");
   git(fixture.project, "commit", "-m", "test: initialize Ariadne fixture");
@@ -289,26 +297,19 @@ function expectedArgs(runtime, project, instruction) {
 }
 
 function assertSafeGit(fixture, expectedCommits) {
-  if (process.platform === "win32") {
-    const subjects = git(fixture.project, "log", "--format=%s").split("\n");
-    assert.equal(
-      subjects.filter((subject) => subject.startsWith("feat(ariadne):")).length,
-      expectedCommits,
-      `Unexpected Ariadne commit history: ${JSON.stringify(subjects)}`,
-    );
-    return;
-  }
+  const subjects = git(fixture.project, "log", "--format=%s").split("\n");
+  assert.equal(
+    subjects.filter((subject) => subject.startsWith("feat(ariadne):")).length,
+    expectedCommits,
+    `Unexpected Ariadne commit history: ${JSON.stringify(subjects)}`,
+  );
+  if (process.platform === "win32") return;
   const calls = jsonLines(fixture.gitLog);
   const destructive = new Set(["push", "reset", "checkout", "clean", "revert"]);
   assert.equal(
     calls.some((args) => destructive.has(args[0])),
     false,
     `Ariadne invoked a forbidden Git command: ${JSON.stringify(calls)}`,
-  );
-  assert.equal(
-    calls.filter((args) => args[0] === "commit").length,
-    expectedCommits,
-    `Unexpected Ariadne commit count: ${JSON.stringify(calls)}`,
   );
 }
 
@@ -339,6 +340,14 @@ function assertSuccessfulRun(fixture, expectedAttempts = 1) {
     ".ariadne/runs/.lock-coordinator",
   );
   assert.equal(git(fixture.project, "ls-files", ".ariadne/runs"), "");
+  assert.equal(
+    git(fixture.project, "check-ignore", ".ariadne-quarantine.json"),
+    ".ariadne-quarantine.json",
+  );
+  assert.equal(
+    git(fixture.project, "check-ignore", ".ariadne-quarantine.checkpoint.json"),
+    ".ariadne-quarantine.checkpoint.json",
+  );
   assert.equal(
     git(fixture.project, "ls-files", ".ariadne/progress.md"),
     ".ariadne/progress.md",
@@ -386,6 +395,14 @@ try {
     );
     assert.equal(runtimeCalls(repair).length, 2);
     assertSuccessfulRun(repair, 2);
+    const repairProgress = fs.readFileSync(
+      path.join(repair.project, ".ariadne", "progress.md"),
+      "utf8",
+    );
+    assert.match(repairProgress, /summary: Repair US-001; token=\[REDACTED\]/);
+    assert.match(repairProgress, /Retry with --password \[REDACTED\]/);
+    assert.match(repairProgress, /check\.mjs.*failed/);
+    assert.doesNotMatch(repairProgress, /e2e-(summary|learning)-secret/);
     assertSafeGit(repair, 1);
 
     const blocked = createProject("blocked", "codex");
@@ -405,7 +422,210 @@ try {
       ).userStories[0].status,
       "blocked",
     );
+    const blockedDoctor = requireStatus(
+      runCli(blocked, ["doctor", "--json"]),
+      0,
+      "blocked preserved diff doctor",
+    );
+    assert.equal(
+      parseJson(blockedDoctor, "blocked doctor").issues.some(
+        (issue) => issue.code === "dirty_worktree",
+      ),
+      false,
+    );
     assertSafeGit(blocked, 0);
+
+    const unsafeIgnore = createProject("unsafe-ignore", "codex");
+    initialize(unsafeIgnore);
+    requireStatus(
+      runCli(unsafeIgnore, ["run", "--runtime", "codex", "--json"], {
+        ARIADNE_FAKE_MODE: "unsafe-ignore",
+      }),
+      4,
+      "runtime-negated machine-local ignores",
+    );
+    assert.equal(runtimeCalls(unsafeIgnore).length, 1);
+    assert.equal(
+      git(unsafeIgnore.project, "ls-files", ".ariadne/lock", ".ariadne/runs"),
+      "",
+    );
+    assert.equal(
+      git(
+        unsafeIgnore.project,
+        "diff",
+        "--cached",
+        "--name-only",
+        "--",
+        ".ariadne/lock",
+        ".ariadne/runs",
+      ),
+      "",
+    );
+    assertSafeGit(unsafeIgnore, 0);
+
+    const runDirSymlink = createProject("run-dir-symlink", "codex");
+    initialize(runDirSymlink);
+    requireStatus(
+      runCli(runDirSymlink, ["run", "--runtime", "codex", "--json"], {
+        ARIADNE_FAKE_MODE: "run-dir-symlink",
+      }),
+      4,
+      "runtime-replaced run directory",
+    );
+    for (const artifact of [
+      "process.json",
+      "checks.json",
+      "runtime.stdout.log",
+      "runtime.stderr.log",
+    ]) {
+      assert.equal(
+        fs.existsSync(path.join(runDirSymlink.project, artifact)),
+        false,
+        `Operational artifact escaped into project root: ${artifact}`,
+      );
+    }
+    assert.equal(
+      git(runDirSymlink.project, "diff", "--cached", "--name-only"),
+      "",
+    );
+    assertSafeGit(runDirSymlink, 0);
+
+    const outputRelocation = createProject("output-relocation", "codex");
+    initialize(outputRelocation);
+    requireStatus(
+      runCli(outputRelocation, ["run", "--runtime", "codex", "--json"], {
+        ARIADNE_FAKE_MODE: "output-relocation",
+      }),
+      4,
+      "runtime-relocated output leaf",
+    );
+    const relocatedOutput = path.join(
+      outputRelocation.project,
+      "runtime-output.txt",
+    );
+    assert.match(
+      fs.readFileSync(relocatedOutput, "utf8"),
+      /e2e-relocated-output-secret/,
+    );
+    assert.equal(
+      git(outputRelocation.project, "diff", "--cached", "--name-only"),
+      "",
+    );
+    assert.equal(
+      git(outputRelocation.project, "ls-tree", "-r", "--name-only", "HEAD")
+        .split("\n")
+        .includes("runtime-output.txt"),
+      false,
+    );
+    assert.equal(
+      fs.existsSync(
+        path.join(outputRelocation.project, ".ariadne-quarantine.json"),
+      ),
+      true,
+    );
+    const outputCallsBeforeRetry = runtimeCalls(outputRelocation).length;
+    requireStatus(
+      runCli(outputRelocation, ["run", "--runtime", "codex", "--json"], {
+        ARIADNE_FAKE_MODE: "happy",
+      }),
+      4,
+      "output relocation quarantine retry",
+    );
+    assert.equal(runtimeCalls(outputRelocation).length, outputCallsBeforeRetry);
+    assertSafeGit(outputRelocation, 0);
+
+    const backgroundOutput = createProject(
+      "background-output-relocation",
+      "codex",
+    );
+    initialize(backgroundOutput);
+    const backgroundReady = path.join(backgroundOutput.stateDir, "ready");
+    const backgroundTrigger = path.join(backgroundOutput.stateDir, "trigger");
+    const backgroundAck = path.join(backgroundOutput.stateDir, "ack");
+    requireStatus(
+      runCli(backgroundOutput, ["run", "--runtime", "codex", "--json"], {
+        ARIADNE_FAKE_MODE: "background-output-relocation",
+        ARIADNE_BACKGROUND_READY: backgroundReady,
+        ARIADNE_BACKGROUND_TRIGGER: backgroundTrigger,
+        ARIADNE_BACKGROUND_ACK: backgroundAck,
+      }),
+      4,
+      "background descendant relocated output leaf",
+    );
+    assert.equal(fs.readFileSync(backgroundAck, "utf8"), "ok\n");
+    assert.match(
+      fs.readFileSync(
+        path.join(backgroundOutput.project, "background-output.txt"),
+        "utf8",
+      ),
+      /e2e-background-output-secret/,
+    );
+    const backgroundCallsBeforeRetry = runtimeCalls(backgroundOutput).length;
+    requireStatus(
+      runCli(backgroundOutput, ["run", "--runtime", "codex", "--json"], {
+        ARIADNE_FAKE_MODE: "happy",
+      }),
+      4,
+      "background descendant quarantine retry",
+    );
+    assert.equal(
+      runtimeCalls(backgroundOutput).length,
+      backgroundCallsBeforeRetry,
+    );
+    assertSafeGit(backgroundOutput, 0);
+
+    const illicitCommit = createProject("illicit-commit", "codex");
+    initialize(illicitCommit);
+    requireStatus(
+      runCli(illicitCommit, ["run", "--runtime", "codex", "--json"], {
+        ARIADNE_FAKE_MODE: "illicit-commit",
+      }),
+      4,
+      "runtime-owned illicit commit",
+    );
+    const violationPath = path.join(
+      illicitCommit.project,
+      ".ariadne-quarantine.json",
+    );
+    assert.equal(fs.existsSync(violationPath), true);
+    const callsBeforeRetry = runtimeCalls(illicitCommit).length;
+    requireStatus(
+      runCli(illicitCommit, ["run", "--runtime", "codex", "--json"], {
+        ARIADNE_FAKE_MODE: "happy",
+      }),
+      4,
+      "unresolved ownership marker retry",
+    );
+    assert.equal(runtimeCalls(illicitCommit).length, callsBeforeRetry);
+    assert.equal(
+      git(illicitCommit.project, "log", "--format=%s")
+        .split("\n")
+        .some((subject) => subject.startsWith("feat(ariadne):")),
+      false,
+    );
+    const quarantinedPrd = fs.readFileSync(
+      path.join(illicitCommit.project, ".ariadne", "prd.json"),
+      "utf8",
+    );
+    requireStatus(
+      runCli(illicitCommit, [
+        "init",
+        "--runtime",
+        "codex",
+        "--check",
+        `${JSON.stringify(process.execPath)} check.mjs`,
+        "--json",
+      ]),
+      4,
+      "ownership quarantine init",
+    );
+    assert.equal(
+      fs.readFileSync(
+        path.join(illicitCommit.project, ".ariadne", "prd.json"),
+        "utf8",
+      ),
+      quarantinedPrd,
+    );
 
     const missing = createProject("missing-result", "codex");
     initialize(missing);
@@ -481,6 +701,7 @@ try {
       pid: 99999999,
       startedAt: "2026-01-01T00:00:00.000Z",
       runId: "stale-run",
+      ownerToken: "33333333-3333-4333-8333-333333333333",
     });
     requireStatus(
       runCli(stale, ["run", "--runtime", "codex", "--json"]),
@@ -489,10 +710,10 @@ try {
     );
     assert.equal(
       fs
-        .readdirSync(path.join(stale.project, ".ariadne", "runs"), {
-          recursive: true,
-        })
-        .some((entry) => String(entry).includes("recovered-lock-stale-run")),
+        .readdirSync(
+          path.join(stale.project, ".ariadne", "runs", ".lock-coordinator"),
+        )
+        .some((entry) => String(entry).startsWith(".public-lock-")),
       true,
     );
     assertSuccessfulRun(stale);

@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { runAgentProcess } from "./process.js";
+import type { ProcessRunOptions, runAgentProcess } from "./process.js";
 
 const QUALITY_CHECK_TIMEOUT_MS = 30 * 60 * 1_000;
 
@@ -25,6 +25,8 @@ export type QualityCheckInput = {
   signal?: AbortSignal;
   timeoutMs?: number;
   runProcess: typeof runAgentProcess;
+  assertRunDirectory?: () => void;
+  certifyOutput?: ProcessRunOptions["certifyOutput"];
 };
 
 function shellInvocation(command: string, projectRoot: string) {
@@ -54,10 +56,12 @@ export async function runQualityChecks(
     throw new Error("Quality check commands cannot be empty");
   }
 
-  fs.mkdirSync(input.runDir, { recursive: true });
+  if (input.assertRunDirectory) input.assertRunDirectory();
+  else fs.mkdirSync(input.runDir, { recursive: true });
   const results: QualityCheckResult[] = [];
   const startedAt = Date.now();
   for (const [index, command] of input.commands.entries()) {
+    input.assertRunDirectory?.();
     const remainingGlobalRuntime =
       input.timeoutMs === undefined
         ? undefined
@@ -89,8 +93,10 @@ export async function runQualityChecks(
         stderrPath,
         timeoutMs,
         signal: input.signal,
+        certifyOutput: input.certifyOutput,
       },
     );
+    input.assertRunDirectory?.();
     results.push({
       command,
       status: processResult.status,

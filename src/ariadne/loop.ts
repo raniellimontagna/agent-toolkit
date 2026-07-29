@@ -3,24 +3,42 @@ import path from "node:path";
 import type { QualityCheckResult, runQualityChecks } from "./checks.js";
 import type { AriadneGit } from "./git.js";
 import type { AriadneLockHandle, acquireProjectLock } from "./lock.js";
+import {
+  type AriadneOwnershipCertification,
+  assertOwnershipCertification,
+  assertPersistedOwnership,
+  captureOwnershipCertification,
+  saveOwnershipCertification,
+} from "./ownership.js";
 import type { runAgentProcess } from "./process.js";
 import { buildIterationPrompt } from "./prompt.js";
 import {
   type AgentResult,
+  formatCoordinatorProgressEntry,
   formatProgressEntry,
   readAgentResult,
+  sanitizeDurableValue,
+  sanitizeQualityCheckResult,
+  sanitizeValidatedResult,
 } from "./result.js";
 import type {
   AgentInvocation,
   AriadneRuntimeAdapter,
+  RuntimeDetection,
 } from "./runtimes/types.js";
 import {
   AriadneStateError,
   assertRunnableConfig,
   assertStoryTransition,
 } from "./schema.js";
-import type { AriadneStore } from "./store.js";
 import type {
+  AriadneCanonicalFileCertificate,
+  AriadneRunBoundary,
+  AriadneStore,
+} from "./store.js";
+import { ARIADNE_OWNERSHIP_CHECKPOINT_MARKER } from "./store.js";
+import type {
+  AriadneOwnershipViolationChange,
   AriadnePrd,
   AriadneRunOptions,
   AriadneRunOutcome,
@@ -42,6 +60,8 @@ export type AriadneLoopDeps = {
   store: AriadneStore;
   git: AriadneGit;
   adapter: AriadneRuntimeAdapter;
+  detection?: RuntimeDetection;
+  selectionCertification?: AriadneOwnershipCertification;
   acquireLock: typeof acquireProjectLock;
   runProcess: typeof runAgentProcess;
   runChecks: typeof runQualityChecks;
@@ -53,9 +73,27 @@ type SanitizedInvocation = Pick<AgentInvocation, "command" | "args" | "cwd">;
 
 type CanonicalSnapshot = {
   initialHead: string;
-  prd: string | null;
-  progress: string | null;
+  initialRef: string;
+  prd: AriadneCanonicalFileCertificate;
+  progress: AriadneCanonicalFileCertificate;
 };
+
+class RuntimeOwnershipViolationError extends AriadneStateError {
+  constructor(
+    readonly certifiedHead: string,
+    readonly observedHead: string,
+    readonly certifiedRef: string,
+    readonly observedRef: string,
+    readonly changed: AriadneOwnershipViolationChange[],
+  ) {
+    super(
+      changed.includes("head") ? "$git" : "$.ariadne",
+      changed.includes("head")
+        ? "Ariadne runtime changed Git HEAD; runtime agents must not commit"
+        : "Ariadne runtime edited canonical Ariadne state; only the coordinator may update prd.json or progress.md",
+    );
+  }
+}
 
 type AttemptMetadata = {
   runId: string;
@@ -65,6 +103,7 @@ type AttemptMetadata = {
   startedMs: number;
   runtimeVersion?: string;
   initialHead: string;
+  initialRef: string;
   invocation: SanitizedInvocation;
   process?: {
     status: number | null;
@@ -156,22 +195,8 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function formatFailureProgress(input: {
-  failure: AttemptFailure;
-  storyId: string;
-  runtime: AriadneRunOptions["runtime"];
-}): string {
-  return [
-    `## ${input.failure.timestamp} — ${input.failure.runId}`,
-    "",
-    `- story: ${input.storyId}`,
-    `- runtime: ${input.runtime}`,
-    "- outcome: failed",
-    `- failure category: ${input.failure.category}`,
-    "",
-    "---",
-    "",
-  ].join("\n");
+function sanitizeAttemptFailure(failure: AttemptFailure): AttemptFailure {
+  return { ...failure, message: sanitizeDurableValue(failure.message) };
 }
 
 const FAILURE_CATEGORIES = new Set<AttemptFailure["category"]>([
@@ -220,7 +245,7 @@ function readPriorAttemptFailure(
       ) {
         continue;
       }
-      failures.push(failure as AttemptFailure);
+      failures.push(sanitizeAttemptFailure(failure as AttemptFailure));
     } catch (error: unknown) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") continue;
       if (error instanceof SyntaxError) continue;
@@ -274,15 +299,6 @@ function acquireIterationLock(
   });
 }
 
-function readOptionalFile(source: string): string | null {
-  try {
-    return fs.readFileSync(source, "utf8");
-  } catch (error: unknown) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
-    throw error;
-  }
-}
-
 function sanitizeInvocation(invocation: AgentInvocation): SanitizedInvocation {
   const credential =
     /(?:api[-_]?key|token|password|secret|authorization|credential)/i;
@@ -304,11 +320,36 @@ function sanitizeInvocation(invocation: AgentInvocation): SanitizedInvocation {
   return { command: invocation.command, args, cwd: invocation.cwd };
 }
 
-function captureCanonicalSnapshot(deps: AriadneLoopDeps): CanonicalSnapshot {
+function captureCanonicalSnapshot(
+  deps: AriadneLoopDeps,
+  prd: AriadneCanonicalFileCertificate,
+  expectedBranch?: string,
+  progress?: AriadneCanonicalFileCertificate,
+): CanonicalSnapshot {
+  const initialRef = deps.git.headRef();
+  const initialHead = deps.git.head();
+  if (deps.git.headRef() !== initialRef || deps.git.head() !== initialHead) {
+    throw new AriadneStateError(
+      "$git",
+      "Ariadne symbolic HEAD changed while the runtime boundary was certified",
+    );
+  }
+  if (
+    expectedBranch !== undefined &&
+    initialRef !== `refs/heads/${expectedBranch}`
+  ) {
+    throw new AriadneStateError(
+      "$git",
+      `Ariadne expected symbolic HEAD refs/heads/${expectedBranch}, found ${initialRef}`,
+    );
+  }
   return {
-    initialHead: deps.git.head(),
-    prd: readOptionalFile(deps.store.paths.prd),
-    progress: readOptionalFile(deps.store.paths.progress),
+    initialHead,
+    initialRef,
+    prd,
+    progress:
+      progress ??
+      deps.store.captureCanonicalCertificate(deps.store.paths.progress),
   };
 }
 
@@ -316,19 +357,40 @@ function assertRuntimeOwnership(
   snapshot: CanonicalSnapshot,
   deps: AriadneLoopDeps,
 ): void {
-  if (deps.git.head() !== snapshot.initialHead) {
-    throw new AriadneStateError(
-      "$git",
-      "Ariadne runtime changed Git HEAD; runtime agents must not commit",
-    );
+  const changed: AriadneOwnershipViolationChange[] = [];
+  let observedHead = "unavailable";
+  let observedRef = "unavailable";
+  try {
+    observedRef = deps.git.headRef();
+    observedHead = deps.git.head();
+    if (
+      deps.git.headRef() !== observedRef ||
+      deps.git.head() !== observedHead ||
+      observedHead !== snapshot.initialHead ||
+      observedRef !== snapshot.initialRef
+    ) {
+      changed.push("head");
+    }
+  } catch {
+    changed.push("head");
   }
-  if (
-    readOptionalFile(deps.store.paths.prd) !== snapshot.prd ||
-    readOptionalFile(deps.store.paths.progress) !== snapshot.progress
-  ) {
-    throw new AriadneStateError(
-      "$.ariadne",
-      "Ariadne runtime edited canonical Ariadne state; only the coordinator may update prd.json or progress.md",
+  try {
+    deps.store.assertCanonicalCertificate(snapshot.prd);
+  } catch {
+    changed.push("prd");
+  }
+  try {
+    deps.store.assertCanonicalCertificate(snapshot.progress);
+  } catch {
+    changed.push("progress");
+  }
+  if (changed.length > 0) {
+    throw new RuntimeOwnershipViolationError(
+      snapshot.initialHead,
+      observedHead,
+      snapshot.initialRef,
+      observedRef,
+      changed,
     );
   }
 }
@@ -355,7 +417,7 @@ function inspectDryRun(
     promptPath,
     relativePromptPath: path.relative(deps.store.projectRoot, promptPath),
   });
-  const detection = deps.adapter.detect();
+  const detection = deps.detection ?? deps.adapter.detect();
   const inspection: NonNullable<AriadneRunSummary["inspection"]> = {
     project: {
       root: deps.store.projectRoot,
@@ -394,13 +456,40 @@ export async function runAriadneLoop(
   deps: AriadneLoopDeps,
 ): Promise<AriadneRunSummary> {
   assertAdapterMatches(options, deps);
-  if (options.dryRun) return inspectDryRun(options, deps);
+  if (deps.selectionCertification) {
+    assertOwnershipCertification({
+      store: deps.store,
+      git: deps.git,
+      now: deps.now,
+      certification: deps.selectionCertification,
+    });
+  }
+  assertPersistedOwnership({ store: deps.store, git: deps.git, now: deps.now });
+  if (options.dryRun) {
+    const certification =
+      deps.selectionCertification ??
+      captureOwnershipCertification({
+        store: deps.store,
+        git: deps.git,
+        runId: "dry-run",
+        storyId: selectStory(deps.store.loadPrd())?.id ?? "dry-run",
+      });
+    const inspection = inspectDryRun(options, deps);
+    assertOwnershipCertification({
+      store: deps.store,
+      git: deps.git,
+      now: deps.now,
+      certification,
+    });
+    return inspection;
+  }
 
   const completedStoryIds: string[] = [];
   let iterations = 0;
   let lastRunId: string | undefined;
   let commit: string | undefined;
   let currentAttempt: AttemptMetadata | undefined;
+  let activeCertification: AriadneOwnershipCertification | undefined;
   const finalizedAttemptRunIds = new Set<string>();
   const startedAt = deps.now().getTime();
   const priorFailures = new Map<string, AttemptFailure>();
@@ -415,6 +504,32 @@ export async function runAriadneLoop(
   const runtimeBudgetReached = () =>
     options.maxRuntimeMs !== undefined &&
     deps.now().getTime() - startedAt >= options.maxRuntimeMs;
+
+  const persistCertification = (
+    certification: AriadneOwnershipCertification,
+  ): void => {
+    activeCertification = certification;
+    try {
+      saveOwnershipCertification({
+        store: deps.store,
+        certification,
+        now: deps.now,
+      });
+    } catch (error) {
+      // Convert a concurrent canonical/ref mutation into the precise ownership
+      // surface before the outer containment handler persists quarantine.
+      assertRuntimeOwnership(
+        {
+          initialHead: certification.certifiedHead,
+          initialRef: certification.certifiedRef,
+          prd: certification.prd,
+          progress: certification.progress,
+        },
+        deps,
+      );
+      throw error;
+    }
+  };
 
   const activeStoryId = () => {
     const prd = deps.store.loadPrd();
@@ -456,6 +571,7 @@ export async function runAriadneLoop(
       outcome,
       ...(failureCategory ? { failureCategory } : {}),
       initialHead: attempt.initialHead,
+      initialRef: attempt.initialRef,
       ...(finalHead ? { finalHead } : {}),
       ...(attempt.process ? { process: attempt.process } : {}),
       ...(attempt.validatedResult
@@ -530,19 +646,59 @@ export async function runAriadneLoop(
     story: AriadneStory,
     failure: AttemptFailure,
     maxAttempts: number,
+    evidence: { result?: AgentResult; checks?: QualityCheckResult[] } = {},
   ) => {
-    const state = recordFailedAttempt(prd, story.id, failure, maxAttempts);
-    deps.store.savePrd(state.prd);
-    deps.store.writeRunJson(failure.runId, "failure.json", failure);
-    deps.store.appendProgress(
-      formatFailureProgress({
-        failure,
-        storyId: story.id,
-        runtime: options.runtime,
-      }),
+    const durableFailure = sanitizeAttemptFailure(failure);
+    const state = recordFailedAttempt(
+      prd,
+      story.id,
+      durableFailure,
+      maxAttempts,
     );
-    priorFailures.set(story.id, failure);
-    finishAttempt(state.blocked ? "blocked" : "failed", failure.category);
+    const prdCertificate = deps.store.savePrd(state.prd);
+    deps.store.writeRunJson(
+      durableFailure.runId,
+      "failure.json",
+      durableFailure,
+    );
+    const progressCertificate = deps.store.appendProgress(
+      evidence.result
+        ? formatProgressEntry({
+            timestamp: durableFailure.timestamp,
+            runId: durableFailure.runId,
+            story,
+            runtime: options.runtime,
+            result: evidence.result,
+            checks: evidence.checks ?? [],
+            outcome: state.blocked ? "blocked" : "failed",
+            failureCategory: durableFailure.category,
+            failureReason: durableFailure.message,
+          })
+        : formatCoordinatorProgressEntry({
+            timestamp: durableFailure.timestamp,
+            runId: durableFailure.runId,
+            storyId: story.id,
+            runtime: options.runtime,
+            outcome: state.blocked ? "blocked" : "failed",
+            failureCategory: durableFailure.category,
+            failureReason: durableFailure.message,
+          }),
+    );
+    if (
+      activeCertification?.runId === durableFailure.runId &&
+      activeCertification.storyId === story.id
+    ) {
+      persistCertification({
+        ...activeCertification,
+        prd: prdCertificate,
+        progress: progressCertificate,
+      });
+    }
+    priorFailures.set(story.id, durableFailure);
+    finishAttempt(
+      state.blocked ? "blocked" : "failed",
+      durableFailure.category,
+    );
     return state.blocked;
   };
 
@@ -574,15 +730,47 @@ export async function runAriadneLoop(
   const recordTerminalFailure = (
     story: AriadneStory,
     failure: AttemptFailure,
+    outcome: "interrupted" | "budget_exhausted",
+    evidence: { result?: AgentResult; checks?: QualityCheckResult[] } = {},
   ) => {
-    deps.store.writeRunJson(failure.runId, "failure.json", failure);
-    deps.store.appendProgress(
-      formatFailureProgress({
-        failure,
-        storyId: story.id,
-        runtime: options.runtime,
-      }),
+    const durableFailure = sanitizeAttemptFailure(failure);
+    deps.store.writeRunJson(
+      durableFailure.runId,
+      "failure.json",
+      durableFailure,
     );
+    const progressCertificate = deps.store.appendProgress(
+      evidence.result
+        ? formatProgressEntry({
+            timestamp: durableFailure.timestamp,
+            runId: durableFailure.runId,
+            story,
+            runtime: options.runtime,
+            result: evidence.result,
+            checks: evidence.checks ?? [],
+            outcome,
+            failureCategory: durableFailure.category,
+            failureReason: durableFailure.message,
+          })
+        : formatCoordinatorProgressEntry({
+            timestamp: durableFailure.timestamp,
+            runId: durableFailure.runId,
+            storyId: story.id,
+            runtime: options.runtime,
+            outcome,
+            failureCategory: durableFailure.category,
+            failureReason: durableFailure.message,
+          }),
+    );
+    if (
+      activeCertification?.runId === durableFailure.runId &&
+      activeCertification.storyId === story.id
+    ) {
+      persistCertification({
+        ...activeCertification,
+        progress: progressCertificate,
+      });
+    }
   };
 
   const rejectOwnershipViolation = (
@@ -590,14 +778,60 @@ export async function runAriadneLoop(
     story: AriadneStory,
     runId: string,
   ): never => {
-    const failure: AttemptFailure = {
+    const failure = sanitizeAttemptFailure({
       runId,
       category: "invariant",
       message: errorMessage(error),
       timestamp: deps.now().toISOString(),
-    };
-    deps.store.writeRunJson(runId, "failure.json", failure);
-    finishAttempt("structural_error", "invariant");
+    });
+    let observedHead = "unavailable";
+    let observedRef = "unavailable";
+    try {
+      observedHead = deps.git.head();
+    } catch {
+      // The durable marker must still survive unreadable Git metadata.
+    }
+    try {
+      observedRef = deps.git.headRef();
+    } catch {
+      // The durable marker must still survive detached/corrupt HEAD.
+    }
+    const certifiedHead =
+      error instanceof RuntimeOwnershipViolationError
+        ? error.certifiedHead
+        : (currentAttempt?.initialHead ?? "unavailable");
+    const certifiedRef =
+      error instanceof RuntimeOwnershipViolationError
+        ? error.certifiedRef
+        : (currentAttempt?.initialRef ?? "unavailable");
+    deps.store.saveOwnershipViolation({
+      schemaVersion: 1,
+      runId,
+      storyId: story.id,
+      detectedAt: failure.timestamp,
+      certifiedHead,
+      observedHead:
+        error instanceof RuntimeOwnershipViolationError
+          ? error.observedHead
+          : observedHead,
+      certifiedRef,
+      observedRef:
+        error instanceof RuntimeOwnershipViolationError
+          ? error.observedRef
+          : observedRef,
+      changed:
+        error instanceof RuntimeOwnershipViolationError
+          ? [...error.changed]
+          : ["operational"],
+    });
+    try {
+      deps.store.writeRunJson(runId, "failure.json", failure);
+      finishAttempt("structural_error", "invariant");
+    } catch {
+      // A containment violation may make this run directory unsafe. The
+      // quarantine marker above is persisted independently at the project root;
+      // never follow the compromised run path merely to finish diagnostics.
+    }
     // Canonical state may be attacker-controlled here, so do not load, save,
     // append, stage, or reset it. Preserve the evidence for manual recovery.
     throw error instanceof AriadneStateError
@@ -605,10 +839,34 @@ export async function runAriadneLoop(
       : new AriadneStateError(`$.userStories[${story.id}]`, failure.message);
   };
 
+  const releaseIterationLock = (
+    lock: AriadneLockHandle,
+    story: AriadneStory | undefined,
+    runId: string,
+  ): void => {
+    try {
+      lock.release();
+    } catch (error) {
+      if (story && !deps.store.loadOwnershipViolation()) {
+        rejectOwnershipViolation(error, story, runId);
+      }
+      throw error;
+    }
+  };
+
   process.on("SIGINT", onParentSigint);
   process.on("SIGTERM", onParentSigterm);
+  let recheckPersistedBoundary = false;
   try {
     for (;;) {
+      if (recheckPersistedBoundary) {
+        assertPersistedOwnership({
+          store: deps.store,
+          git: deps.git,
+          now: deps.now,
+        });
+      }
+      recheckPersistedBoundary = true;
       if (options.signal?.aborted || parentSignal) {
         return stop(
           "interrupted",
@@ -639,6 +897,7 @@ export async function runAriadneLoop(
 
       const runId = deps.createRunId();
       const lock = acquireIterationLock(runId, deps);
+      let lockedStory: AriadneStory | undefined;
       try {
         const config = deps.store.loadConfig();
         const prd = deps.store.loadPrd();
@@ -676,13 +935,14 @@ export async function runAriadneLoop(
             ...(commit ? { commit } : {}),
           });
         }
+        lockedStory = activeStory;
 
         if (
           activeStory.status === "in_progress" &&
           activeStory.attempts >= config.maxAttemptsPerStory
         ) {
           transitionStory(activeStory, "blocked");
-          deps.store.savePrd(prd);
+          const blockedPrdCertificate = deps.store.savePrd(prd);
           deps.store.writeRunJson(runId, "stop.json", {
             schemaVersion: 1,
             outcome: "blocked",
@@ -696,6 +956,19 @@ export async function runAriadneLoop(
             "blocked",
             "max_attempts",
           );
+          const blockedSnapshot = captureCanonicalSnapshot(
+            deps,
+            blockedPrdCertificate,
+            prd.branchName,
+          );
+          persistCertification({
+            runId,
+            storyId: activeStory.id,
+            certifiedHead: blockedSnapshot.initialHead,
+            certifiedRef: blockedSnapshot.initialRef,
+            prd: blockedSnapshot.prd,
+            progress: blockedSnapshot.progress,
+          });
           return summary({
             options,
             outcome: "blocked",
@@ -730,7 +1003,19 @@ export async function runAriadneLoop(
 
         const continuedStory = activeStory.status === "in_progress";
         transitionStory(activeStory, "in_progress");
-        deps.store.savePrd(prd);
+        const preProbePrdCertificate = deps.store.savePrd(prd);
+        let preProbeProgressCertificate =
+          deps.store.captureCanonicalCertificate(deps.store.paths.progress);
+        if (
+          !preProbeProgressCertificate.contents.includes(
+            ARIADNE_OWNERSHIP_CHECKPOINT_MARKER,
+          )
+        ) {
+          preProbeProgressCertificate = deps.store.appendProgress(
+            ARIADNE_OWNERSHIP_CHECKPOINT_MARKER,
+            preProbeProgressCertificate,
+          );
+        }
 
         const runDir = deps.store.createRunDir(runId);
         const promptPath = path.join(runDir, "prompt.md");
@@ -747,18 +1032,57 @@ export async function runAriadneLoop(
           ...(priorFailure ? { priorFailure: priorFailure.message } : {}),
           hasExistingDiff: continuedStory,
         });
-        fs.writeFileSync(promptPath, prompt, "utf8");
+        const promptIdentity = deps.store.writeRunTextExclusive(
+          runId,
+          "prompt.md",
+          prompt,
+        );
+        const resultIdentity = deps.store.writeRunTextExclusive(
+          runId,
+          "result.json",
+          "",
+        );
         const invocation = deps.adapter.buildInvocation({
           runId,
           projectRoot: deps.store.projectRoot,
           promptPath,
           relativePromptPath: path.relative(deps.store.projectRoot, promptPath),
         });
-        const detection = deps.adapter.detect();
+        const preProbeSnapshot = captureCanonicalSnapshot(
+          deps,
+          preProbePrdCertificate,
+          prd.branchName,
+          preProbeProgressCertificate,
+        );
+        persistCertification({
+          runId,
+          storyId: activeStory.id,
+          certifiedHead: preProbeSnapshot.initialHead,
+          certifiedRef: preProbeSnapshot.initialRef,
+          prd: preProbeSnapshot.prd,
+          progress: preProbeSnapshot.progress,
+        });
+        const detection = deps.detection ?? deps.adapter.detect();
+        try {
+          assertRuntimeOwnership(preProbeSnapshot, deps);
+        } catch (error) {
+          rejectOwnershipViolation(error, activeStory, runId);
+        }
         const attempt = activeStory.attempts + 1;
         activeStory.attempts = attempt;
-        deps.store.savePrd(prd);
-        const canonicalSnapshot = captureCanonicalSnapshot(deps);
+        const activePrdCertificate = deps.store.savePrd(prd);
+        const canonicalSnapshot = {
+          ...preProbeSnapshot,
+          prd: activePrdCertificate,
+        } satisfies CanonicalSnapshot;
+        persistCertification({
+          runId,
+          storyId: activeStory.id,
+          certifiedHead: canonicalSnapshot.initialHead,
+          certifiedRef: canonicalSnapshot.initialRef,
+          prd: canonicalSnapshot.prd,
+          progress: canonicalSnapshot.progress,
+        });
         const attemptStartedAt = deps.now();
         currentAttempt = {
           runId,
@@ -768,6 +1092,7 @@ export async function runAriadneLoop(
           startedMs: attemptStartedAt.getTime(),
           ...(detection.version ? { runtimeVersion: detection.version } : {}),
           initialHead: canonicalSnapshot.initialHead,
+          initialRef: canonicalSnapshot.initialRef,
           invocation: sanitizeInvocation(invocation),
         };
         deps.store.writeRunJson(runId, "attempt.json", {
@@ -779,8 +1104,42 @@ export async function runAriadneLoop(
           attempt,
           startedAt: attemptStartedAt.toISOString(),
           initialHead: canonicalSnapshot.initialHead,
+          initialRef: canonicalSnapshot.initialRef,
           invocation: currentAttempt.invocation,
         });
+        let runBoundary = deps.store.certifyRunBoundary(
+          runId,
+          ["prompt.md", "result.json", "attempt.json"],
+          [promptIdentity, resultIdentity],
+        );
+
+        const assertOwnershipBoundary = (snapshot: CanonicalSnapshot): void => {
+          try {
+            assertRuntimeOwnership(snapshot, deps);
+          } catch (error) {
+            rejectOwnershipViolation(error, activeStory, runId);
+          }
+        };
+        const assertOperationalBoundary = (
+          boundary: AriadneRunBoundary = runBoundary,
+        ): void => {
+          try {
+            lock.assertIntegrity();
+            deps.store.assertRunBoundary(boundary);
+          } catch (error) {
+            rejectOwnershipViolation(error, activeStory, runId);
+          }
+        };
+        const assertAttemptBoundary = (
+          snapshot: CanonicalSnapshot = canonicalSnapshot,
+          boundary: AriadneRunBoundary = runBoundary,
+        ): void => {
+          // Ownership must be evaluated first so a simultaneous containment
+          // violation cannot suppress the durable quarantine marker.
+          assertOwnershipBoundary(snapshot);
+          assertOperationalBoundary(boundary);
+        };
+        assertAttemptBoundary();
 
         iterations += 1;
         lastRunId = runId;
@@ -795,7 +1154,12 @@ export async function runAriadneLoop(
           stdoutPath: path.join(runDir, "runtime.stdout.log"),
           stderrPath: path.join(runDir, "runtime.stderr.log"),
         };
-        let processResult: Awaited<ReturnType<typeof deps.runProcess>>;
+        let processResult:
+          | Awaited<ReturnType<typeof deps.runProcess>>
+          | undefined;
+        let processError: unknown;
+        let processFailed = false;
+        let processOutputCertified = false;
         try {
           processResult = await deps.runProcess(invocation, {
             ...processPaths,
@@ -803,17 +1167,24 @@ export async function runAriadneLoop(
               ? {}
               : { timeoutMs: remainingRuntime }),
             ...(options.signal ? { signal: options.signal } : {}),
+            certifyOutput: (identities) => {
+              assertAttemptBoundary();
+              runBoundary = deps.store.extendRunBoundary(runBoundary, [
+                identities.stdout,
+                identities.stderr,
+              ]);
+              assertAttemptBoundary();
+              processOutputCertified = true;
+            },
           });
-          try {
-            assertRuntimeOwnership(canonicalSnapshot, deps);
-          } catch (error) {
-            rejectOwnershipViolation(error, activeStory, runId);
-          }
         } catch (error) {
-          try {
-            assertRuntimeOwnership(canonicalSnapshot, deps);
-          } catch (ownershipError) {
-            rejectOwnershipViolation(ownershipError, activeStory, runId);
+          processFailed = true;
+          processError = error;
+        }
+        assertAttemptBoundary();
+        if (processFailed) {
+          if (processError instanceof AriadneStateError) {
+            rejectOwnershipViolation(processError, activeStory, runId);
           }
           if (options.signal?.aborted || parentSignal) {
             return stop(
@@ -834,7 +1205,7 @@ export async function runAriadneLoop(
           const failure: AttemptFailure = {
             runId,
             category: "process",
-            message: errorMessage(error),
+            message: errorMessage(processError),
             timestamp: deps.now().toISOString(),
           };
           if (
@@ -844,6 +1215,27 @@ export async function runAriadneLoop(
           }
           continue;
         }
+        if (processResult === undefined) {
+          return rejectOwnershipViolation(
+            new AriadneStateError(
+              "$.process",
+              "Ariadne runtime completed without process metadata",
+            ),
+            activeStory,
+            runId,
+          );
+        }
+        if (!processOutputCertified) {
+          rejectOwnershipViolation(
+            new AriadneStateError(
+              "$.process",
+              "Ariadne runtime returned without creator-certified output identities",
+            ),
+            activeStory,
+            runId,
+          );
+        }
+        assertAttemptBoundary();
         currentAttempt.process = {
           status: processResult.status,
           signal: processResult.signal,
@@ -871,7 +1263,7 @@ export async function runAriadneLoop(
             message: "Ariadne runtime was cancelled",
             timestamp: deps.now().toISOString(),
           };
-          recordTerminalFailure(activeStory, failure);
+          recordTerminalFailure(activeStory, failure, "interrupted");
           return stop("interrupted", "cancelled", runId, activeStory.id);
         }
         if (parentSignal) {
@@ -881,7 +1273,7 @@ export async function runAriadneLoop(
             message: `Ariadne runtime was interrupted by parent ${parentSignal}`,
             timestamp: deps.now().toISOString(),
           };
-          recordTerminalFailure(activeStory, failure);
+          recordTerminalFailure(activeStory, failure, "interrupted");
           return stop("interrupted", "signal", runId, activeStory.id);
         }
         if (
@@ -894,7 +1286,7 @@ export async function runAriadneLoop(
             message: `Ariadne runtime was interrupted by ${processResult.signal}`,
             timestamp: deps.now().toISOString(),
           };
-          recordTerminalFailure(activeStory, failure);
+          recordTerminalFailure(activeStory, failure, "interrupted");
           return stop("interrupted", "signal", runId, activeStory.id);
         }
 
@@ -903,11 +1295,12 @@ export async function runAriadneLoop(
         >;
         try {
           runtimeOutcome = deps.adapter.interpretResult(processResult);
-        } catch (error) {
+        } catch {
           const failure: AttemptFailure = {
             runId,
             category: "process",
-            message: errorMessage(error),
+            message:
+              "Unable to interpret runtime exit metadata; inspect machine-local logs.",
             timestamp: deps.now().toISOString(),
           };
           if (
@@ -921,9 +1314,7 @@ export async function runAriadneLoop(
           const failure: AttemptFailure = {
             runId,
             category: "process",
-            message:
-              runtimeOutcome.reason ??
-              `Ariadne runtime exited with status ${runtimeOutcome.status}`,
+            message: `Runtime exited with status ${runtimeOutcome.status ?? "unknown"}; inspect machine-local logs.`,
             timestamp: deps.now().toISOString(),
           };
           if (
@@ -936,12 +1327,18 @@ export async function runAriadneLoop(
 
         let result: ReturnType<typeof readAgentResult>;
         try {
-          result = readAgentResult(resultPath, {
-            runId,
-            storyId: activeStory.id,
-            acceptanceCriteria: activeStory.acceptanceCriteria,
-            projectRoot: deps.store.projectRoot,
-          });
+          assertAttemptBoundary();
+          result = readAgentResult(
+            resultPath,
+            {
+              runId,
+              storyId: activeStory.id,
+              acceptanceCriteria: activeStory.acceptanceCriteria,
+              projectRoot: deps.store.projectRoot,
+            },
+            resultIdentity,
+          );
+          assertAttemptBoundary();
         } catch (error) {
           const failure: AttemptFailure = {
             runId,
@@ -956,12 +1353,7 @@ export async function runAriadneLoop(
           }
           continue;
         }
-        currentAttempt.validatedResult = {
-          outcome: result.outcome,
-          summary: result.summary,
-          filesChanged: [...result.filesChanged],
-          learnings: [...result.learnings],
-        };
+        currentAttempt.validatedResult = sanitizeValidatedResult(result);
         if (result.outcome !== "completed") {
           const category = result.criteria.some(
             (criterion) => !criterion.passed,
@@ -977,7 +1369,9 @@ export async function runAriadneLoop(
             timestamp: deps.now().toISOString(),
           };
           if (
-            failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory)
+            failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory, {
+              result,
+            })
           ) {
             return blockedSummary(activeStory.id, runId);
           }
@@ -985,9 +1379,27 @@ export async function runAriadneLoop(
         }
 
         if (runtimeBudgetReached()) {
+          const failure: AttemptFailure = {
+            runId,
+            category: "check",
+            message: "Ariadne runtime budget expired before quality checks",
+            timestamp: deps.now().toISOString(),
+          };
+          recordTerminalFailure(activeStory, failure, "budget_exhausted", {
+            result,
+          });
           return stop("budget_exhausted", "max_runtime", runId, activeStory.id);
         }
         if (options.signal?.aborted || parentSignal) {
+          const failure: AttemptFailure = {
+            runId,
+            category: "check",
+            message: "Ariadne was interrupted before quality checks",
+            timestamp: deps.now().toISOString(),
+          };
+          recordTerminalFailure(activeStory, failure, "interrupted", {
+            result,
+          });
           return stop(
             "interrupted",
             options.signal?.aborted ? "cancelled" : "signal",
@@ -997,6 +1409,7 @@ export async function runAriadneLoop(
         }
 
         let checks: Awaited<ReturnType<typeof deps.runChecks>>;
+        const certifiedCheckOutputs = new Set<string>();
         const remainingCheckRuntime =
           options.maxRuntimeMs === undefined
             ? undefined
@@ -1010,23 +1423,38 @@ export async function runAriadneLoop(
             projectRoot: deps.store.projectRoot,
             runDir,
             runProcess: deps.runProcess,
+            assertRunDirectory: () => assertAttemptBoundary(),
+            certifyOutput: (identities) => {
+              assertAttemptBoundary();
+              runBoundary = deps.store.extendRunBoundary(runBoundary, [
+                identities.stdout,
+                identities.stderr,
+              ]);
+              certifiedCheckOutputs.add(identities.stdout.source);
+              certifiedCheckOutputs.add(identities.stderr.source);
+              assertAttemptBoundary();
+            },
             ...(options.signal ? { signal: options.signal } : {}),
             ...(remainingCheckRuntime === undefined
               ? {}
               : { timeoutMs: remainingCheckRuntime }),
           });
-          try {
-            assertRuntimeOwnership(canonicalSnapshot, deps);
-          } catch (error) {
+          assertAttemptBoundary();
+        } catch (error) {
+          assertAttemptBoundary();
+          if (error instanceof AriadneStateError) {
             rejectOwnershipViolation(error, activeStory, runId);
           }
-        } catch (error) {
-          try {
-            assertRuntimeOwnership(canonicalSnapshot, deps);
-          } catch (ownershipError) {
-            rejectOwnershipViolation(ownershipError, activeStory, runId);
-          }
           if (options.signal?.aborted || parentSignal) {
+            const failure: AttemptFailure = {
+              runId,
+              category: "check",
+              message: "Ariadne quality checks were interrupted",
+              timestamp: deps.now().toISOString(),
+            };
+            recordTerminalFailure(activeStory, failure, "interrupted", {
+              result,
+            });
             return stop(
               "interrupted",
               options.signal?.aborted ? "cancelled" : "signal",
@@ -1035,6 +1463,15 @@ export async function runAriadneLoop(
             );
           }
           if (runtimeBudgetReached()) {
+            const failure: AttemptFailure = {
+              runId,
+              category: "check",
+              message: "Ariadne runtime budget expired during quality checks",
+              timestamp: deps.now().toISOString(),
+            };
+            recordTerminalFailure(activeStory, failure, "budget_exhausted", {
+              result,
+            });
             return stop(
               "budget_exhausted",
               "max_runtime",
@@ -1049,13 +1486,31 @@ export async function runAriadneLoop(
             timestamp: deps.now().toISOString(),
           };
           if (
-            failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory)
+            failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory, {
+              result,
+            })
           ) {
             return blockedSummary(activeStory.id, runId);
           }
           continue;
         }
-        currentAttempt.checks = checks.map((check) => ({
+        const uncertifiedCheck = checks.find(
+          (check) =>
+            !certifiedCheckOutputs.has(check.stdoutPath) ||
+            !certifiedCheckOutputs.has(check.stderrPath),
+        );
+        if (uncertifiedCheck) {
+          rejectOwnershipViolation(
+            new AriadneStateError(
+              "$.checks",
+              `Ariadne quality check returned without creator-certified output identities: ${uncertifiedCheck.command}`,
+            ),
+            activeStory,
+            runId,
+          );
+        }
+        const durableChecks = checks.map(sanitizeQualityCheckResult);
+        currentAttempt.checks = durableChecks.map((check) => ({
           command: check.command,
           status: check.status,
           signal: check.signal,
@@ -1064,7 +1519,7 @@ export async function runAriadneLoop(
           timeoutOrigin: check.timeoutOrigin,
           aborted: check.aborted,
         }));
-        deps.store.writeRunJson(runId, "checks.json", checks);
+        deps.store.writeRunJson(runId, "checks.json", durableChecks);
         const timedOutCheck = checks.find((check) => check.timedOut);
         if (timedOutCheck?.timeoutOrigin === "global_budget") {
           const failure: AttemptFailure = {
@@ -1073,7 +1528,10 @@ export async function runAriadneLoop(
             message: `Ariadne runtime budget expired during quality check: ${timedOutCheck.command}`,
             timestamp: deps.now().toISOString(),
           };
-          failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory);
+          failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory, {
+            result,
+            checks,
+          });
           return stop("budget_exhausted", "max_runtime", runId, activeStory.id);
         }
         if (timedOutCheck) {
@@ -1084,7 +1542,10 @@ export async function runAriadneLoop(
             timestamp: deps.now().toISOString(),
           };
           if (
-            failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory)
+            failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory, {
+              result,
+              checks,
+            })
           ) {
             return blockedSummary(activeStory.id, runId);
           }
@@ -1098,7 +1559,10 @@ export async function runAriadneLoop(
             message: `Ariadne quality check was cancelled: ${abortedCheck?.command ?? "external cancellation"}`,
             timestamp: deps.now().toISOString(),
           };
-          recordTerminalFailure(activeStory, failure);
+          recordTerminalFailure(activeStory, failure, "interrupted", {
+            result,
+            checks,
+          });
           return stop("interrupted", "cancelled", runId, activeStory.id);
         }
         const interruptedCheck = checks.find(
@@ -1111,10 +1575,23 @@ export async function runAriadneLoop(
             message: `Ariadne quality checks were interrupted by ${parentSignal ?? interruptedCheck?.signal}`,
             timestamp: deps.now().toISOString(),
           };
-          recordTerminalFailure(activeStory, failure);
+          recordTerminalFailure(activeStory, failure, "interrupted", {
+            result,
+            checks,
+          });
           return stop("interrupted", "signal", runId, activeStory.id);
         }
         if (runtimeBudgetReached()) {
+          const failure: AttemptFailure = {
+            runId,
+            category: "check",
+            message: "Ariadne runtime budget expired after quality checks",
+            timestamp: deps.now().toISOString(),
+          };
+          recordTerminalFailure(activeStory, failure, "budget_exhausted", {
+            result,
+            checks,
+          });
           return stop("budget_exhausted", "max_runtime", runId, activeStory.id);
         }
         if (checks.length !== config.qualityChecks.length) {
@@ -1125,7 +1602,10 @@ export async function runAriadneLoop(
             timestamp: deps.now().toISOString(),
           };
           if (
-            failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory)
+            failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory, {
+              result,
+              checks,
+            })
           ) {
             return blockedSummary(activeStory.id, runId);
           }
@@ -1140,40 +1620,22 @@ export async function runAriadneLoop(
             timestamp: deps.now().toISOString(),
           };
           if (
-            failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory)
+            failAttempt(prd, activeStory, failure, config.maxAttemptsPerStory, {
+              result,
+              checks,
+            })
           ) {
             return blockedSummary(activeStory.id, runId);
           }
           continue;
         }
 
-        try {
-          assertRuntimeOwnership(canonicalSnapshot, deps);
-        } catch (error) {
-          rejectOwnershipViolation(error, activeStory, runId);
-        }
+        assertAttemptBoundary();
         transitionStory(activeStory, "completed");
-        deps.store.savePrd(prd);
-        deps.store.appendProgress(
-          formatProgressEntry({
-            timestamp: deps.now().toISOString(),
-            runId,
-            story: activeStory,
-            runtime: options.runtime,
-            result,
-            checks,
-          }),
-        );
+        let publicationSnapshot!: CanonicalSnapshot;
         try {
-          deps.git.stageAll();
-          commit = deps.git.commit(activeStory);
-          finishAttempt("completed");
-        } catch (error) {
-          // Commit failure is the sole recovery transition from completed back
-          // to in-progress; the completed state was never durably certified.
-          activeStory.status = "in_progress";
-          deps.store.savePrd(prd);
-          deps.store.appendProgress(
+          const completedPrdCertificate = deps.store.savePrd(prd);
+          const completedProgressCertificate = deps.store.appendProgress(
             formatProgressEntry({
               timestamp: deps.now().toISOString(),
               runId,
@@ -1181,19 +1643,97 @@ export async function runAriadneLoop(
               runtime: options.runtime,
               result,
               checks,
+            }),
+            canonicalSnapshot.progress,
+          );
+          publicationSnapshot = {
+            initialHead: canonicalSnapshot.initialHead,
+            initialRef: canonicalSnapshot.initialRef,
+            prd: completedPrdCertificate,
+            progress: completedProgressCertificate,
+          };
+          assertOwnershipBoundary(publicationSnapshot);
+          assertOperationalBoundary();
+        } catch (error) {
+          rejectOwnershipViolation(error, activeStory, runId);
+        }
+        const assertPublicationBoundary = (): void => {
+          assertOwnershipBoundary(publicationSnapshot);
+          assertOperationalBoundary();
+        };
+        try {
+          assertPublicationBoundary();
+          deps.git.stageAll(
+            canonicalSnapshot.initialHead,
+            canonicalSnapshot.initialRef,
+          );
+          assertPublicationBoundary();
+          commit = deps.git.commit(
+            activeStory,
+            canonicalSnapshot.initialHead,
+            assertPublicationBoundary,
+            canonicalSnapshot.initialRef,
+          );
+        } catch (error) {
+          // A late runtime/background mutation must quarantine before any
+          // coordinator rollback writes. These calls throw structurally when
+          // either ownership or the operational boundary changed.
+          assertPublicationBoundary();
+          if (error instanceof AriadneStateError) {
+            rejectOwnershipViolation(error, activeStory, runId);
+          }
+          // Commit failure is the sole recovery transition from completed back
+          // to in-progress; the completed state was never durably certified.
+          activeStory.status = "in_progress";
+          const failedPrdCertificate = deps.store.savePrd(prd);
+          const failedProgressCertificate = deps.store.appendProgress(
+            formatProgressEntry({
+              timestamp: deps.now().toISOString(),
+              runId,
+              story: activeStory,
+              runtime: options.runtime,
+              result,
+              checks,
+              outcome: "failed",
               failureCategory: "commit_failure",
+              failureReason: errorMessage(error),
             }),
           );
-          const failure: AttemptFailure = {
+          persistCertification({
+            runId,
+            storyId: activeStory.id,
+            certifiedHead: canonicalSnapshot.initialHead,
+            certifiedRef: canonicalSnapshot.initialRef,
+            prd: failedPrdCertificate,
+            progress: failedProgressCertificate,
+          });
+          const failure = sanitizeAttemptFailure({
             runId,
             category: "commit",
             message: errorMessage(error),
             timestamp: deps.now().toISOString(),
-          };
+          });
           deps.store.writeRunJson(runId, "failure.json", failure);
           finishAttempt("failed", "commit");
           throw error;
         }
+        finishAttempt("completed");
+        try {
+          deps.git.assertPublished(commit);
+          deps.store.assertCanonicalCertificate(publicationSnapshot.prd);
+          deps.store.assertCanonicalCertificate(publicationSnapshot.progress);
+          assertOperationalBoundary();
+        } catch (error) {
+          rejectOwnershipViolation(error, activeStory, runId);
+        }
+        persistCertification({
+          runId,
+          storyId: activeStory.id,
+          certifiedHead: commit,
+          certifiedRef: publicationSnapshot.initialRef,
+          prd: publicationSnapshot.prd,
+          progress: publicationSnapshot.progress,
+        });
         completedStoryIds.push(activeStory.id);
 
         if (!selectStory(prd)) {
@@ -1206,8 +1746,17 @@ export async function runAriadneLoop(
             commit,
           });
         }
+      } catch (error) {
+        if (
+          lockedStory &&
+          error instanceof AriadneStateError &&
+          !deps.store.loadOwnershipViolation()
+        ) {
+          rejectOwnershipViolation(error, lockedStory, runId);
+        }
+        throw error;
       } finally {
-        lock.release();
+        releaseIterationLock(lock, lockedStory, runId);
       }
     }
   } finally {

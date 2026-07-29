@@ -10,6 +10,10 @@ import { buildAriadneDoctor } from "./doctor.js";
 import { initializeAriadne } from "./init.js";
 import { acquireProjectLock } from "./lock.js";
 import { ARIADNE_EXIT_CODES, runAriadneLoop } from "./loop.js";
+import {
+  assertPersistedOwnership,
+  captureOwnershipCertification,
+} from "./ownership.js";
 import { runAgentProcess } from "./process.js";
 import {
   formatAriadneDoctor,
@@ -168,7 +172,16 @@ export async function runAriadne(
     }
 
     const projectRoot = deps.findProjectRoot(deps.cwd());
+    const store = deps.createStore(projectRoot);
+    if (command.kind !== "status" && command.kind !== "doctor") {
+      store.assertNoOwnershipViolation();
+    }
     if (command.kind === "init") {
+      assertPersistedOwnership({
+        store,
+        git: deps.createGit(projectRoot),
+        now: deps.now,
+      });
       const interactive = deps.isInteractive() && !command.json;
       const report = await deps.initialize({
         cwd: projectRoot,
@@ -186,7 +199,6 @@ export async function runAriadne(
       return report.outcome === "cancelled" ? 130 : 0;
     }
 
-    const store = deps.createStore(projectRoot);
     const git = deps.createGit(projectRoot);
     const registry = deps.createRegistry({
       findCommand,
@@ -208,6 +220,16 @@ export async function runAriadne(
       );
       return ariadneDoctorExitCode(report);
     }
+
+    assertPersistedOwnership({ store, git, now: deps.now });
+    const selectionCertification = store.hasCanonicalState()
+      ? captureOwnershipCertification({
+          store,
+          git,
+          runId: "runtime-selection",
+          storyId: "runtime-selection",
+        })
+      : undefined;
 
     const config = store.loadConfig();
     const interactive = deps.isInteractive() && !command.json;
@@ -237,6 +259,8 @@ export async function runAriadne(
         store,
         git,
         adapter: selection.adapter,
+        detection: selection.detection,
+        ...(selectionCertification ? { selectionCertification } : {}),
         acquireLock: deps.acquireLock,
         runProcess: deps.runProcess,
         runChecks: deps.runChecks,

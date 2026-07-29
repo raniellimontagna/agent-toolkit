@@ -11,7 +11,12 @@ import { AriadneStore } from "./store.js";
 import type { AriadneConfig, AriadnePrd, AriadneRuntimeName } from "./types.js";
 import { AriadneUsageError } from "./types.js";
 
-const GITIGNORE_ADDITIONS = [".ariadne/lock", ".ariadne/runs/"] as const;
+const GITIGNORE_ADDITIONS = [
+  ".ariadne/lock",
+  ".ariadne/runs/",
+  ".ariadne-quarantine.json",
+  ".ariadne-quarantine.checkpoint.json",
+] as const;
 const RUNTIME_PROBE_TIMEOUT_MS = 2_000;
 const RUNTIME_PROBE_MAX_BYTES = 1024 * 1024;
 
@@ -20,7 +25,12 @@ export type AriadneInitPlan = {
   sourcePrd?: string;
   prd: AriadnePrd;
   config: AriadneConfig;
-  gitignoreAdditions: [".ariadne/lock", ".ariadne/runs/"];
+  gitignoreAdditions: [
+    ".ariadne/lock",
+    ".ariadne/runs/",
+    ".ariadne-quarantine.json",
+    ".ariadne-quarantine.checkpoint.json",
+  ];
 };
 
 export type AriadneInitInput = {
@@ -309,6 +319,7 @@ export function applyInitPlan(plan: AriadneInitPlan): AriadneInitReport {
   const prd = validatePrd(plan.prd);
   const config = validateConfig(plan.config);
   const store = new AriadneStore(plan.projectRoot);
+  store.assertNoOwnershipViolation();
   store.ensureLayout();
   fs.mkdirSync(store.paths.runs, { recursive: true });
   if (plan.sourcePrd) {
@@ -411,6 +422,7 @@ export async function initializeAriadne(
   input: AriadneInitInput,
   deps: AriadneInitDeps = {},
 ): Promise<AriadneInitReport> {
+  new AriadneStore(repositoryRoot(input.cwd)).assertNoOwnershipViolation();
   const prompt = deps.prompts ?? prompts;
   const detectionsWerePrecomputed = deps.runtimeDetections !== undefined;
   let detections = deps.runtimeDetections ?? [];

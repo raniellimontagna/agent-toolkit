@@ -3,10 +3,12 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { OutputLeafIdentity } from "../../../src/ariadne/process.js";
 import {
   planAgentSpawn,
   runAgentProcess,
 } from "../../../src/ariadne/process.js";
+import { AriadneStateError } from "../../../src/ariadne/schema.js";
 
 const directories: string[] = [];
 
@@ -133,6 +135,69 @@ describe("runAgentProcess", () => {
     expect(fs.readFileSync(stderrPath, "utf8")).toBe("warning\n");
   });
 
+  it("certifies the exact stdout and stderr leaf identities before resolving", async () => {
+    const { root, stdoutPath, stderrPath } = fixture();
+    const events: string[] = [];
+    let certified:
+      | { stdout: OutputLeafIdentity; stderr: OutputLeafIdentity }
+      | undefined;
+
+    await runAgentProcess(
+      {
+        command: process.execPath,
+        args: ["-e", "console.log('ok'); console.error('warning')"],
+        cwd: root,
+        env: process.env,
+      },
+      {
+        stdoutPath,
+        stderrPath,
+        certifyOutput(identities) {
+          events.push("certified");
+          certified = identities;
+        },
+      },
+    );
+    events.push("resolved");
+
+    expect(events).toEqual(["certified", "resolved"]);
+    expect(certified).toBeDefined();
+    for (const [source, identity] of [
+      [stdoutPath, certified?.stdout],
+      [stderrPath, certified?.stderr],
+    ] as const) {
+      const stat = fs.lstatSync(source);
+      expect(identity).toEqual({
+        source,
+        device: stat.dev,
+        inode: stat.ino,
+        links: stat.nlink,
+      });
+    }
+  });
+
+  it("rejects instead of resolving when output certification throws", async () => {
+    const { root, stdoutPath, stderrPath } = fixture();
+    const certificationFailure = new Error("output certification failed");
+    const certifyOutput = vi.fn(() => {
+      throw certificationFailure;
+    });
+
+    await expect(
+      runAgentProcess(
+        {
+          command: process.execPath,
+          args: ["-e", "console.log('ok')"],
+          cwd: root,
+          env: process.env,
+        },
+        { stdoutPath, stderrPath, certifyOutput },
+      ),
+    ).rejects.toBe(certificationFailure);
+
+    expect(certifyOutput).toHaveBeenCalledOnce();
+  });
+
   it("caps in-memory output while retaining full log files", async () => {
     const { root, stdoutPath, stderrPath } = fixture();
     const bytes = 1024 * 1024 + 17;
@@ -150,60 +215,177 @@ describe("runAgentProcess", () => {
     expect(fs.statSync(stdoutPath).size).toBe(bytes);
   });
 
-  it("rejects a log I/O failure only after terminating the child", async () => {
+  it("rejects an invalid log target before starting the child", async () => {
     const { root, stderrPath } = fixture();
-    const controller = new AbortController();
-    const nativeKill = ChildProcess.prototype.kill;
     const killedChildren: ChildProcess[] = [];
     vi.spyOn(ChildProcess.prototype, "kill").mockImplementation(function (
       this: ChildProcess,
-      signal,
     ) {
       killedChildren.push(this);
-      return nativeKill.call(this, signal);
+      return true;
     });
+    const startedPath = path.join(root, "child-started");
+
+    await expect(
+      runAgentProcess(
+        {
+          command: process.execPath,
+          args: [
+            "-e",
+            `require('node:fs').writeFileSync(${JSON.stringify(startedPath)}, 'started')`,
+          ],
+          cwd: root,
+          env: process.env,
+        },
+        { stdoutPath: root, stderrPath },
+      ),
+    ).rejects.toMatchObject({ code: "EEXIST" });
+
+    expect(killedChildren).toHaveLength(0);
+    expect(fs.existsSync(startedPath)).toBe(false);
+  });
+
+  it("does not truncate a planted hard-link log target or start the child", async () => {
+    const { root, stdoutPath, stderrPath } = fixture();
+    const victim = path.join(root, "victim.txt");
+    const startedPath = path.join(root, "child-started");
+    fs.writeFileSync(victim, "preserve me\n", "utf8");
+    fs.linkSync(victim, stdoutPath);
+
+    await expect(
+      runAgentProcess(
+        {
+          command: process.execPath,
+          args: [
+            "-e",
+            `require('node:fs').writeFileSync(${JSON.stringify(startedPath)}, 'started')`,
+          ],
+          cwd: root,
+          env: process.env,
+        },
+        { stdoutPath, stderrPath },
+      ),
+    ).rejects.toMatchObject({ code: "EEXIST" });
+
+    expect(fs.readFileSync(victim, "utf8")).toBe("preserve me\n");
+    expect(fs.existsSync(startedPath)).toBe(false);
+  });
+
+  it("rejects when a child relocates an already-open output leaf", async () => {
+    const { root, stdoutPath, stderrPath } = fixture();
+    const escapedPath = path.join(root, "project-output.txt");
+    const script = [
+      "const fs = require('node:fs');",
+      "const [source, destination] = process.argv.slice(1);",
+      "fs.renameSync(source, destination);",
+      "process.stdout.write('raw runtime output\\n');",
+    ].join("");
 
     const running = runAgentProcess(
       {
         command: process.execPath,
-        args: ["-e", "setInterval(() => {}, 1_000)"],
+        args: ["-e", script, stdoutPath, escapedPath],
         cwd: root,
         env: process.env,
       },
+      { stdoutPath, stderrPath },
+    );
+
+    await expect(running).rejects.toBeInstanceOf(AriadneStateError);
+    await expect(running).rejects.toThrow(
+      /output.*(?:changed|relocated)|path.*changed/i,
+    );
+
+    expect(fs.existsSync(stdoutPath)).toBe(false);
+    expect(fs.readFileSync(escapedPath, "utf8")).toContain(
+      "raw runtime output",
+    );
+  });
+
+  it("rejects when a child hard-links an already-open output leaf", async () => {
+    const { root, stdoutPath, stderrPath } = fixture();
+    const escapedPath = path.join(root, "project-output.txt");
+    const script = [
+      "const fs = require('node:fs');",
+      "const [source, destination] = process.argv.slice(1);",
+      "fs.linkSync(source, destination);",
+      "process.stdout.write('raw runtime output\\n');",
+    ].join("");
+
+    const running = runAgentProcess(
       {
-        stdoutPath: root,
-        stderrPath,
-        signal: controller.signal,
-        gracePeriodMs: 20,
+        command: process.execPath,
+        args: ["-e", script, stdoutPath, escapedPath],
+        cwd: root,
+        env: process.env,
+      },
+      { stdoutPath, stderrPath },
+    );
+
+    await expect(running).rejects.toBeInstanceOf(AriadneStateError);
+    await expect(running).rejects.toThrow(/output.*(?:changed|hard-link)/i);
+    expect(fs.readFileSync(escapedPath, "utf8")).toContain(
+      "raw runtime output",
+    );
+  });
+
+  it("does not unlink a replacement when stderr creation fails", async () => {
+    const { root, stdoutPath, stderrPath } = fixture();
+    const originalOutput = path.join(root, "original-stdout.log");
+    fs.writeFileSync(stderrPath, "pre-existing stderr\n", "utf8");
+    const nativeOpen = fs.openSync.bind(fs);
+    let replaced = false;
+    vi.spyOn(fs, "openSync").mockImplementation(
+      (...args: Parameters<typeof fs.openSync>) => {
+        if (!replaced && args[0].toString() === stderrPath) {
+          replaced = true;
+          fs.renameSync(stdoutPath, originalOutput);
+          fs.writeFileSync(stdoutPath, "replacement stdout\n", "utf8");
+        }
+        return nativeOpen(...args);
       },
     );
 
-    try {
-      const outcome = await Promise.race([
-        running.then(
-          () => ({ kind: "resolved" as const }),
-          (error: NodeJS.ErrnoException) => ({
-            kind: "rejected" as const,
-            error,
-          }),
-        ),
-        new Promise<{ kind: "pending" }>((resolve) =>
-          setTimeout(() => resolve({ kind: "pending" }), 500),
-        ),
-      ]);
+    await expect(
+      runAgentProcess(
+        {
+          command: process.execPath,
+          args: ["-e", "process.exit(0)"],
+          cwd: root,
+          env: process.env,
+        },
+        { stdoutPath, stderrPath },
+      ),
+    ).rejects.toMatchObject({ code: "EEXIST" });
 
-      expect(outcome.kind).toBe("rejected");
-      if (outcome.kind !== "rejected") return;
-      expect(outcome.error.code).toBe("EISDIR");
-      expect(killedChildren).toHaveLength(1);
-      expect(
-        killedChildren[0]?.exitCode !== null ||
-          killedChildren[0]?.signalCode !== null,
-      ).toBe(true);
-    } finally {
-      controller.abort();
-      await running.catch(() => undefined);
-    }
+    expect(replaced).toBe(true);
+    expect(fs.readFileSync(stdoutPath, "utf8")).toBe("replacement stdout\n");
+    expect(fs.existsSync(originalOutput)).toBe(true);
+  });
+
+  it("removes its stdout leaf when exclusive stderr creation fails", async () => {
+    const { root, stdoutPath, stderrPath } = fixture();
+    const startedPath = path.join(root, "child-started");
+    fs.writeFileSync(stderrPath, "pre-existing stderr\n", "utf8");
+
+    await expect(
+      runAgentProcess(
+        {
+          command: process.execPath,
+          args: [
+            "-e",
+            `require('node:fs').writeFileSync(${JSON.stringify(startedPath)}, 'started')`,
+          ],
+          cwd: root,
+          env: process.env,
+        },
+        { stdoutPath, stderrPath },
+      ),
+    ).rejects.toMatchObject({ code: "EEXIST" });
+
+    expect(fs.existsSync(stdoutPath)).toBe(false);
+    expect(fs.readFileSync(stderrPath, "utf8")).toBe("pre-existing stderr\n");
+    expect(fs.existsSync(startedPath)).toBe(false);
   });
 
   it("uses SIGKILL after the default 5 second grace period on timeout", async () => {

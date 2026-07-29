@@ -24,6 +24,24 @@ export type AttemptFailure = {
   timestamp: string;
 };
 
+export type AriadneOwnershipViolationChange =
+  | "head"
+  | "prd"
+  | "progress"
+  | "operational";
+
+export type AriadneOwnershipViolation = {
+  schemaVersion: 1;
+  runId: string;
+  storyId: string;
+  detectedAt: string;
+  certifiedHead: string;
+  observedHead: string;
+  certifiedRef?: string;
+  observedRef?: string;
+  changed: AriadneOwnershipViolationChange[];
+};
+
 export type AriadneRunOptions = {
   runtime: AriadneRuntimeName;
   persistRuntimeSelection?: boolean;

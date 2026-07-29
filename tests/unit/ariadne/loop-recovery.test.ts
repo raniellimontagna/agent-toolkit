@@ -20,11 +20,24 @@ import type { AriadneStory } from "../../../src/ariadne/types.js";
 
 const directories: string[] = [];
 
+function outputIdentity(source: string) {
+  const stat = fs.lstatSync(source);
+  return {
+    source,
+    device: stat.dev,
+    inode: stat.ino,
+    links: stat.nlink,
+  };
+}
+
 type FailureMode =
   | "success"
   | "process"
   | "process_reject"
   | "missing_result"
+  | "malformed_result"
+  | "schema_secret_result"
+  | "failure_secret_result"
   | "false_criterion"
   | "check"
   | "check_timeout"
@@ -107,6 +120,7 @@ function createHarness(
   let runNumber = 0;
   let nowMs = Date.parse("2026-07-29T00:00:00.000Z");
   let currentHead = "initial-head";
+  const currentRef = "refs/heads/main";
 
   const git = {
     assertReady(_branch: string, allowActiveDiff: boolean) {
@@ -116,11 +130,15 @@ function createHarness(
     head() {
       return currentHead;
     },
+    headRef() {
+      return currentRef;
+    },
     commit() {
       commits += 1;
       currentHead = `commit-head-${commits}`;
       return currentHead;
     },
+    assertPublished() {},
   } as unknown as AriadneGit;
 
   const adapter: AriadneRuntimeAdapter = {
@@ -162,42 +180,66 @@ function createHarness(
           pid: input.pid,
           startedAt: input.now().toISOString(),
           runId: input.runId,
+          ownerToken: "11111111-1111-4111-8111-111111111111",
         },
+        assertIntegrity() {},
         release() {},
       })),
-    async runProcess(invocation) {
+    async runProcess(invocation, processOptions) {
       processStarts += 1;
+      fs.writeFileSync(processOptions.stdoutPath, "", { flag: "wx" });
+      fs.writeFileSync(processOptions.stderrPath, "", { flag: "wx" });
       const mode = modes[processStarts - 1] ?? modes.at(-1) ?? "success";
       const runDir = path.dirname(invocation.args[0] as string);
       const runId = path.basename(runDir);
       const active = store.loadPrd().userStories[0];
       if (!active) throw new Error("missing fixture story");
 
-      if (mode !== "missing_result" && mode !== "process") {
-        const failedCriterion = mode === "false_criterion";
+      if (mode === "malformed_result") {
         fs.writeFileSync(
           path.join(runDir, "result.json"),
-          `${JSON.stringify({
-            schemaVersion: 1,
-            runId,
-            storyId: active.id,
-            outcome: failedCriterion ? "failed" : "completed",
-            criteria: active.acceptanceCriteria.map((criterion) => ({
-              criterion,
-              passed: !failedCriterion,
-              evidence: failedCriterion ? "criterion failed" : "passed",
-            })),
-            summary: failedCriterion ? "Needs repair." : "Completed.",
-            filesChanged: ["kept.diff"],
-            checksAttempted: ["pnpm test"],
-            learnings: [],
-            ...(failedCriterion
-              ? { failureReason: "Acceptance criterion was false." }
-              : {}),
-          })}\n`,
+          '{"summary":"token=raw-json-secret",BROKEN',
+          "utf8",
+        );
+      } else if (mode !== "missing_result" && mode !== "process") {
+        const failedCriterion =
+          mode === "false_criterion" || mode === "failure_secret_result";
+        const agentResult: Record<string, unknown> = {
+          schemaVersion: 1,
+          runId,
+          storyId: active.id,
+          outcome: failedCriterion ? "failed" : "completed",
+          criteria: active.acceptanceCriteria.map((criterion) => ({
+            criterion,
+            passed: !failedCriterion,
+            evidence: failedCriterion ? "criterion failed" : "passed",
+          })),
+          summary: failedCriterion ? "Needs repair." : "Completed.",
+          filesChanged: ["kept.diff"],
+          checksAttempted: ["pnpm test"],
+          learnings: [],
+          ...(failedCriterion
+            ? {
+                failureReason:
+                  mode === "failure_secret_result"
+                    ? "token=failure-reason-secret"
+                    : "Acceptance criterion was false.",
+              }
+            : {}),
+        };
+        if (mode === "schema_secret_result") {
+          agentResult["sk-live-RAWSECRET"] = true;
+        }
+        fs.writeFileSync(
+          path.join(runDir, "result.json"),
+          `${JSON.stringify(agentResult)}\n`,
           "utf8",
         );
       }
+      processOptions.certifyOutput?.({
+        stdout: outputIdentity(processOptions.stdoutPath),
+        stderr: outputIdentity(processOptions.stderrPath),
+      });
       if (mode === "process") return processResult({ status: 9 });
       if (mode === "process_reject")
         throw new Error("fake child failed to spawn");
@@ -221,22 +263,32 @@ function createHarness(
     },
     async runChecks(input) {
       const mode = modes[processStarts - 1] ?? modes.at(-1) ?? "success";
-      const checks: QualityCheckResult[] = input.commands.map((command) => ({
-        command,
-        status: mode === "check" ? 1 : mode.startsWith("check_") ? null : 0,
-        signal: mode.startsWith("check_") ? "SIGKILL" : null,
-        durationMs: 5,
-        timedOut: mode === "check_timeout" || mode === "check_local_timeout",
-        timeoutOrigin:
-          mode === "check_timeout"
-            ? "global_budget"
-            : mode === "check_local_timeout"
-              ? "quality_check"
-              : null,
-        aborted: mode === "check_cancelled",
-        stdoutPath: path.join(input.runDir, "check.stdout.log"),
-        stderrPath: path.join(input.runDir, "check.stderr.log"),
-      }));
+      const checks: QualityCheckResult[] = input.commands.map((command) => {
+        const stdoutPath = path.join(input.runDir, "check.stdout.log");
+        const stderrPath = path.join(input.runDir, "check.stderr.log");
+        fs.writeFileSync(stdoutPath, "", { flag: "wx" });
+        fs.writeFileSync(stderrPath, "", { flag: "wx" });
+        input.certifyOutput?.({
+          stdout: outputIdentity(stdoutPath),
+          stderr: outputIdentity(stderrPath),
+        });
+        return {
+          command,
+          status: mode === "check" ? 1 : mode.startsWith("check_") ? null : 0,
+          signal: mode.startsWith("check_") ? "SIGKILL" : null,
+          durationMs: 5,
+          timedOut: mode === "check_timeout" || mode === "check_local_timeout",
+          timeoutOrigin:
+            mode === "check_timeout"
+              ? "global_budget"
+              : mode === "check_local_timeout"
+                ? "quality_check"
+                : null,
+          aborted: mode === "check_cancelled",
+          stdoutPath,
+          stderrPath,
+        };
+      });
       return checks;
     },
     now: () => new Date(nowMs),
@@ -296,9 +348,13 @@ describe("runAriadneLoop recovery", () => {
   });
 
   it.each([
-    ["process", "process", "fake process failed"],
+    [
+      "process",
+      "process",
+      "Runtime exited with status 9; inspect machine-local logs.",
+    ],
     ["process_reject", "process", "fake child failed to spawn"],
-    ["missing_result", "result", "Unable to read agent result"],
+    ["missing_result", "result", "Agent result contains invalid JSON"],
     ["false_criterion", "criterion", "Acceptance criterion was false"],
     ["check", "check", "quality check failed"],
   ] as const)("recovers a %s failure with the same diff and prior summary", async (mode, category, priorMessage) => {
@@ -332,6 +388,177 @@ describe("runAriadneLoop recovery", () => {
         ),
       ),
     ).toMatchObject({ runId: "run-1", category });
+  });
+
+  it("persists sanitized validated result and check evidence before retrying", async () => {
+    const harness = createHarness(["check", "success"]);
+    const originalRunProcess = harness.deps.runProcess;
+    harness.deps.runProcess = async (...args) => {
+      const process = await originalRunProcess(...args);
+      if (harness.processStarts === 1) {
+        const promptPath = args[0].args[0] as string;
+        const resultPath = path.join(path.dirname(promptPath), "result.json");
+        const result = JSON.parse(fs.readFileSync(resultPath, "utf8"));
+        result.summary = "Implementation complete; token=raw-secret";
+        result.learnings = ["Use --password hunter2 for the fixture"];
+        fs.writeFileSync(resultPath, `${JSON.stringify(result)}\n`, "utf8");
+      }
+      return process;
+    };
+
+    const result = await runAriadneLoop(
+      { runtime: "codex", dryRun: false },
+      harness.deps,
+    );
+
+    expect(result.outcome).toBe("complete");
+    const progress = fs.readFileSync(harness.store.paths.progress, "utf8");
+    expect(progress).toContain("failure category: check");
+    expect(progress).toContain("outcome: failed");
+    expect(progress).toContain(
+      "summary: Implementation complete; token=[REDACTED]",
+    );
+    expect(progress).toContain("changed files:\n  - kept.diff");
+    expect(progress).toContain("learnings:\n  - Use --password [REDACTED]");
+    expect(progress).toContain("pnpm test: failed (5ms)");
+    expect(progress).not.toContain("raw-secret");
+    expect(progress).not.toContain("hunter2");
+    expect(progress).not.toContain("check.stdout.log");
+    expect(progress).not.toContain("check.stderr.log");
+  });
+
+  it("sanitizes validated failure reasons in every durable retry artifact", async () => {
+    const harness = createHarness(["failure_secret_result", "success"]);
+
+    const result = await runAriadneLoop(
+      { runtime: "codex", dryRun: false },
+      harness.deps,
+    );
+
+    expect(result.outcome).toBe("complete");
+    const firstRun = path.join(harness.store.paths.runs, "run-1");
+    const failure = fs.readFileSync(
+      path.join(firstRun, "failure.json"),
+      "utf8",
+    );
+    const summary = fs.readFileSync(
+      path.join(firstRun, "summary.json"),
+      "utf8",
+    );
+    expect(failure).toContain("token=[REDACTED]");
+    for (const durable of [
+      failure,
+      summary,
+      fs.readFileSync(harness.store.paths.progress, "utf8"),
+    ]) {
+      expect(durable).not.toContain("failure-reason-secret");
+    }
+    expect(harness.prompts[1]).not.toContain("failure-reason-secret");
+  });
+
+  it("sanitizes quality-check commands in durable check and summary JSON", async () => {
+    const harness = createHarness(["check", "success"]);
+    const config = harness.store.loadConfig();
+    config.qualityChecks = ["pnpm test -- --password check-command-secret"];
+    harness.store.saveConfig(config);
+
+    const result = await runAriadneLoop(
+      { runtime: "codex", dryRun: false },
+      harness.deps,
+    );
+
+    expect(result.outcome).toBe("complete");
+    const firstRun = path.join(harness.store.paths.runs, "run-1");
+    for (const name of ["checks.json", "summary.json"]) {
+      const durable = fs.readFileSync(path.join(firstRun, name), "utf8");
+      expect(durable).toContain("--password [REDACTED]");
+      expect(durable).not.toContain("check-command-secret");
+    }
+  });
+
+  it("never copies an adapter's raw process output into canonical progress", async () => {
+    const harness = createHarness(["process", "success"]);
+    const originalInterpret = harness.deps.adapter.interpretResult;
+    harness.deps.adapter.interpretResult = (result) =>
+      result.status === 0
+        ? originalInterpret(result)
+        : {
+            ok: false,
+            status: result.status,
+            reason: "ghp_raw_runtime_secret and arbitrary child stderr",
+          };
+
+    const result = await runAriadneLoop(
+      { runtime: "codex", dryRun: false },
+      harness.deps,
+    );
+
+    expect(result.outcome).toBe("complete");
+    const progress = fs.readFileSync(harness.store.paths.progress, "utf8");
+    expect(progress).toContain(
+      "Runtime exited with status 9; inspect machine-local logs.",
+    );
+    expect(progress).not.toContain("ghp_raw_runtime_secret");
+    expect(progress).not.toContain("arbitrary child stderr");
+    expect(harness.prompts[1]).not.toContain("ghp_raw_runtime_secret");
+  });
+
+  it("does not persist raw output from an adapter interpretation exception", async () => {
+    const harness = createHarness(["process", "success"]);
+    const originalInterpret = harness.deps.adapter.interpretResult;
+    harness.deps.adapter.interpretResult = (result) => {
+      if (result.status === 9) {
+        throw new Error("standalone-ghp-secret from raw stderr");
+      }
+      return originalInterpret(result);
+    };
+
+    const result = await runAriadneLoop(
+      { runtime: "codex", dryRun: false },
+      harness.deps,
+    );
+
+    expect(result.outcome).toBe("complete");
+    const progress = fs.readFileSync(harness.store.paths.progress, "utf8");
+    expect(progress).toContain(
+      "Unable to interpret runtime exit metadata; inspect machine-local logs.",
+    );
+    expect(progress).not.toContain("standalone-ghp-secret");
+    expect(harness.prompts[1]).not.toContain("standalone-ghp-secret");
+  });
+
+  it("does not persist raw malformed result JSON in canonical progress", async () => {
+    const harness = createHarness(["malformed_result", "success"]);
+
+    const result = await runAriadneLoop(
+      { runtime: "codex", dryRun: false },
+      harness.deps,
+    );
+
+    expect(result.outcome).toBe("complete");
+    const progress = fs.readFileSync(harness.store.paths.progress, "utf8");
+    expect(progress).toContain(
+      "Agent result contains invalid JSON; inspect machine-local result.json.",
+    );
+    expect(progress).not.toContain("raw-json-secret");
+    expect(harness.prompts[1]).not.toContain("raw-json-secret");
+  });
+
+  it("does not persist parseable result validation details or reuse them in a retry prompt", async () => {
+    const harness = createHarness(["schema_secret_result", "success"]);
+
+    const result = await runAriadneLoop(
+      { runtime: "codex", dryRun: false },
+      harness.deps,
+    );
+
+    expect(result.outcome).toBe("complete");
+    const progress = fs.readFileSync(harness.store.paths.progress, "utf8");
+    expect(progress).toContain(
+      "Agent result failed validation; inspect machine-local result.json.",
+    );
+    expect(progress).not.toContain("sk-live-RAWSECRET");
+    expect(harness.prompts[1]).not.toContain("sk-live-RAWSECRET");
   });
 
   it("blocks after exactly three failed attempts", async () => {
@@ -572,12 +799,18 @@ describe("runAriadneLoop recovery", () => {
   ] as const)("treats a parent %s as interrupted even when the child is killed with SIGKILL", async (parentSignal) => {
     const harness = createHarness(["success"]);
     const listenersBefore = new Set(process.listeners(parentSignal));
-    harness.deps.runProcess = async () => {
+    harness.deps.runProcess = async (_invocation, processOptions) => {
+      fs.writeFileSync(processOptions.stdoutPath, "", { flag: "wx" });
+      fs.writeFileSync(processOptions.stderrPath, "", { flag: "wx" });
       const loopListener = process
         .listeners(parentSignal)
         .find((listener) => !listenersBefore.has(listener));
       expect(loopListener).toBeDefined();
       loopListener?.(parentSignal);
+      processOptions.certifyOutput?.({
+        stdout: outputIdentity(processOptions.stdoutPath),
+        stderr: outputIdentity(processOptions.stderrPath),
+      });
       return processResult({ status: null, signal: "SIGKILL" });
     };
 
@@ -609,14 +842,17 @@ describe("runAriadneLoop recovery", () => {
           pid: input.pid,
           startedAt: input.now().toISOString(),
           runId: input.runId,
+          ownerToken: "11111111-1111-4111-8111-111111111111",
         },
         recovered: {
           schemaVersion: 1,
           pid: 999_999,
           startedAt: "2026-07-28T23:59:00.000Z",
           runId: "stale-run",
+          ownerToken: "22222222-2222-4222-8222-222222222222",
         },
         release() {},
+        assertIntegrity() {},
       };
     };
     harness = createHarness(["success"], story("in_progress", 1), acquire);

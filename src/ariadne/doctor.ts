@@ -11,7 +11,11 @@ import {
 } from "./status.js";
 import type { AriadneStore } from "./store.js";
 import { AriadneStore as Store } from "./store.js";
-import type { AriadneConfig, AriadnePrd } from "./types.js";
+import type {
+  AriadneConfig,
+  AriadneOwnershipViolation,
+  AriadnePrd,
+} from "./types.js";
 
 export { formatAriadneDoctor } from "./render.js";
 
@@ -29,7 +33,10 @@ export type AriadneDoctorReport = {
   status: AriadneStatusReport;
 };
 
-export type AriadneDoctorInput = Omit<AriadneStatusInput, "state" | "lock">;
+export type AriadneDoctorInput = Omit<
+  AriadneStatusInput,
+  "state" | "lock" | "ownershipViolation"
+>;
 
 function issue(
   issues: AriadneDoctorIssue[],
@@ -109,7 +116,7 @@ function missingIgnoreEntries(projectRoot: string): string[] {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
   const lines = new Set(contents.split(/\r?\n/));
-  return [".ariadne/lock", ".ariadne/runs/"].filter(
+  return [".ariadne/lock", ".ariadne/runs/", ".ariadne-quarantine.json"].filter(
     (entry) => !lines.has(entry),
   );
 }
@@ -120,6 +127,7 @@ function minimalStatus(
   currentBranch: string,
   dirty: boolean,
   lock: AriadneStatusReport["lock"],
+  ownershipViolation?: AriadneOwnershipViolation,
 ): AriadneStatusReport {
   const stories = { pending: 0, inProgress: 0, completed: 0, blocked: 0 };
   for (const story of state.prd.userStories) {
@@ -128,6 +136,9 @@ function minimalStatus(
   }
   const active = state.prd.userStories.find(
     (story) => story.status === "in_progress",
+  );
+  const blocked = state.prd.userStories.find(
+    (story) => story.status === "blocked",
   );
   const store = new Store(projectRoot);
   return {
@@ -145,6 +156,16 @@ function minimalStatus(
           },
         }
       : {}),
+    ...(blocked
+      ? {
+          blockedStory: {
+            id: blocked.id,
+            title: blocked.title,
+            attempts: blocked.attempts,
+          },
+        }
+      : {}),
+    ...(ownershipViolation ? { ownershipViolation } : {}),
     dirty,
     lock,
     consecutiveFailures: 0,
@@ -160,6 +181,7 @@ function statusWithState(input: {
   git: AriadneGit;
   state: { prd: AriadnePrd; config: AriadneConfig };
   lock: AriadneStatusReport["lock"];
+  ownershipViolation?: AriadneOwnershipViolation;
 }): AriadneStatusReport {
   return buildAriadneStatus({
     projectRoot: input.projectRoot,
@@ -167,6 +189,7 @@ function statusWithState(input: {
     git: input.git,
     state: input.state,
     lock: input.lock,
+    ownershipViolation: input.ownershipViolation ?? null,
     ...(input.registry ? { registry: input.registry } : {}),
     ...(input.isProcessAlive ? { isProcessAlive: input.isProcessAlive } : {}),
   });
@@ -208,6 +231,18 @@ export function buildAriadneDoctor(
     );
   }
 
+  let ownershipViolation: AriadneOwnershipViolation | undefined;
+  try {
+    ownershipViolation = store.loadOwnershipViolation();
+  } catch (error) {
+    issue(
+      issues,
+      "invalid_ownership_marker",
+      "error",
+      error instanceof Error ? error.message : String(error),
+    );
+  }
+
   let status: AriadneStatusReport;
   if (gitReady) {
     status = statusWithState({
@@ -216,6 +251,7 @@ export function buildAriadneDoctor(
       git,
       state,
       lock,
+      ...(ownershipViolation ? { ownershipViolation } : {}),
       ...(input.registry ? { registry: input.registry } : {}),
       ...(input.isProcessAlive ? { isProcessAlive: input.isProcessAlive } : {}),
     });
@@ -226,6 +262,7 @@ export function buildAriadneDoctor(
       currentBranch,
       dirty,
       lock,
+      ownershipViolation,
     );
   }
 
@@ -241,12 +278,20 @@ export function buildAriadneDoctor(
       `Configured branch ${status.branch.configured} does not match current branch ${status.branch.current}.`,
     );
   }
-  if (status.dirty && !status.activeStory) {
+  if (status.dirty && !status.activeStory && !status.blockedStory) {
     issue(
       issues,
       "dirty_worktree",
       "error",
       "The worktree is dirty without an in-progress story to recover.",
+    );
+  }
+  if (ownershipViolation) {
+    issue(
+      issues,
+      "ownership_violation",
+      "error",
+      `Run ${ownershipViolation.runId} changed coordinator-owned ${ownershipViolation.changed.join(", ")}; inspect and restore Git/canonical state, then deliberately remove ${store.paths.ownershipViolation}.`,
     );
   }
   if (state.configValid && state.config.qualityChecks.length === 0) {

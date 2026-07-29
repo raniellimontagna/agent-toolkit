@@ -131,6 +131,41 @@ describe("runAriadne", () => {
     expect(write).not.toHaveBeenCalledWith("Ariadne initialized.");
   });
 
+  it("refuses init before mutation while an ownership quarantine is unresolved", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const root = temporaryProject();
+    const store = new AriadneStore(root);
+    store.saveOwnershipViolation({
+      schemaVersion: 1,
+      runId: "run-violation",
+      storyId: "US-001",
+      detectedAt: "2026-07-29T12:00:00.000Z",
+      certifiedHead: "certified-head",
+      observedHead: "runtime-head",
+      changed: ["head"],
+    });
+    const initialize = vi.fn();
+    const markerBefore = fs.readFileSync(
+      store.paths.ownershipViolation,
+      "utf8",
+    );
+
+    await expect(
+      runAriadne(["init"], {
+        cwd: () => root,
+        findProjectRoot: () => root,
+        createStore: () => store,
+        initialize,
+        write: vi.fn(),
+      }),
+    ).resolves.toBe(4);
+
+    expect(initialize).not.toHaveBeenCalled();
+    expect(fs.readFileSync(store.paths.ownershipViolation, "utf8")).toBe(
+      markerBefore,
+    );
+  });
+
   it("passes TTY choice and global preference into runtime selection and persists an interactive choice", async () => {
     const root = temporaryProject();
     const store = new AriadneStore(root);

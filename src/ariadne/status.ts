@@ -11,7 +11,12 @@ import type {
 } from "./runtimes/types.js";
 import { AriadneStateError } from "./schema.js";
 import { AriadneStore } from "./store.js";
-import type { AriadneConfig, AriadnePrd, AriadneRuntimeName } from "./types.js";
+import type {
+  AriadneConfig,
+  AriadneOwnershipViolation,
+  AriadnePrd,
+  AriadneRuntimeName,
+} from "./types.js";
 
 export { formatAriadneStatus } from "./render.js";
 
@@ -34,6 +39,8 @@ export type AriadneStatusReport = {
   };
   stories: AriadneStoryCounts;
   activeStory?: { id: string; title: string; attempts: number };
+  blockedStory?: { id: string; title: string; attempts: number };
+  ownershipViolation?: AriadneOwnershipViolation;
   lastRun?: {
     id: string;
     outcome: string;
@@ -59,14 +66,20 @@ export type AriadneStatusInput = {
   git?: AriadneGit;
   state?: { prd: AriadnePrd; config: AriadneConfig };
   lock?: AriadneStatusReport["lock"];
+  ownershipViolation?: AriadneOwnershipViolation | null;
 };
 
 function gitExec(
   command: "git",
   args: string[],
   cwd: string,
+  env?: NodeJS.ProcessEnv,
 ): ReturnType<GitExec> {
-  const result = spawnSync(command, args, { cwd, encoding: "utf8" });
+  const result = spawnSync(command, args, {
+    cwd,
+    encoding: "utf8",
+    env: env ? { ...process.env, ...env } : process.env,
+  });
   return {
     ok: !result.error && result.status === 0,
     status: result.status ?? 1,
@@ -103,14 +116,27 @@ function lockRecord(source: string): AriadneLockRecord {
     throw new AriadneStateError(".ariadne/lock", "Ariadne lock is malformed.");
   }
   const record = value as Record<string, unknown>;
+  const expectedKeys = [
+    "schemaVersion",
+    "pid",
+    "startedAt",
+    "runId",
+    "ownerToken",
+  ];
+  const ownerTokenPattern =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   if (
+    Object.keys(record).length !== expectedKeys.length ||
+    expectedKeys.some((key) => !Object.hasOwn(record, key)) ||
     record.schemaVersion !== 1 ||
     !Number.isSafeInteger(record.pid) ||
     (record.pid as number) <= 0 ||
     typeof record.startedAt !== "string" ||
     Number.isNaN(Date.parse(record.startedAt)) ||
     typeof record.runId !== "string" ||
-    record.runId === ""
+    record.runId === "" ||
+    typeof record.ownerToken !== "string" ||
+    !ownerTokenPattern.test(record.ownerToken)
   ) {
     throw new AriadneStateError(".ariadne/lock", "Ariadne lock is malformed.");
   }
@@ -306,6 +332,11 @@ export function buildAriadneStatus(
   const active = prd.userStories.find(
     (story) => story.status === "in_progress",
   );
+  const blocked = prd.userStories.find((story) => story.status === "blocked");
+  const ownershipViolation =
+    input.ownershipViolation === undefined
+      ? store.loadOwnershipViolation()
+      : (input.ownershipViolation ?? undefined);
   const lastRun = inspectLastAriadneRun(store.paths.runs);
 
   return {
@@ -337,6 +368,16 @@ export function buildAriadneStatus(
           },
         }
       : {}),
+    ...(blocked
+      ? {
+          blockedStory: {
+            id: blocked.id,
+            title: blocked.title,
+            attempts: blocked.attempts,
+          },
+        }
+      : {}),
+    ...(ownershipViolation ? { ownershipViolation } : {}),
     ...(lastRun ? { lastRun } : {}),
     consecutiveFailures: consecutiveFailures(store.paths.runs),
     dirty: git.statusPorcelain() !== "",

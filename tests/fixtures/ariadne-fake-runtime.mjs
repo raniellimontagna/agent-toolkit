@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
@@ -118,14 +119,116 @@ if (mode === "interrupt") {
           passed: true,
           evidence: "fixture written by deterministic fake runtime",
         })),
-        summary: `Completed ${storyId} with ${runtime}`,
+        summary:
+          mode === "repair" && attempt === 1
+            ? `Repair ${storyId}; token=e2e-summary-secret`
+            : `Completed ${storyId} with ${runtime}`,
         filesChanged: ["fixture.txt"],
         checksAttempted: [],
-        learnings: ["Fake runtimes never call a network service."],
+        learnings:
+          mode === "repair" && attempt === 1
+            ? ["Retry with --password e2e-learning-secret"]
+            : ["Fake runtimes never call a network service."],
       },
       null,
       2,
     )}\n`,
     "utf8",
   );
+}
+
+if (mode === "unsafe-ignore") {
+  fs.writeFileSync(
+    path.join(process.cwd(), ".gitignore"),
+    ".ariadne/lock\n.ariadne/runs/\n.ariadne-quarantine.json\n!.ariadne/lock\n!.ariadne/runs/\n!.ariadne/runs/**\n!.ariadne-quarantine.json\n",
+    "utf8",
+  );
+}
+
+if (mode === "run-dir-symlink") {
+  const runDir = path.dirname(metadata.resultPath);
+  fs.rmSync(runDir, { recursive: true, force: true });
+  fs.symlinkSync(
+    process.cwd(),
+    runDir,
+    process.platform === "win32" ? "junction" : "dir",
+  );
+}
+
+if (mode === "output-relocation") {
+  const outputPath = path.join(
+    path.dirname(metadata.resultPath),
+    "runtime.stdout.log",
+  );
+  fs.renameSync(outputPath, path.join(process.cwd(), "runtime-output.txt"));
+  console.log("token=e2e-relocated-output-secret");
+}
+
+if (mode === "background-output-relocation") {
+  const readyPath = process.env.ARIADNE_BACKGROUND_READY;
+  const triggerPath = process.env.ARIADNE_BACKGROUND_TRIGGER;
+  const ackPath = process.env.ARIADNE_BACKGROUND_ACK;
+  if (!readyPath || !triggerPath || !ackPath) {
+    console.error("Background relocation coordination paths are required");
+    process.exit(2);
+  }
+  const outputPath = path.join(
+    path.dirname(metadata.resultPath),
+    "runtime.stdout.log",
+  );
+  const escapedPath = path.join(process.cwd(), "background-output.txt");
+  const helper = spawn(
+    process.execPath,
+    [
+      "-e",
+      [
+        'import fs from "node:fs";',
+        "const [trigger, ack, output, escaped] = process.argv.slice(1);",
+        "const wait = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);",
+        "const deadline = Date.now() + 5000;",
+        "while (!fs.existsSync(trigger) && Date.now() < deadline) wait(10);",
+        "if (!fs.existsSync(trigger)) process.exit(3);",
+        "try {",
+        "  fs.renameSync(output, escaped);",
+        '  fs.appendFileSync(escaped, "token=e2e-background-output-secret\\n", "utf8");',
+        '  fs.writeFileSync(ack, "ok\\n", "utf8");',
+        "} catch (error) {",
+        '  fs.writeFileSync(ack, "error:" + error.message + "\\n", "utf8");',
+        "  process.exit(4);",
+        "}",
+      ].join("\n"),
+      triggerPath,
+      ackPath,
+      outputPath,
+      escapedPath,
+    ],
+    { detached: true, stdio: "ignore" },
+  );
+  helper.unref();
+  fs.writeFileSync(readyPath, "ready\n", "utf8");
+}
+
+if (mode === "illicit-commit") {
+  const staged = spawnSync("git", ["add", "fixture.txt"], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+  });
+  if (staged.status !== 0) {
+    console.error(staged.stderr || "Unable to stage illicit fixture commit");
+    process.exit(staged.status ?? 1);
+  }
+  const committed = spawnSync(
+    "git",
+    ["commit", "-m", "agent: illicit commit"],
+    {
+      cwd: process.cwd(),
+      encoding: "utf8",
+    },
+  );
+  if (committed.status !== 0) {
+    console.error(
+      committed.stderr || "Unable to create illicit fixture commit",
+    );
+    process.exit(committed.status ?? 1);
+  }
 }

@@ -183,10 +183,7 @@ export function interpretProcessResult(result: ProcessResult): AgentOutcome {
     return {
       ok: false,
       status: result.status,
-      reason:
-        result.stderr.trim() ||
-        result.stdout.trim() ||
-        `Runtime exited with status ${result.status ?? "unknown"}.`,
+      reason: `Runtime exited with status ${result.status ?? "unknown"}; inspect machine-local logs.`,
     };
   }
   return { ok: true, status: result.status };

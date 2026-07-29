@@ -15,6 +15,26 @@ if (!realGit || !logPath) {
 const args = process.argv.slice(2);
 fs.mkdirSync(path.dirname(logPath), { recursive: true });
 fs.appendFileSync(logPath, `${JSON.stringify(args)}\n`, "utf8");
+const backgroundReady = process.env.ARIADNE_BACKGROUND_READY;
+const backgroundTrigger = process.env.ARIADNE_BACKGROUND_TRIGGER;
+const backgroundAck = process.env.ARIADNE_BACKGROUND_ACK;
+if (
+  backgroundReady &&
+  backgroundTrigger &&
+  backgroundAck &&
+  fs.existsSync(backgroundReady) &&
+  !fs.existsSync(backgroundTrigger)
+) {
+  fs.writeFileSync(backgroundTrigger, "trigger\n", "utf8");
+  const wait = (milliseconds) =>
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
+  const deadline = Date.now() + 5_000;
+  while (!fs.existsSync(backgroundAck) && Date.now() < deadline) wait(10);
+  if (!fs.existsSync(backgroundAck)) {
+    console.error("Timed out waiting for background runtime descendant");
+    process.exit(3);
+  }
+}
 const result = spawnSync(realGit, args, {
   cwd: process.cwd(),
   env: process.env,

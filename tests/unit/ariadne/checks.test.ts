@@ -65,6 +65,31 @@ describe("runQualityChecks", () => {
     expect(calls).toHaveLength(2);
   });
 
+  it("rechecks run containment before starting a later quality check", async () => {
+    const { projectRoot, runDir } = fixture();
+    fs.mkdirSync(runDir, { recursive: true });
+    const runProcess = vi.fn<typeof runAgentProcess>(async () => result(0, 1));
+    let boundaryChecks = 0;
+    const assertRunDirectory = () => {
+      boundaryChecks += 1;
+      if (boundaryChecks === 4) {
+        throw new Error("run directory substituted between checks");
+      }
+    };
+
+    await expect(
+      runQualityChecks({
+        commands: ["first", "must-not-start"],
+        projectRoot,
+        runDir,
+        runProcess,
+        assertRunDirectory,
+      }),
+    ).rejects.toThrow(/substituted between checks/i);
+
+    expect(runProcess).toHaveBeenCalledOnce();
+  });
+
   it("captures duration and stable per-check output paths", async () => {
     const { projectRoot, runDir } = fixture();
     const calls: Parameters<typeof runAgentProcess>[] = [];
@@ -96,6 +121,28 @@ describe("runQualityChecks", () => {
       stderrPath: check?.stderrPath,
     });
     expect(fs.statSync(runDir).isDirectory()).toBe(true);
+  });
+
+  it("forwards output certification to every quality-check process", async () => {
+    const { projectRoot, runDir } = fixture();
+    const calls: Parameters<typeof runAgentProcess>[] = [];
+    const runProcess: typeof runAgentProcess = async (...args) => {
+      calls.push(args);
+      return result(0, 1);
+    };
+    const certifyOutput = vi.fn();
+
+    await runQualityChecks({
+      commands: ["first", "second"],
+      projectRoot,
+      runDir,
+      runProcess,
+      certifyOutput,
+    });
+
+    expect(calls).toHaveLength(2);
+    expect(calls[0]?.[1].certifyOutput).toBe(certifyOutput);
+    expect(calls[1]?.[1].certifyOutput).toBe(certifyOutput);
   });
 
   it("passes each POSIX command as a single sh argument without interpolation", async () => {

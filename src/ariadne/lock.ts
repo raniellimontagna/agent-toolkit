@@ -8,11 +8,13 @@ export type AriadneLockRecord = {
   pid: number;
   startedAt: string;
   runId: string;
+  ownerToken: string;
 };
 
 export type AriadneLockHandle = {
   record: AriadneLockRecord;
   recovered?: AriadneLockRecord;
+  assertIntegrity(): void;
   release(): void;
 };
 
@@ -30,8 +32,41 @@ type CoordinatorTransition = {
   nextGeneration: string;
 };
 
+type PathIdentity = {
+  source: string;
+  kind: "directory" | "file";
+  device: number;
+  inode: number;
+};
+
+type CoordinatorBoundary = {
+  stateRoot: string;
+  runsRoot: string;
+  coordinator: string;
+  directories: PathIdentity[];
+};
+
+type PrivateLock = {
+  source: string;
+  identity: PathIdentity;
+  record: AriadneLockRecord;
+};
+
 const ROOT_GENERATION = "root";
 const GENERATION_PATTERN = /^(?:root|gen-[0-9a-f-]{36})$/;
+const OWNER_TOKEN_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function hasExactKeys(
+  candidate: Record<string, unknown>,
+  expected: readonly string[],
+): boolean {
+  const keys = Object.keys(candidate);
+  return (
+    keys.length === expected.length &&
+    expected.every((key) => Object.hasOwn(candidate, key))
+  );
+}
 
 function lockStateError(message: string): AriadneStateError {
   return new AriadneStateError(".ariadne/lock", message);
@@ -45,6 +80,65 @@ function changedDuringRecovery(): AriadneStateError {
   return lockStateError(
     "Ariadne project lock changed during stale-lock recovery.",
   );
+}
+
+function changedLockPath(): AriadneStateError {
+  return lockStateError(
+    "Ariadne lock path changed or became a symbolic link during the run.",
+  );
+}
+
+function captureIdentity(
+  source: string,
+  kind: "directory" | "file",
+): PathIdentity {
+  let stat: fs.Stats;
+  try {
+    stat = fs.lstatSync(source);
+  } catch {
+    throw changedLockPath();
+  }
+  if (
+    stat.isSymbolicLink() ||
+    (kind === "directory" ? !stat.isDirectory() : !stat.isFile()) ||
+    (kind === "file" && stat.nlink !== 1)
+  ) {
+    throw changedLockPath();
+  }
+  return { source, kind, device: stat.dev, inode: stat.ino };
+}
+
+function assertIdentity(identity: PathIdentity): void {
+  const current = captureIdentity(identity.source, identity.kind);
+  if (current.device !== identity.device || current.inode !== identity.inode) {
+    throw changedLockPath();
+  }
+}
+
+function assertLinkedFileIdentity(
+  source: string,
+  identity: PathIdentity,
+  links: number,
+): void {
+  let current: fs.Stats;
+  try {
+    current = fs.lstatSync(source);
+  } catch {
+    throw changedLockPath();
+  }
+  if (
+    current.isSymbolicLink() ||
+    !current.isFile() ||
+    current.dev !== identity.device ||
+    current.ino !== identity.inode ||
+    current.nlink !== links
+  ) {
+    throw changedLockPath();
+  }
+}
+
+function sameIdentity(a: PathIdentity, b: PathIdentity): boolean {
+  return a.device === b.device && a.inode === b.inode;
 }
 
 function contendedLock(pid: number): AriadneStateError {
@@ -61,6 +155,13 @@ function parseLockRecord(raw: string): AriadneLockRecord {
   if (!value || typeof value !== "object") throw malformedLock();
   const candidate = value as Record<string, unknown>;
   if (
+    !hasExactKeys(candidate, [
+      "schemaVersion",
+      "pid",
+      "startedAt",
+      "runId",
+      "ownerToken",
+    ]) ||
     candidate.schemaVersion !== 1 ||
     !Number.isSafeInteger(candidate.pid) ||
     typeof candidate.pid !== "number" ||
@@ -68,7 +169,9 @@ function parseLockRecord(raw: string): AriadneLockRecord {
     typeof candidate.startedAt !== "string" ||
     Number.isNaN(Date.parse(candidate.startedAt)) ||
     typeof candidate.runId !== "string" ||
-    !candidate.runId
+    !candidate.runId ||
+    typeof candidate.ownerToken !== "string" ||
+    !OWNER_TOKEN_PATTERN.test(candidate.ownerToken)
   ) {
     throw malformedLock();
   }
@@ -85,6 +188,7 @@ function parseTransition(raw: string): CoordinatorTransition {
   if (!value || typeof value !== "object") throw malformedLock();
   const candidate = value as Record<string, unknown>;
   if (
+    !hasExactKeys(candidate, ["schemaVersion", "nextGeneration"]) ||
     candidate.schemaVersion !== 1 ||
     typeof candidate.nextGeneration !== "string" ||
     !GENERATION_PATTERN.test(candidate.nextGeneration) ||
@@ -99,14 +203,15 @@ function sameRecord(a: AriadneLockRecord, b: AriadneLockRecord): boolean {
   return a.pid === b.pid && a.runId === b.runId;
 }
 
-function sameRecoveryRecord(
+function sameCompleteRecord(
   a: AriadneLockRecord,
   b: AriadneLockRecord,
 ): boolean {
   return (
     sameRecord(a, b) &&
     a.schemaVersion === b.schemaVersion &&
-    a.startedAt === b.startedAt
+    a.startedAt === b.startedAt &&
+    a.ownerToken === b.ownerToken
   );
 }
 
@@ -125,10 +230,14 @@ function generationTransitionPath(
   return path.join(coordinator, `${generation}.next`);
 }
 
-function ensureCoordinatorDirectory(lockPath: string): string {
-  fs.mkdirSync(path.dirname(lockPath), { recursive: true });
+function ensureCoordinatorDirectory(lockPath: string): CoordinatorBoundary {
+  const stateRoot = path.dirname(lockPath);
+  fs.mkdirSync(stateRoot, { recursive: true });
+  const stateIdentity = captureIdentity(stateRoot, "directory");
   const coordinator = coordinatorPath(lockPath);
-  fs.mkdirSync(path.dirname(coordinator), { recursive: true, mode: 0o700 });
+  const runsRoot = path.dirname(coordinator);
+  fs.mkdirSync(runsRoot, { recursive: true, mode: 0o700 });
+  const runsIdentity = captureIdentity(runsRoot, "directory");
   try {
     fs.mkdirSync(coordinator, { mode: 0o700 });
   } catch (error: unknown) {
@@ -139,9 +248,47 @@ function ensureCoordinatorDirectory(lockPath: string): string {
     } catch {
       throw malformedLock();
     }
-    if (!stat.isDirectory()) throw malformedLock();
+    if (stat.isSymbolicLink() || !stat.isDirectory()) throw malformedLock();
   }
-  return coordinator;
+  return {
+    stateRoot,
+    runsRoot,
+    coordinator,
+    directories: [
+      stateIdentity,
+      runsIdentity,
+      captureIdentity(coordinator, "directory"),
+    ],
+  };
+}
+
+function assertCoordinatorBoundary(boundary: CoordinatorBoundary): void {
+  for (const identity of boundary.directories) assertIdentity(identity);
+}
+
+function ensureRecoveryRunDirectory(
+  runDir: string,
+  boundary: CoordinatorBoundary,
+): PathIdentity {
+  const resolvedRunDir = path.resolve(runDir);
+  if (
+    path.dirname(resolvedRunDir) !== path.resolve(boundary.runsRoot) ||
+    resolvedRunDir === path.resolve(boundary.coordinator)
+  ) {
+    throw lockStateError(
+      "Ariadne recovery run directory must be a direct child of .ariadne/runs.",
+    );
+  }
+
+  assertCoordinatorBoundary(boundary);
+  try {
+    fs.mkdirSync(resolvedRunDir, { mode: 0o700 });
+  } catch (error: unknown) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+  }
+  const identity = captureIdentity(resolvedRunDir, "directory");
+  assertCoordinatorBoundary(boundary);
+  return identity;
 }
 
 function writeCandidate(coordinator: string, value: unknown): string {
@@ -299,61 +446,116 @@ function readPublicLock(lockPath: string): AriadneLockRecord | null {
   }
 }
 
-function diagnosticSegment(value: string): string {
-  return value.replace(/[^a-zA-Z0-9._-]/g, "_");
+function privateLockPath(boundary: CoordinatorBoundary): string {
+  return path.join(boundary.coordinator, `.public-lock-${randomUUID()}.json`);
 }
 
-function restoreMovedPublicLock(
+function restorePrivateLock(
   lockPath: string,
-  recoveryMarker: string,
+  privateLock: Pick<PrivateLock, "source" | "identity">,
+  boundary: CoordinatorBoundary,
 ): void {
+  assertCoordinatorBoundary(boundary);
+  assertIdentity(privateLock.identity);
   try {
-    fs.linkSync(recoveryMarker, lockPath);
+    fs.linkSync(privateLock.source, lockPath);
   } catch (error: unknown) {
     if ((error as NodeJS.ErrnoException).code === "EEXIST") return;
     throw error;
   }
-  fs.unlinkSync(recoveryMarker);
+  assertCoordinatorBoundary(boundary);
+  assertLinkedFileIdentity(privateLock.source, privateLock.identity, 2);
+  assertLinkedFileIdentity(lockPath, privateLock.identity, 2);
+  fs.unlinkSync(privateLock.source);
+}
+
+function moveExpectedPublicLock(
+  lockPath: string,
+  expectedRecord: AriadneLockRecord,
+  boundary: CoordinatorBoundary,
+  expectedIdentity?: PathIdentity,
+): PrivateLock {
+  assertCoordinatorBoundary(boundary);
+  const privatePath = privateLockPath(boundary);
+  try {
+    fs.renameSync(lockPath, privatePath);
+  } catch (error: unknown) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      throw changedLockPath();
+    }
+    throw error;
+  }
+
+  assertCoordinatorBoundary(boundary);
+  const identity = captureIdentity(privatePath, "file");
+  let record: AriadneLockRecord;
+  try {
+    const parsed = readPublicLock(privatePath);
+    if (!parsed) throw changedLockPath();
+    record = parsed;
+  } catch (error) {
+    restorePrivateLock(lockPath, { source: privatePath, identity }, boundary);
+    throw error;
+  }
+  const privateLock = { source: privatePath, identity, record };
+  if (
+    (expectedIdentity && !sameIdentity(identity, expectedIdentity)) ||
+    !sameCompleteRecord(record, expectedRecord)
+  ) {
+    restorePrivateLock(lockPath, privateLock, boundary);
+    throw changedDuringRecovery();
+  }
+  return privateLock;
+}
+
+function assertPrivateLock(
+  privateLock: PrivateLock,
+  boundary: CoordinatorBoundary,
+): void {
+  assertCoordinatorBoundary(boundary);
+  assertIdentity(privateLock.identity);
+  const current = readPublicLock(privateLock.source);
+  if (!current || !sameCompleteRecord(current, privateLock.record)) {
+    throw changedLockPath();
+  }
 }
 
 function recoverPublicLock(
   input: AcquireProjectLockInput,
   stale: AriadneLockRecord,
-): void {
-  fs.mkdirSync(input.runDir, { recursive: true });
-  const recoveryMarker = path.join(
-    input.runDir,
-    `recovered-lock-${diagnosticSegment(stale.runId)}-${randomUUID()}.json`,
+  boundary: CoordinatorBoundary,
+): PrivateLock {
+  // Validate the requested run directory before moving the public lock, but do
+  // not publish recovery evidence through that mutable pathname. The moved
+  // file itself remains durable inside the pinned private coordinator.
+  ensureRecoveryRunDirectory(input.runDir, boundary);
+  const publicIdentity = captureIdentity(input.lockPath, "file");
+  const privateLock = moveExpectedPublicLock(
+    input.lockPath,
+    stale,
+    boundary,
+    publicIdentity,
   );
   try {
-    fs.renameSync(input.lockPath, recoveryMarker);
-  } catch (error: unknown) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT")
-      throw changedDuringRecovery();
+    assertPrivateLock(privateLock, boundary);
+    return privateLock;
+  } catch (error) {
+    restorePrivateLock(input.lockPath, privateLock, boundary);
     throw error;
-  }
-  let recovered: AriadneLockRecord;
-  try {
-    recovered = parseLockRecord(fs.readFileSync(recoveryMarker, "utf8"));
-  } catch {
-    restoreMovedPublicLock(input.lockPath, recoveryMarker);
-    throw changedDuringRecovery();
-  }
-  if (!sameRecoveryRecord(recovered, stale)) {
-    restoreMovedPublicLock(input.lockPath, recoveryMarker);
-    throw changedDuringRecovery();
   }
 }
 
 export function acquireProjectLock(
   input: AcquireProjectLockInput,
 ): AriadneLockHandle {
-  const coordinator = ensureCoordinatorDirectory(input.lockPath);
+  const boundary = ensureCoordinatorDirectory(input.lockPath);
+  const { coordinator } = boundary;
   const record: AriadneLockRecord = {
     schemaVersion: 1,
     pid: input.pid,
     startedAt: input.now().toISOString(),
     runId: input.runId,
+    ownerToken: randomUUID(),
   };
   const generation = claimCoordinator(
     coordinator,
@@ -363,30 +565,31 @@ export function acquireProjectLock(
 
   try {
     if (writePublicLockExclusive(input.lockPath, record)) {
-      return createHandle(input.lockPath, coordinator, generation, record);
+      return createHandle(input.lockPath, boundary, generation, record);
     }
 
     const existing = readPublicLock(input.lockPath);
     if (!existing) throw changedDuringRecovery();
-    if (sameRecord(existing, record)) {
-      return createHandle(input.lockPath, coordinator, generation, record);
+    if (sameCompleteRecord(existing, record)) {
+      return createHandle(input.lockPath, boundary, generation, record);
     }
     if (input.isProcessAlive(existing.pid)) {
       throw contendedLock(existing.pid);
     }
 
-    recoverPublicLock(input, existing);
-    if (!writePublicLockExclusive(input.lockPath, record)) {
-      throw changedDuringRecovery();
+    const recoveredPrivate = recoverPublicLock(input, existing, boundary);
+    try {
+      if (!writePublicLockExclusive(input.lockPath, record)) {
+        restorePrivateLock(input.lockPath, recoveredPrivate, boundary);
+        throw changedDuringRecovery();
+      }
+    } catch (error) {
+      restorePrivateLock(input.lockPath, recoveredPrivate, boundary);
+      throw error;
     }
-    return createHandle(
-      input.lockPath,
-      coordinator,
-      generation,
-      record,
-      existing,
-    );
+    return createHandle(input.lockPath, boundary, generation, record, existing);
   } catch (error) {
+    assertCoordinatorBoundary(boundary);
     releaseCoordinator(coordinator, generation);
     throw error;
   }
@@ -394,19 +597,42 @@ export function acquireProjectLock(
 
 function createHandle(
   lockPath: string,
-  coordinator: string,
+  boundary: CoordinatorBoundary,
   generation: string,
   record: AriadneLockRecord,
   recovered?: AriadneLockRecord,
 ): AriadneLockHandle {
+  const lockIdentity = captureIdentity(lockPath, "file");
+  const assertIntegrity = () => {
+    assertCoordinatorBoundary(boundary);
+    assertIdentity(lockIdentity);
+    const current = readPublicLock(lockPath);
+    if (!current || !sameCompleteRecord(current, record)) {
+      throw changedLockPath();
+    }
+  };
   return {
     record,
     recovered,
+    assertIntegrity,
     release() {
+      assertIntegrity();
+      const { coordinator } = boundary;
       if (findTailGeneration(coordinator) !== generation) return;
       try {
-        const current = readPublicLock(lockPath);
-        if (current && sameRecord(current, record)) fs.unlinkSync(lockPath);
+        const privateLock = moveExpectedPublicLock(
+          lockPath,
+          record,
+          boundary,
+          lockIdentity,
+        );
+        try {
+          assertPrivateLock(privateLock, boundary);
+          fs.unlinkSync(privateLock.source);
+        } catch (error) {
+          restorePrivateLock(lockPath, privateLock, boundary);
+          throw error;
+        }
       } finally {
         releaseCoordinator(coordinator, generation);
       }

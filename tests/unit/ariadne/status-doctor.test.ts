@@ -144,7 +144,7 @@ function writeProject(
   if (options.ignore !== false) {
     fs.writeFileSync(
       path.join(root, ".gitignore"),
-      ".ariadne/lock\n.ariadne/runs/\n",
+      ".ariadne/lock\n.ariadne/runs/\n.ariadne-quarantine.json\n.ariadne-quarantine.checkpoint.json\n",
       "utf8",
     );
   }
@@ -246,6 +246,7 @@ describe("Ariadne status", () => {
         pid: 4242,
         startedAt: "2026-07-28T11:00:00.000Z",
         runId: "run-latest",
+        ownerToken: "11111111-1111-4111-8111-111111111111",
       }),
       "utf8",
     );
@@ -269,6 +270,7 @@ describe("Ariadne status", () => {
       runtime: { name: "codex", state: "healthy", version: "1.2.3" },
       stories: { pending: 1, inProgress: 1, completed: 1, blocked: 1 },
       activeStory: { id: "US-002", title: "Active", attempts: 2 },
+      blockedStory: { id: "US-004", title: "Blocked", attempts: 3 },
       lastRun: {
         id: "run-latest",
         outcome: "interrupted",
@@ -363,6 +365,7 @@ describe("Ariadne doctor", () => {
         pid: 9999,
         startedAt: "2026-07-28T11:00:00.000Z",
         runId: "run-1",
+        ownerToken: "11111111-1111-4111-8111-111111111111",
       }),
     );
     git(root, "add", ".");
@@ -434,7 +437,12 @@ describe("Ariadne doctor", () => {
 
   it("reports a dirty initial worktree when no story can own the diff", () => {
     const root = repository();
-    writeProject(root);
+    const store = writeProject(root);
+    const pendingOnly = store.loadPrd();
+    pendingOnly.userStories = pendingOnly.userStories.filter(
+      (story) => story.status !== "blocked" && story.status !== "in_progress",
+    );
+    store.savePrd(pendingOnly);
     git(root, "add", ".");
     git(root, "commit", "-m", "test: initialize fixture");
     fs.writeFileSync(path.join(root, "unowned.txt"), "dirty\n", "utf8");
@@ -448,6 +456,73 @@ describe("Ariadne doctor", () => {
     expect(report.issues).toContainEqual(
       expect.objectContaining({ code: "dirty_worktree", severity: "error" }),
     );
+  });
+
+  it("surfaces a blocked story and accepts its intentionally preserved dirty diff", () => {
+    const root = repository();
+    writeProject(root, { storyStatus: "blocked" });
+    git(root, "add", ".");
+    git(root, "commit", "-m", "test: initialize blocked fixture");
+    fs.writeFileSync(
+      path.join(root, "blocked-repair.ts"),
+      "export {};\n",
+      "utf8",
+    );
+
+    const report = buildAriadneDoctor({
+      projectRoot: root,
+      registry: detectionRegistry(),
+      isProcessAlive: () => false,
+    });
+
+    expect(report.status.blockedStory).toEqual({
+      id: "US-002",
+      title: "Active",
+      attempts: 2,
+    });
+    expect(report.status.dirty).toBe(true);
+    expect(report.issues.map((entry) => entry.code)).not.toContain(
+      "dirty_worktree",
+    );
+    expect(report.ok).toBe(true);
+  });
+
+  it("reports a durable runtime ownership violation without mutating it", () => {
+    const root = repository();
+    const store = writeProject(root, { storyStatus: "in_progress" });
+    git(root, "add", ".");
+    git(root, "commit", "-m", "test: initialize ownership fixture");
+    const marker = {
+      schemaVersion: 1,
+      runId: "run-violation",
+      storyId: "US-002",
+      detectedAt: "2026-07-29T12:00:00.000Z",
+      certifiedHead: git(root, "rev-parse", "HEAD"),
+      observedHead: "agent-owned-head",
+      changed: ["head"],
+    };
+    fs.writeFileSync(
+      store.paths.ownershipViolation,
+      `${JSON.stringify(marker)}\n`,
+      "utf8",
+    );
+    const before = snapshot(root);
+
+    const report = buildAriadneDoctor({
+      projectRoot: root,
+      registry: detectionRegistry(),
+      isProcessAlive: () => false,
+    });
+
+    expect(report.ok).toBe(false);
+    expect(report.issues).toContainEqual(
+      expect.objectContaining({
+        code: "ownership_violation",
+        severity: "error",
+      }),
+    );
+    expect(report.status.ownershipViolation).toEqual(marker);
+    expect(snapshot(root)).toEqual(before);
   });
 });
 

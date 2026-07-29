@@ -189,7 +189,7 @@ npx -y @ranimontagna/agent-toolkit ariadne run
 npx -y @ranimontagna/agent-toolkit ariadne status
 ```
 
-`init` creates schema-version-1 `.ariadne/config.json` and `.ariadne/prd.json`, an empty `.ariadne/progress.md`, `.ariadne/archive/`, `.ariadne/runs/`, and the required `.gitignore` entries for `lock` and `runs`. If a repository-root `prd.json` exists in canonical, Ralph, or Helix form, `init` normalizes it and archives a copy of the imported source under `.ariadne/archive/`; review the canonical result before running. The `ariadne-prd` companion skill can author or refine the canonical backlog with one-iteration stories and explicit acceptance evidence.
+`init` creates schema-version-1 `.ariadne/config.json` and `.ariadne/prd.json`, an empty `.ariadne/progress.md`, `.ariadne/archive/`, `.ariadne/runs/`, and the required `.gitignore` entries for `.ariadne/lock`, `.ariadne/runs/`, `.ariadne-quarantine.json`, and `.ariadne-quarantine.checkpoint.json`. If a repository-root `prd.json` exists in canonical, Ralph, or Helix form, `init` normalizes it and archives a copy of the imported source under `.ariadne/archive/`; review the canonical result before running. The `ariadne-prd` companion skill can author or refine the canonical backlog with one-iteration stories and explicit acceptance evidence.
 
 A normal run is autonomous: the selected runtime receives headless project access, implements one story at a time, and writes structured evidence. Ariadne validates the result and acceptance criteria, runs every configured quality check, transitions the story, and creates the commit. Ariadne never pushes and never resets, reverts, cleans, checks out over changes, or discards a failed diff. The runtime agent is explicitly forbidden from committing or editing `.ariadne/prd.json` and `.ariadne/progress.md`.
 
@@ -197,15 +197,24 @@ A normal run is autonomous: the selected runtime receives headless project acces
 
 Process, result, criterion, and check failures preserve the diff and retry the
 same `in_progress` story. After the configured attempt limit (default `3`),
-Ariadne marks it `blocked` and later runs stop. A commit failure instead leaves
-the story `in_progress`, records the failure, and preserves the staged diff and
-run progress for manual resolution and a deliberate resume; it is not retried
+Ariadne marks it `blocked` and later runs stop. Doctor reports the blocked story
+as the owner of its intentionally preserved dirty diff rather than treating it
+as unrelated worktree dirtiness. A commit or staging failure instead leaves
+the story `in_progress`, records the failure, and preserves the worktree diff,
+original shared-index state, and run progress for manual resolution and a deliberate resume; it is not retried
 or blocked automatically. Use `status`, `doctor`, `.ariadne/progress.md`, and
 the latest `.ariadne/runs/<run-id>/` artifacts to identify the failure. A run
 directory can contain `prompt.md`, `attempt.json`, `process.json`, `result.json`,
 `checks.json`, `failure.json`, or `stop.json`, depending on where it stopped.
+Durable progress includes only sanitized validated summaries, changed-file
+names, reusable learnings, and structured check status/duration. Raw process
+output and its paths stay under the ignored run directory. Ariadne pins those
+log leaves and the state/run/lock directories by filesystem identity and stops
+structurally if a runtime relocates, hard-links, or replaces them.
 
 Repair the cause without discarding the preserved diff. A human operator may then deliberately change the blocked story in `.ariadne/prd.json` to `pending` or `in_progress` and rerun `doctor` before resuming. A stale lock is reported by `doctor`; do not remove a live lock. Interrupted and budget-exhausted runs preserve the active story for continuation.
+
+If a runtime changes the certified branch reference or `HEAD`, edits `.ariadne/prd.json` or `.ariadne/progress.md`, or breaks a pinned operational boundary, Ariadne writes the repository-root `.ariadne-quarantine.json`. Its location is independent of the replaceable `.ariadne/runs/` tree. The ignored `.ariadne-quarantine.checkpoint.json` persists the last certified ref/`HEAD` and exact PRD/progress certificates; a canonical progress marker makes that checkpoint mandatory after execution begins. Every later `init`, normal run, or dry run therefore validates the earlier ownership boundary and exits with a state error before probing or mutation when the checkpoint is missing, malformed, or mismatched. `status` and `doctor` remain available. Inspect the marker, recorded ref/HEAD, canonical files, run evidence, and preserved diff; restore the intended Git/canonical/operational state yourself. Only after that deliberate recovery should you remove the quarantine marker and rerun `doctor`. Ariadne never rebases the illicit state as a new baseline and never removes the marker automatically.
 
 ### Exit codes
 

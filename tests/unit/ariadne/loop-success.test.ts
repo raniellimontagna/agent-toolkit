@@ -11,10 +11,24 @@ import type {
   AriadneRuntimeAdapter,
   IterationContext,
 } from "../../../src/ariadne/runtimes/types.js";
-import { AriadneStore } from "../../../src/ariadne/store.js";
+import { AriadneStateError } from "../../../src/ariadne/schema.js";
+import {
+  type AriadneCanonicalFileCertificate,
+  AriadneStore,
+} from "../../../src/ariadne/store.js";
 import type { AriadnePrd, AriadneStory } from "../../../src/ariadne/types.js";
 
 const directories: string[] = [];
+
+function outputIdentity(source: string) {
+  const stat = fs.lstatSync(source);
+  return {
+    source,
+    device: stat.dev,
+    inode: stat.ino,
+    links: stat.nlink,
+  };
+}
 
 function story(id: string, priority: number): AriadneStory {
   return {
@@ -30,6 +44,7 @@ function story(id: string, priority: number): AriadneStory {
 
 class RecordingStore extends AriadneStore {
   recording = false;
+  mutateProgressAfterAppend = false;
   private readonly statuses = new Map<string, AriadneStory["status"]>();
 
   constructor(
@@ -39,8 +54,8 @@ class RecordingStore extends AriadneStore {
     super(projectRoot);
   }
 
-  override savePrd(prd: AriadnePrd): void {
-    super.savePrd(prd);
+  override savePrd(prd: AriadnePrd): AriadneCanonicalFileCertificate {
+    const certificate = super.savePrd(prd);
     const changed = prd.userStories.find(
       (candidate) => this.statuses.get(candidate.id) !== candidate.status,
     );
@@ -50,11 +65,23 @@ class RecordingStore extends AriadneStore {
     if (this.recording && changed) {
       this.events.push(`story.${changed.id}.${changed.status}`);
     }
+    return certificate;
   }
 
-  override appendProgress(entry: string): void {
-    super.appendProgress(entry);
+  override appendProgress(
+    entry: string,
+    expected?: AriadneCanonicalFileCertificate,
+  ): AriadneCanonicalFileCertificate {
+    const certificate = super.appendProgress(entry, expected);
     if (this.recording) this.events.push("progress.append");
+    if (this.mutateProgressAfterAppend) {
+      fs.appendFileSync(
+        this.paths.progress,
+        "late detached mutation\n",
+        "utf8",
+      );
+    }
+    return certificate;
   }
 }
 
@@ -71,9 +98,19 @@ function createHarness(
   options: {
     stageFails?: boolean;
     commitFails?: boolean;
+    headChangesDuringCommit?: boolean;
     agentCommits?: boolean;
     agentEditsPrd?: boolean;
     agentEditsProgress?: boolean;
+    agentSymlinksProgress?: boolean;
+    agentSymlinksRunDir?: boolean;
+    agentRelocatesResult?: boolean;
+    agentSwitchesRef?: boolean;
+    mutateProgressAfterCoordinatorAppend?: boolean;
+    detectMutatesHead?: boolean;
+    releaseMutatesHeadAfterFirst?: boolean;
+    releaseThrowsStructural?: boolean;
+    agentSymlinksArchive?: boolean;
   } = {},
 ): Harness {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-loop-"));
@@ -96,9 +133,12 @@ function createHarness(
   });
   fs.writeFileSync(store.paths.progress, "", "utf8");
   store.recording = true;
+  store.mutateProgressAfterAppend =
+    options.mutateProgressAfterCoordinatorAppend ?? false;
 
   let commitNumber = 0;
   let currentHead = "initial-head";
+  let currentRef = "refs/heads/main";
   const git = {
     assertReady(expectedBranch: string, allowActiveDiff: boolean) {
       expect(expectedBranch).toBe("main");
@@ -112,25 +152,38 @@ function createHarness(
     head() {
       return currentHead;
     },
-    commit(activeStory: AriadneStory) {
+    headRef() {
+      return currentRef;
+    },
+    commit(activeStory: AriadneStory, expectedHead?: string) {
       events.push("git.commit");
       if (options.commitFails) throw new Error("commit hook failed");
+      if (options.headChangesDuringCommit) {
+        currentHead = "late-agent-head";
+        throw new Error(
+          `HEAD changed after ${expectedHead ?? "missing certification"}`,
+        );
+      }
       commitNumber += 1;
       currentHead =
         commitNumber === 1 ? "commit-head" : `commit-head-${activeStory.id}`;
       return currentHead;
     },
+    assertPublished() {},
   } as unknown as AriadneGit;
 
   const adapter: AriadneRuntimeAdapter = {
     name: "codex",
     command: "fake-codex",
-    detect: () => ({
-      name: "codex",
-      state: "healthy",
-      version: "0.145.0",
-      reason: "deterministic test adapter",
-    }),
+    detect: () => {
+      if (options.detectMutatesHead) currentHead = "probe-owned-head";
+      return {
+        name: "codex",
+        state: "healthy",
+        version: "0.145.0",
+        reason: "deterministic test adapter",
+      };
+    },
     buildInvocation(context: IterationContext): AgentInvocation {
       if (context.runId !== "dry-run") {
         expect(fs.existsSync(context.promptPath)).toBe(true);
@@ -148,8 +201,13 @@ function createHarness(
     },
   };
 
-  const runProcess: AriadneLoopDeps["runProcess"] = async (invocation) => {
+  const runProcess: AriadneLoopDeps["runProcess"] = async (
+    invocation,
+    processOptions,
+  ) => {
     events.push("runtime.start");
+    fs.writeFileSync(processOptions.stdoutPath, "", { flag: "wx" });
+    fs.writeFileSync(processOptions.stderrPath, "", { flag: "wx" });
     const promptPath = invocation.args[0] as string;
     const runId = path.basename(path.dirname(promptPath));
     runtimeRunIds.push(runId);
@@ -183,6 +241,41 @@ function createHarness(
     if (options.agentEditsProgress) {
       fs.writeFileSync(store.paths.progress, "agent edited progress\n", "utf8");
     }
+    if (options.agentSymlinksProgress) {
+      const target = path.join(root, "outside-progress.md");
+      fs.writeFileSync(target, fs.readFileSync(store.paths.progress, "utf8"));
+      fs.rmSync(store.paths.progress);
+      fs.symlinkSync(target, store.paths.progress, "file");
+    }
+    if (options.agentSymlinksRunDir) {
+      const runDir = path.dirname(promptPath);
+      fs.rmSync(runDir, { recursive: true, force: true });
+      fs.symlinkSync(
+        root,
+        runDir,
+        process.platform === "win32" ? "junction" : "dir",
+      );
+    }
+    if (options.agentRelocatesResult) {
+      const resultPath = path.join(path.dirname(promptPath), "result.json");
+      fs.renameSync(resultPath, path.join(root, "leaked-result.json"));
+      fs.writeFileSync(resultPath, '{"replacement":true}\n', "utf8");
+    }
+    if (options.agentSymlinksArchive) {
+      const externalArchive = path.join(root, "external-archive");
+      fs.mkdirSync(externalArchive, { recursive: true });
+      fs.rmSync(store.paths.archive, { recursive: true, force: true });
+      fs.symlinkSync(
+        externalArchive,
+        store.paths.archive,
+        process.platform === "win32" ? "junction" : "dir",
+      );
+    }
+    if (options.agentSwitchesRef) currentRef = "refs/heads/other";
+    processOptions.certifyOutput?.({
+      stdout: outputIdentity(processOptions.stdoutPath),
+      stderr: outputIdentity(processOptions.stderrPath),
+    });
     return {
       status: 0,
       signal: null,
@@ -200,6 +293,14 @@ function createHarness(
     events.push("result.validate");
     const results: QualityCheckResult[] = input.commands.map((command) => {
       events.push(`check.${command}`);
+      const stdoutPath = path.join(input.runDir, "check.stdout.log");
+      const stderrPath = path.join(input.runDir, "check.stderr.log");
+      fs.writeFileSync(stdoutPath, "", { flag: "wx" });
+      fs.writeFileSync(stderrPath, "", { flag: "wx" });
+      input.certifyOutput?.({
+        stdout: outputIdentity(stdoutPath),
+        stderr: outputIdentity(stderrPath),
+      });
       return {
         command,
         status: 0,
@@ -208,14 +309,15 @@ function createHarness(
         timedOut: false,
         timeoutOrigin: null,
         aborted: false,
-        stdoutPath: path.join(input.runDir, "check.stdout.log"),
-        stderrPath: path.join(input.runDir, "check.stderr.log"),
+        stdoutPath,
+        stderrPath,
       };
     });
     return results;
   };
 
   let nextRun = 0;
+  let releases = 0;
   const deps: AriadneLoopDeps = {
     store,
     git,
@@ -228,10 +330,22 @@ function createHarness(
           pid: input.pid,
           startedAt: input.now().toISOString(),
           runId: input.runId,
+          ownerToken: "11111111-1111-4111-8111-111111111111",
         },
         release() {
           events.push("lock.release");
+          releases += 1;
+          if (options.releaseMutatesHeadAfterFirst && releases === 1) {
+            currentHead = "late-detached-head";
+          }
+          if (options.releaseThrowsStructural) {
+            throw new AriadneStateError(
+              ".ariadne/lock",
+              "Ariadne lock path changed during release",
+            );
+          }
         },
+        assertIntegrity() {},
       };
     },
     runProcess,
@@ -280,6 +394,7 @@ describe("runAriadneLoop successful lifecycle", () => {
       "lock.acquire",
       "git.assertReady",
       "story.US-001.in_progress",
+      "progress.append",
       "prompt.write",
       "runtime.start",
       "result.validate",
@@ -308,10 +423,14 @@ describe("runAriadneLoop successful lifecycle", () => {
       fs.readdirSync(path.join(harness.store.paths.runs, "run-1")).sort(),
     ).toEqual([
       "attempt.json",
+      "check.stderr.log",
+      "check.stdout.log",
       "checks.json",
       "process.json",
       "prompt.md",
       "result.json",
+      "runtime.stderr.log",
+      "runtime.stdout.log",
       "summary.json",
     ]);
     expect(
@@ -605,7 +724,56 @@ describe("runAriadneLoop successful lifecycle", () => {
     );
   });
 
-  it("refuses to certify work when the runtime creates a commit", async () => {
+  it("keeps completed canonical state when post-commit summary persistence fails", async () => {
+    const harness = createHarness([story("US-001", 1)]);
+    const writeRunJson = harness.store.writeRunJson.bind(harness.store);
+    harness.store.writeRunJson = (runId, name, value) => {
+      if (name === "summary.json" && harness.events.includes("git.commit")) {
+        throw new Error("summary disk failure");
+      }
+      return writeRunJson(runId, name, value);
+    };
+    const { runAriadneLoop } = await import("../../../src/ariadne/loop.js");
+
+    await expect(
+      runAriadneLoop({ runtime: "codex", dryRun: false }, harness.deps),
+    ).rejects.toThrow("summary disk failure");
+
+    expect(harness.store.loadPrd().userStories[0]).toMatchObject({
+      id: "US-001",
+      status: "completed",
+      attempts: 1,
+    });
+    expect(
+      harness.events.filter((event) => event === "story.US-001.in_progress"),
+    ).toHaveLength(1);
+    expect(harness.deps.git.head()).toBe("commit-head");
+  });
+
+  it("persists ownership quarantine when HEAD changes during publication", async () => {
+    const harness = createHarness([story("US-001", 1)], {
+      headChangesDuringCommit: true,
+    });
+    const { runAriadneLoop } = await import("../../../src/ariadne/loop.js");
+
+    await expect(
+      runAriadneLoop({ runtime: "codex", dryRun: false }, harness.deps),
+    ).rejects.toThrow(/runtime changed Git HEAD/i);
+
+    expect(
+      JSON.parse(
+        fs.readFileSync(harness.store.paths.ownershipViolation, "utf8"),
+      ),
+    ).toMatchObject({
+      runId: "run-1",
+      certifiedHead: "initial-head",
+      observedHead: "late-agent-head",
+      changed: ["head"],
+    });
+    expect(harness.store.loadPrd().userStories[0]?.status).toBe("completed");
+  });
+
+  it("durably refuses a second run after the runtime creates a commit", async () => {
     const harness = createHarness([story("US-001", 1)], {
       agentCommits: true,
     });
@@ -621,6 +789,207 @@ describe("runAriadneLoop successful lifecycle", () => {
       status: "in_progress",
       attempts: 1,
     });
+    const markerPath = harness.store.paths.ownershipViolation;
+    expect(JSON.parse(fs.readFileSync(markerPath, "utf8"))).toMatchObject({
+      schemaVersion: 1,
+      runId: "run-1",
+      storyId: "US-001",
+      certifiedHead: "initial-head",
+      observedHead: "agent-owned-head",
+      changed: ["head"],
+    });
+
+    await expect(
+      runAriadneLoop({ runtime: "codex", dryRun: false }, harness.deps),
+    ).rejects.toThrow(/unresolved runtime ownership violation/i);
+
+    expect(
+      harness.events.filter((event) => event === "runtime.start"),
+    ).toHaveLength(1);
+    expect(
+      harness.events.filter((event) => event === "git.assertReady"),
+    ).toHaveLength(1);
+  });
+
+  it("checks the persisted certification before a second iteration", async () => {
+    const harness = createHarness([story("US-001", 1), story("US-002", 2)], {
+      releaseMutatesHeadAfterFirst: true,
+    });
+    const { runAriadneLoop } = await import("../../../src/ariadne/loop.js");
+
+    await expect(
+      runAriadneLoop({ runtime: "codex", dryRun: false }, harness.deps),
+    ).rejects.toThrow(/change after run/i);
+
+    expect(harness.runtimeRunIds).toEqual(["run-1"]);
+    expect(harness.store.loadOwnershipViolation()).toMatchObject({
+      runId: "run-1",
+      certifiedHead: "commit-head",
+      observedHead: "late-detached-head",
+      changed: ["head"],
+    });
+  });
+
+  it("checks the persisted certification on the next invocation", async () => {
+    const harness = createHarness([story("US-001", 1)]);
+    const { runAriadneLoop } = await import("../../../src/ariadne/loop.js");
+    await runAriadneLoop({ runtime: "codex", dryRun: false }, harness.deps);
+    fs.appendFileSync(
+      harness.store.paths.progress,
+      "late helper edit\n",
+      "utf8",
+    );
+
+    await expect(
+      runAriadneLoop({ runtime: "codex", dryRun: false }, harness.deps),
+    ).rejects.toThrow(/change after run/i);
+
+    expect(harness.runtimeRunIds).toEqual(["run-1"]);
+    expect(harness.store.loadOwnershipViolation()).toMatchObject({
+      runId: "run-1",
+      changed: ["progress"],
+    });
+  });
+
+  it("fails closed when a required ownership checkpoint disappears", async () => {
+    const harness = createHarness([story("US-001", 1)]);
+    const { runAriadneLoop } = await import("../../../src/ariadne/loop.js");
+    await runAriadneLoop({ runtime: "codex", dryRun: false }, harness.deps);
+    fs.unlinkSync(harness.store.paths.ownershipCheckpoint);
+
+    await expect(
+      runAriadneLoop({ runtime: "codex", dryRun: false }, harness.deps),
+    ).rejects.toThrow(/checkpoint is missing/i);
+    expect(harness.store.loadOwnershipViolation()).toMatchObject({
+      runId: "missing-checkpoint",
+      changed: ["operational"],
+    });
+  });
+
+  it("certifies HEAD before executing the runtime detection probe", async () => {
+    const harness = createHarness([story("US-001", 1)], {
+      detectMutatesHead: true,
+    });
+    const { runAriadneLoop } = await import("../../../src/ariadne/loop.js");
+
+    await expect(
+      runAriadneLoop({ runtime: "codex", dryRun: false }, harness.deps),
+    ).rejects.toThrow(/runtime changed Git HEAD/i);
+    expect(harness.runtimeRunIds).toEqual([]);
+    expect(harness.store.loadOwnershipViolation()).toMatchObject({
+      certifiedHead: "initial-head",
+      observedHead: "probe-owned-head",
+      changed: ["head"],
+    });
+  });
+
+  it("quarantines a structural lock release failure", async () => {
+    const harness = createHarness([story("US-001", 1)], {
+      releaseThrowsStructural: true,
+    });
+    const { runAriadneLoop } = await import("../../../src/ariadne/loop.js");
+
+    await expect(
+      runAriadneLoop({ runtime: "codex", dryRun: false }, harness.deps),
+    ).rejects.toThrow(/lock path changed/i);
+    expect(harness.store.loadOwnershipViolation()).toMatchObject({
+      runId: "run-1",
+      changed: ["operational"],
+    });
+  });
+
+  it("does not depend on the archive path for post-runtime run writes", async () => {
+    const harness = createHarness([story("US-001", 1)], {
+      agentSymlinksArchive: true,
+    });
+    const { runAriadneLoop } = await import("../../../src/ariadne/loop.js");
+
+    await expect(
+      runAriadneLoop({ runtime: "codex", dryRun: false }, harness.deps),
+    ).resolves.toMatchObject({ outcome: "complete" });
+  });
+
+  it("quarantines a relocated result and blocks a clean-looking retry", async () => {
+    const harness = createHarness([story("US-001", 1)], {
+      agentRelocatesResult: true,
+    });
+    const { runAriadneLoop } = await import("../../../src/ariadne/loop.js");
+
+    await expect(
+      runAriadneLoop({ runtime: "codex", dryRun: false }, harness.deps),
+    ).rejects.toThrow(/boundary changed|identity/i);
+    expect(harness.store.loadOwnershipViolation()).toMatchObject({
+      runId: "run-1",
+      changed: ["operational"],
+    });
+    expect(fs.existsSync(path.join(harness.root, "leaked-result.json"))).toBe(
+      true,
+    );
+
+    await expect(
+      runAriadneLoop({ runtime: "codex", dryRun: false }, harness.deps),
+    ).rejects.toThrow(/unresolved runtime ownership violation/i);
+    expect(harness.runtimeRunIds).toEqual(["run-1"]);
+    expect(harness.events).not.toContain("git.stageAll");
+  });
+
+  it("quarantines a same-OID symbolic HEAD retarget", async () => {
+    const harness = createHarness([story("US-001", 1)], {
+      agentSwitchesRef: true,
+    });
+    const { runAriadneLoop } = await import("../../../src/ariadne/loop.js");
+
+    await expect(
+      runAriadneLoop({ runtime: "codex", dryRun: false }, harness.deps),
+    ).rejects.toThrow(/runtime changed Git HEAD/i);
+
+    expect(harness.store.loadOwnershipViolation()).toMatchObject({
+      certifiedHead: "initial-head",
+      observedHead: "initial-head",
+      certifiedRef: "refs/heads/main",
+      observedRef: "refs/heads/other",
+      changed: ["head"],
+    });
+  });
+
+  it("rejects canonical bytes mutated after the coordinator append", async () => {
+    const harness = createHarness([story("US-001", 1)], {
+      mutateProgressAfterCoordinatorAppend: true,
+    });
+    const { runAriadneLoop } = await import("../../../src/ariadne/loop.js");
+
+    await expect(
+      runAriadneLoop({ runtime: "codex", dryRun: false }, harness.deps),
+    ).rejects.toThrow(/canonical Ariadne state/i);
+
+    expect(harness.store.loadOwnershipViolation()).toMatchObject({
+      changed: ["progress"],
+    });
+    expect(harness.events).not.toContain("git.stageAll");
+  });
+
+  it("persists ownership quarantine even when run containment also fails", async () => {
+    const harness = createHarness([story("US-001", 1)], {
+      agentCommits: true,
+      agentSymlinksRunDir: true,
+    });
+    const { runAriadneLoop } = await import("../../../src/ariadne/loop.js");
+
+    await expect(
+      runAriadneLoop({ runtime: "codex", dryRun: false }, harness.deps),
+    ).rejects.toThrow();
+
+    expect(
+      JSON.parse(
+        fs.readFileSync(harness.store.paths.ownershipViolation, "utf8"),
+      ),
+    ).toMatchObject({
+      runId: "run-1",
+      certifiedHead: "initial-head",
+      observedHead: "agent-owned-head",
+      changed: ["head"],
+    });
+    expect(harness.events).not.toContain("git.stageAll");
   });
 
   it.each([
@@ -636,5 +1005,34 @@ describe("runAriadneLoop successful lifecycle", () => {
 
     expect(harness.events).not.toContain("git.stageAll");
     expect(harness.events).not.toContain("git.commit");
+    expect(
+      JSON.parse(
+        fs.readFileSync(harness.store.paths.ownershipViolation, "utf8"),
+      ),
+    ).toMatchObject({
+      schemaVersion: 1,
+      runId: "run-1",
+      storyId: "US-001",
+      certifiedHead: "initial-head",
+      changed: [_label],
+    });
+  });
+
+  it("treats a byte-identical canonical progress symlink as an ownership violation", async () => {
+    const harness = createHarness([story("US-001", 1)], {
+      agentSymlinksProgress: true,
+    });
+    const { runAriadneLoop } = await import("../../../src/ariadne/loop.js");
+
+    await expect(
+      runAriadneLoop({ runtime: "codex", dryRun: false }, harness.deps),
+    ).rejects.toThrow(/runtime edited canonical Ariadne state/i);
+
+    expect(harness.events).not.toContain("git.stageAll");
+    expect(
+      JSON.parse(
+        fs.readFileSync(harness.store.paths.ownershipViolation, "utf8"),
+      ),
+    ).toMatchObject({ changed: ["progress"] });
   });
 });

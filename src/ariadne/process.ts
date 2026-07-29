@@ -3,6 +3,7 @@ import fs from "node:fs";
 import { finished } from "node:stream/promises";
 import { findCommand, windowsSpawnPlan } from "../system.js";
 import type { AgentInvocation } from "./runtimes/types.js";
+import { AriadneStateError } from "./schema.js";
 import type { ProcessResult } from "./types.js";
 
 export type { ProcessResult } from "./types.js";
@@ -36,7 +37,102 @@ export type ProcessRunOptions = {
   timeoutMs?: number;
   signal?: AbortSignal;
   gracePeriodMs?: number;
+  certifyOutput?: (identities: {
+    stdout: OutputLeafIdentity;
+    stderr: OutputLeafIdentity;
+  }) => void;
 };
+
+export type OutputLeafIdentity = {
+  readonly source: string;
+  readonly device: number;
+  readonly inode: number;
+  readonly links: number;
+};
+
+type OpenOutputLeaf = {
+  descriptor: number;
+  identity: OutputLeafIdentity;
+};
+
+function changedOutputPath(source: string): AriadneStateError {
+  return new AriadneStateError(
+    source,
+    "Agent output path changed, was relocated, or gained a hard-link during execution.",
+  );
+}
+
+function closeDescriptor(descriptor: number): void {
+  try {
+    fs.closeSync(descriptor);
+  } catch {
+    // Best-effort cleanup after an output setup failure.
+  }
+}
+
+function unlinkOwnedOutput(identity: OutputLeafIdentity): void {
+  let current: fs.Stats;
+  try {
+    current = fs.lstatSync(identity.source);
+  } catch {
+    return;
+  }
+  if (
+    current.isSymbolicLink() ||
+    !current.isFile() ||
+    current.dev !== identity.device ||
+    current.ino !== identity.inode
+  ) {
+    return;
+  }
+  try {
+    fs.unlinkSync(identity.source);
+  } catch {
+    // A concurrent relocation is safer to leave behind than to chase.
+  }
+}
+
+function openOutputLeaf(source: string): OpenOutputLeaf {
+  const descriptor = fs.openSync(source, "wx", 0o600);
+  let stat: fs.Stats;
+  try {
+    stat = fs.fstatSync(descriptor);
+  } catch (error) {
+    closeDescriptor(descriptor);
+    throw error;
+  }
+  const identity: OutputLeafIdentity = {
+    source,
+    device: stat.dev,
+    inode: stat.ino,
+    links: stat.nlink,
+  };
+  if (!stat.isFile() || stat.nlink !== 1) {
+    closeDescriptor(descriptor);
+    unlinkOwnedOutput(identity);
+    throw changedOutputPath(source);
+  }
+  return { descriptor, identity };
+}
+
+function assertOutputLeaf(identity: OutputLeafIdentity): void {
+  let current: fs.Stats;
+  try {
+    current = fs.lstatSync(identity.source);
+  } catch {
+    throw changedOutputPath(identity.source);
+  }
+  if (
+    identity.links !== 1 ||
+    current.isSymbolicLink() ||
+    !current.isFile() ||
+    current.dev !== identity.device ||
+    current.ino !== identity.inode ||
+    current.nlink !== 1
+  ) {
+    throw changedOutputPath(identity.source);
+  }
+}
 
 function createOutputCapture(): {
   append: (chunk: Buffer) => void;
@@ -63,11 +159,28 @@ export function runAgentProcess(
     const startedAt = new Date();
     const stdout = createOutputCapture();
     const stderr = createOutputCapture();
+    let stdoutLeaf: OpenOutputLeaf;
+    let stderrLeaf: OpenOutputLeaf;
+    try {
+      stdoutLeaf = openOutputLeaf(options.stdoutPath);
+      try {
+        stderrLeaf = openOutputLeaf(options.stderrPath);
+      } catch (error) {
+        closeDescriptor(stdoutLeaf.descriptor);
+        unlinkOwnedOutput(stdoutLeaf.identity);
+        throw error;
+      }
+    } catch (error) {
+      reject(error);
+      return;
+    }
     const stdoutStream = fs.createWriteStream(options.stdoutPath, {
-      flags: "w",
+      fd: stdoutLeaf.descriptor,
+      autoClose: true,
     });
     const stderrStream = fs.createWriteStream(options.stderrPath, {
-      flags: "w",
+      fd: stderrLeaf.descriptor,
+      autoClose: true,
     });
     const plan = planAgentSpawn(invocation);
     const child = spawn(plan.command, plan.args, {
@@ -147,8 +260,24 @@ export function runAgentProcess(
     const settle = () => {
       if (settled || !childClosed || !streamsClosed) return;
       settled = true;
+      try {
+        assertOutputLeaf(stdoutLeaf.identity);
+        assertOutputLeaf(stderrLeaf.identity);
+      } catch (error) {
+        reject(error);
+        return;
+      }
       if (outputFailure) {
         reject(outputFailure);
+        return;
+      }
+      try {
+        options.certifyOutput?.({
+          stdout: stdoutLeaf.identity,
+          stderr: stderrLeaf.identity,
+        });
+      } catch (error) {
+        reject(error);
         return;
       }
       const finishedAt = new Date();

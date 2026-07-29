@@ -146,10 +146,34 @@ interactively and errors in non-interactive mode, asking for `--runtime`.
 `maxAttemptsPerStory` defaults to exactly `3`. Its retry/blocking
 limit applies to process, result, criterion, and quality-check failures. A
 commit failure is recorded while the story remains `in_progress`; Ariadne keeps
-the staged diff and run progress intact for manual resolution and deliberate
-resume, without automatic retry or blocking. There is no default global
+the worktree diff, original shared-index state, and run progress intact for
+manual resolution and deliberate resume, without automatic retry or blocking. There is no default global
 iteration or wall-clock limit; add `--max-iterations` or `--max-runtime` when a
-bounded run is required.
+bounded run is required. Once Git has atomically published the certified
+commit, a later machine-local summary-write failure does not roll the canonical
+story back to `in_progress`.
+
+The `.ariadne/lock`, `.ariadne/runs/`, `.ariadne-quarantine.json`, and
+`.ariadne-quarantine.checkpoint.json` ignore rules are execution invariants,
+not only initialization defaults. A normal run verifies their effective Git
+behavior and rejects any operational path already tracked or staged. Runtime
+commits, branch/HEAD retargets, canonical PRD/progress edits, or pinned-path
+violations create the ignored repository-root `.ariadne-quarantine.json`
+sentinel; configuration cannot bypass it. The checkpoint holds Ariadne's last
+certified fully qualified ref, `HEAD`, and exact canonical-file identities and
+bytes. Once canonical progress contains the ownership marker, a missing,
+malformed, or mismatched checkpoint also fails closed instead of allowing a
+later command to adopt changed state. Both `init` and `run` stop before
+probing, mutation, or Git preflight while the sentinel exists; `status` and
+`doctor` remain available. Recovery requires an operator to restore the
+recorded ref/HEAD and intended state and then deliberately remove the marker.
+The state/runs directories and operational files must also remain real
+contained paths rather than symbolic links or special files. Runtime output
+leaves must retain their creator-certified device/inode identity and a single
+filesystem link; the lock, state root, runs root, active run directory, exact
+canonical bytes, explicit branch ref, real index, and private candidate tree are
+revalidated through commit publication. The owned commit remains anchored to
+the pre-runtime certified ref and `HEAD`.
 
 | Ariadne runtime | Version contract | Headless permission mode |
 |---|---|---|

@@ -9,6 +9,7 @@ import {
   buildInitPlan,
   initializeAriadne,
 } from "../../../src/ariadne/init.js";
+import { AriadneStore } from "../../../src/ariadne/store.js";
 
 const directories: string[] = [];
 
@@ -305,6 +306,42 @@ describe("Ariadne init", () => {
     expect(fs.existsSync(path.join(root, ".gitignore"))).toBe(false);
   });
 
+  it("refuses a durable ownership marker before probing, prompting, or applying init", async () => {
+    const root = repository();
+    const store = new AriadneStore(root);
+    store.saveOwnershipViolation({
+      schemaVersion: 1,
+      runId: "run-violation",
+      storyId: "US-001",
+      detectedAt: "2026-07-29T12:00:00.000Z",
+      certifiedHead: "certified-head",
+      observedHead: "runtime-head",
+      changed: ["prd"],
+    });
+    const detectRuntimes = vi.fn();
+    const markerBefore = fs.readFileSync(
+      store.paths.ownershipViolation,
+      "utf8",
+    );
+
+    await expect(
+      initializeAriadne(
+        {
+          cwd: root,
+          qualityChecks: ["pnpm test"],
+          interactive: false,
+        },
+        { detectRuntimes },
+      ),
+    ).rejects.toThrow(/unresolved runtime ownership violation/i);
+
+    expect(detectRuntimes).not.toHaveBeenCalled();
+    expect(fs.existsSync(path.join(root, ".gitignore"))).toBe(false);
+    expect(fs.readFileSync(store.paths.ownershipViolation, "utf8")).toBe(
+      markerBefore,
+    );
+  });
+
   it("validates an externally supplied plan before creating the layout", () => {
     const root = repository();
     const plan = buildInitPlan({
@@ -344,7 +381,7 @@ describe("Ariadne init", () => {
     );
 
     expect(fs.readFileSync(path.join(root, ".gitignore"), "utf8")).toBe(
-      "# existing\nnode_modules\n\n.ariadne/lock\n.ariadne/runs/\n",
+      "# existing\nnode_modules\n\n.ariadne/lock\n.ariadne/runs/\n.ariadne-quarantine.json\n.ariadne-quarantine.checkpoint.json\n",
     );
     expect(fs.existsSync(path.join(root, ".ariadne", "archive"))).toBe(true);
     expect(fs.existsSync(path.join(root, ".ariadne", "runs"))).toBe(true);
