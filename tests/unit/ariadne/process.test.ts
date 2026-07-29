@@ -1,3 +1,4 @@
+import { ChildProcess } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -120,6 +121,62 @@ describe("runAgentProcess", () => {
 
     expect(result.stdout).toHaveLength(1024 * 1024);
     expect(fs.statSync(stdoutPath).size).toBe(bytes);
+  });
+
+  it("rejects a log I/O failure only after terminating the child", async () => {
+    const { root, stderrPath } = fixture();
+    const controller = new AbortController();
+    const nativeKill = ChildProcess.prototype.kill;
+    const killedChildren: ChildProcess[] = [];
+    vi.spyOn(ChildProcess.prototype, "kill").mockImplementation(function (
+      this: ChildProcess,
+      signal,
+    ) {
+      killedChildren.push(this);
+      return nativeKill.call(this, signal);
+    });
+
+    const running = runAgentProcess(
+      {
+        command: process.execPath,
+        args: ["-e", "setInterval(() => {}, 1_000)"],
+        cwd: root,
+        env: process.env,
+      },
+      {
+        stdoutPath: root,
+        stderrPath,
+        signal: controller.signal,
+        gracePeriodMs: 20,
+      },
+    );
+
+    try {
+      const outcome = await Promise.race([
+        running.then(
+          () => ({ kind: "resolved" as const }),
+          (error: NodeJS.ErrnoException) => ({
+            kind: "rejected" as const,
+            error,
+          }),
+        ),
+        new Promise<{ kind: "pending" }>((resolve) =>
+          setTimeout(() => resolve({ kind: "pending" }), 500),
+        ),
+      ]);
+
+      expect(outcome.kind).toBe("rejected");
+      if (outcome.kind !== "rejected") return;
+      expect(outcome.error.code).toBe("EISDIR");
+      expect(killedChildren).toHaveLength(1);
+      expect(
+        killedChildren[0]?.exitCode !== null ||
+          killedChildren[0]?.signalCode !== null,
+      ).toBe(true);
+    } finally {
+      controller.abort();
+      await running.catch(() => undefined);
+    }
   });
 
   it("uses SIGKILL after the default 5 second grace period on timeout", async () => {

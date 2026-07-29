@@ -48,10 +48,6 @@ export function runAgentProcess(
     const stderrStream = fs.createWriteStream(options.stderrPath, {
       flags: "w",
     });
-    const streamsClosed = Promise.all([
-      finished(stdoutStream),
-      finished(stderrStream),
-    ]);
     const child = spawn(invocation.command, invocation.args, {
       cwd: invocation.cwd,
       env: invocation.env,
@@ -61,7 +57,12 @@ export function runAgentProcess(
     let timedOut = false;
     let aborted = false;
     let settled = false;
+    let childClosed = false;
+    let streamsClosed = false;
     let killTimer: NodeJS.Timeout | undefined;
+    let outputFailure: Error | undefined;
+    let closeStatus: number | null = null;
+    let closeSignal: NodeJS.Signals | null = null;
 
     const removeSupervisorListeners = () => {
       process.removeListener("SIGINT", onSupervisorSigint);
@@ -76,9 +77,15 @@ export function runAgentProcess(
       destination: fs.WriteStream,
       chunk: Buffer,
     ) => {
-      if (destination.write(chunk)) return;
-      source.pause();
-      destination.once("drain", () => source.resume());
+      try {
+        if (destination.write(chunk)) return;
+        source.pause();
+        destination.once("drain", () => source.resume());
+      } catch (error) {
+        onOutputFailure(
+          error instanceof Error ? error : new Error(String(error)),
+        );
+      }
     };
     const forwardSignal = (signal: NodeJS.Signals) => {
       if (settled || child.exitCode !== null || child.signalCode !== null)
@@ -99,6 +106,41 @@ export function runAgentProcess(
       forwardSignal("SIGTERM");
     }
     const terminate = () => forwardSignal("SIGTERM");
+    const removeOutputListeners = () => {
+      child.stdout.removeListener("data", onStdoutData);
+      child.stderr.removeListener("data", onStderrData);
+    };
+    const stopReadingOutput = () => {
+      removeOutputListeners();
+      child.stdout.resume();
+      child.stderr.resume();
+    };
+    function onOutputFailure(error: Error) {
+      if (outputFailure) return;
+      outputFailure = error;
+      stopReadingOutput();
+      terminate();
+    }
+    const settle = () => {
+      if (settled || !childClosed || !streamsClosed) return;
+      settled = true;
+      if (outputFailure) {
+        reject(outputFailure);
+        return;
+      }
+      const finishedAt = new Date();
+      resolve({
+        status: closeStatus,
+        signal: closeSignal,
+        stdout: stdout.text(),
+        stderr: stderr.text(),
+        startedAt: startedAt.toISOString(),
+        finishedAt: finishedAt.toISOString(),
+        durationMs: finishedAt.getTime() - startedAt.getTime(),
+        timedOut,
+        aborted,
+      });
+    };
     const onAbort = () => {
       aborted = true;
       terminate();
@@ -114,13 +156,22 @@ export function runAgentProcess(
 
     process.on("SIGINT", onSupervisorSigint);
     process.on("SIGTERM", onSupervisorSigterm);
-    child.stdout.on("data", (chunk: Buffer) => {
+    function onStdoutData(chunk: Buffer) {
       stdout.append(chunk);
       writeOutput(child.stdout, stdoutStream, chunk);
-    });
-    child.stderr.on("data", (chunk: Buffer) => {
+    }
+    function onStderrData(chunk: Buffer) {
       stderr.append(chunk);
       writeOutput(child.stderr, stderrStream, chunk);
+    }
+    child.stdout.on("data", onStdoutData);
+    child.stderr.on("data", onStderrData);
+    void Promise.all([
+      finished(stdoutStream).then(undefined, onOutputFailure),
+      finished(stderrStream).then(undefined, onOutputFailure),
+    ]).then(() => {
+      streamsClosed = true;
+      settle();
     });
     options.signal?.addEventListener("abort", onAbort, { once: true });
     if (options.signal?.aborted) onAbort();
@@ -128,29 +179,19 @@ export function runAgentProcess(
     child.once("error", (error) => {
       const message = Buffer.from(`${error.message}\n`);
       stderr.append(message);
-      stderrStream.write(message);
+      if (!outputFailure) writeOutput(child.stderr, stderrStream, message);
     });
     child.once("close", (status, signal) => {
-      settled = true;
+      childClosed = true;
+      closeStatus = status;
+      closeSignal = signal;
       if (timeout) clearTimeout(timeout);
       if (killTimer) clearTimeout(killTimer);
       removeSupervisorListeners();
+      removeOutputListeners();
       options.signal?.removeEventListener("abort", onAbort);
       endStreams();
-      void streamsClosed.then(() => {
-        const finishedAt = new Date();
-        resolve({
-          status,
-          signal,
-          stdout: stdout.text(),
-          stderr: stderr.text(),
-          startedAt: startedAt.toISOString(),
-          finishedAt: finishedAt.toISOString(),
-          durationMs: finishedAt.getTime() - startedAt.getTime(),
-          timedOut,
-          aborted,
-        });
-      }, reject);
+      settle();
     });
   });
 }
