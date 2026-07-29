@@ -5,6 +5,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { buildAriadneDoctor } from "../../../src/ariadne/doctor.js";
 import type { AriadneGit } from "../../../src/ariadne/git.js";
+import { acquireProjectLock } from "../../../src/ariadne/lock.js";
 import {
   formatAriadneDoctor,
   formatAriadneJson,
@@ -16,7 +17,10 @@ import type {
   RuntimeRegistry,
 } from "../../../src/ariadne/runtimes/types.js";
 import { AriadneStateError } from "../../../src/ariadne/schema.js";
-import { buildAriadneStatus } from "../../../src/ariadne/status.js";
+import {
+  buildAriadneStatus,
+  inspectLastAriadneRun,
+} from "../../../src/ariadne/status.js";
 import { AriadneStore } from "../../../src/ariadne/store.js";
 import type {
   AriadneConfig,
@@ -167,6 +171,28 @@ afterEach(() => {
 });
 
 describe("Ariadne status", () => {
+  it("does not report lock coordinator state after preflight fails before a run starts", () => {
+    const root = repository();
+    const store = writeProject(root);
+    fs.writeFileSync(store.paths.lock, "malformed lock", "utf8");
+
+    expect(() =>
+      acquireProjectLock({
+        lockPath: store.paths.lock,
+        runId: "run-never-started",
+        runDir: path.join(store.paths.runs, "run-never-started"),
+        pid: 1234,
+        now: () => new Date("2026-07-29T12:00:00.000Z"),
+        isProcessAlive: () => false,
+      }),
+    ).toThrow(AriadneStateError);
+
+    expect(
+      fs.existsSync(path.join(store.paths.runs, ".lock-coordinator")),
+    ).toBe(true);
+    expect(inspectLastAriadneRun(store.paths.runs)).toBeUndefined();
+  });
+
   it("throws a typed state error for a malformed public lock", () => {
     const root = repository();
     const store = writeProject(root);

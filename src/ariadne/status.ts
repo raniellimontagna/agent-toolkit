@@ -242,7 +242,9 @@ export function inspectLastAriadneRun(
     throw error;
   }
   const candidates = entries
-    .filter((entry) => entry.isDirectory())
+    .filter(
+      (entry) => entry.isDirectory() && entry.name !== ".lock-coordinator",
+    )
     .map((entry) => runCandidate(runsPath, entry.name))
     .filter((candidate): candidate is RunCandidate => candidate !== undefined)
     .sort(
