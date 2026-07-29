@@ -11,6 +11,13 @@ export type AriadneRunOutcome =
   | "interrupted"
   | "structural_error";
 
+export type AttemptFailure = {
+  runId: string;
+  category: "process" | "result" | "criterion" | "check" | "commit";
+  message: string;
+  timestamp: string;
+};
+
 export type AriadneRunOptions = {
   runtime: AriadneRuntimeName;
   maxIterations?: number;
