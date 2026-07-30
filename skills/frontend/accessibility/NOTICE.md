@@ -8,3 +8,6 @@ This skill was copied from Affaan Mustafa's ECC repository.
 - Copyright: Copyright (c) 2026 Affaan Mustafa
 
 The upstream MIT license is included in `LICENSE`.
+
+The `Landing-Page Delivery Checks` section is an editorial addition merged from
+the first-party Agent Platform accessibility skill during catalog unification.

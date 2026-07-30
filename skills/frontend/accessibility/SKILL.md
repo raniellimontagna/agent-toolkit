@@ -130,6 +130,16 @@ Switch(
 - [ ] All icon-only buttons have a descriptive text label.
 - [ ] Content reflows properly when text is scaled.
 
+## Landing-Page Delivery Checks
+
+- Make CTAs real links or buttons with clear accessible names.
+- Keep form labels visible, place useful errors near their field, and do not
+  rely on placeholders as labels.
+- Ensure navigation order follows the visual order.
+- Give sticky headers, menus, modals, and carousels an escape path; modal focus
+  must not leak to the background.
+- Respect reduced-motion preferences and keep copy usable without animation.
+
 ## References
 
 - [WCAG 2.2 Guidelines](https://www.w3.org/TR/WCAG22/)

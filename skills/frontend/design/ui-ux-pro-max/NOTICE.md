@@ -10,3 +10,6 @@ This skill was copied from Next Level Builder's UI/UX Pro Max Skill repository.
 The upstream skill used symlinks for `data` and `scripts`. This vendored copy
 stores those directories as real files so npm installs are self-contained.
 The upstream MIT license is included in `LICENSE`.
+
+The `Landing-Page Delivery Priority` section is an editorial addition merged
+from the first-party Agent Platform skill during catalog unification.

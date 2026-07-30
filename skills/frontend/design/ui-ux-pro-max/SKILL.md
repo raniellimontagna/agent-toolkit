@@ -45,6 +45,21 @@ This Skill is not needed in the following situations:
 
 **Decision criteria**: If the task will change how a feature **looks, feels, moves, or is interacted with**, this Skill should be used.
 
+## Landing-Page Delivery Priority
+
+When the task is a landing or campaign page, make decisions in this order:
+
+1. Accessibility and legibility.
+2. Message clarity and the conversion path.
+3. Responsive layout and interaction states.
+4. Art direction appropriate to the product category.
+5. Typography, color, spacing, and component rhythm.
+6. Motion that supports meaning, then final visual polish.
+
+Pick one coherent direction rather than mixing styles. Make CTAs obvious on
+mobile, avoid hover-only behavior and horizontal scrolling, and verify that the
+offer and next action are understandable in five seconds.
+
 ## Rule Categories by Priority
 
 *For human/AI reference: follow priority 1→10 to decide which rule category to focus on first; use `--domain <Domain>` to query details when needed. Scripts do not read this table.*
