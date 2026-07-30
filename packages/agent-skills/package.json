@@ -1,0 +1,15 @@
+{
+  "name": "@ranimontagna/agent-skills",
+  "version": "0.1.0",
+  "description": "Portable markdown skills shared by Rani Montagna agent runtimes.",
+  "license": "MIT",
+  "files": [
+    "skills",
+    "skills.index.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

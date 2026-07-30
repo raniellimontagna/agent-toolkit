@@ -148,6 +148,12 @@ These controls protect the toolkit's own download, copy, and recorded-path lifec
 
 [`Release`](../.github/workflows/release.yml) is triggered by `v*` tags. The Node.js 24 publish job installs frozen dependencies, reruns the full check, requires the tag name to equal `v` plus the package version, and verifies that the tagged commit is an ancestor of `origin/main`. Workflow permissions are limited to read-only repository contents and OIDC `id-token: write`; [`scripts/publish-npm-with-retry.sh`](../scripts/publish-npm-with-retry.sh) publishes the public package with npm provenance and verifies publication across bounded retries. Operational release and recovery steps belong in [Deployment and Releases](DEPLOYMENT.md).
 
+[`Release Agent Skills`](../.github/workflows/release-agent-skills.yml) applies
+the same ancestry, full-check, OIDC provenance, and retry gates to the
+dependency-free Markdown package. Its independent `agent-skills-v*` tag
+namespace is matched against `packages/agent-skills/package.json`, so toolkit
+and shared-catalog versions advance separately.
+
 ## Key Abstractions
 
 | Abstraction | Role |
@@ -169,6 +175,7 @@ bin/                 TypeScript CLI entrypoint
 src/                 Shared selection, policy, lifecycle, and orchestration modules
 src/installers/      Tool-specific side-effect adapters
 skills/              Bundled Custom Skill source tree
+packages/agent-skills/ Generated workspace package for shared Markdown skills
 scripts/             Build cleanup and npm publication helpers
 tests/               Unit and end-to-end shell verification
 docs/                Public guides and retained project design records
@@ -177,3 +184,11 @@ dist/                Generated JavaScript package output; never an authoring sou
 ```
 
 Root configuration files define the package, TypeScript build, formatter/linter, tests, and pinned dependencies. Keeping external commands in `src/installers/` prevents tool-specific invocation details from leaking into selection and lifecycle policy, while the shared target, manifest, provenance, and system modules give every adapter the same safety boundaries.
+
+The production build also runs `src/build-skills-index.ts`. It writes the full
+repository catalog to `skills.index.json`, replaces the generated skill tree in
+`packages/agent-skills/` from an explicit nine-skill allowlist, and writes the
+package-local index. Ordinal ref sorting keeps both JSON files byte-stable across
+host locales. `BRIEF.md` remains optional for the full toolkit catalog, but the
+shared package requires one for every included skill; the skills audit rejects
+empty briefs, briefs over 2,500 characters, and broken local links.

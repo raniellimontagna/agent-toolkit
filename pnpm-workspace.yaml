@@ -4,3 +4,5 @@ minimumReleaseAgeIgnoreMissingTime: false
 trustPolicy: no-downgrade
 trustPolicyIgnoreAfter: 525600
 blockExoticSubdeps: true
+packages:
+  - "packages/*"

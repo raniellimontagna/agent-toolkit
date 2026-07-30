@@ -139,4 +139,22 @@ See [missing](rules/missing.md).
 
     expect(auditSkills(tempDir).issues).toEqual([]);
   });
+
+  it("rejects BRIEF.md files that exceed the platform prompt budget", () => {
+    writeSkill(
+      "frontend/accessibility",
+      "---\nname: accessibility\ndescription: Accessible interfaces.\n---\n\n# Accessibility\n",
+    );
+    fs.writeFileSync(
+      path.join(tempDir, "frontend/accessibility", "BRIEF.md"),
+      "a".repeat(2501),
+    );
+
+    expect(auditSkills(tempDir).issues).toEqual([
+      {
+        file: path.join(tempDir, "frontend/accessibility/BRIEF.md"),
+        message: "BRIEF.md must be non-empty and at most 2500 characters",
+      },
+    ]);
+  });
 });
