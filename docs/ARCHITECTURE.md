@@ -169,6 +169,7 @@ bin/                 TypeScript CLI entrypoint
 src/                 Shared selection, policy, lifecycle, and orchestration modules
 src/installers/      Tool-specific side-effect adapters
 skills/              Bundled Custom Skill source tree
+packages/agent-skills/ Generated workspace package for shared Markdown skills
 scripts/             Build cleanup and npm publication helpers
 tests/               Unit and end-to-end shell verification
 docs/                Public guides and retained project design records
@@ -177,3 +178,11 @@ dist/                Generated JavaScript package output; never an authoring sou
 ```
 
 Root configuration files define the package, TypeScript build, formatter/linter, tests, and pinned dependencies. Keeping external commands in `src/installers/` prevents tool-specific invocation details from leaking into selection and lifecycle policy, while the shared target, manifest, provenance, and system modules give every adapter the same safety boundaries.
+
+The production build also runs `src/build-skills-index.ts`. It writes the full
+repository catalog to `skills.index.json`, replaces the generated skill tree in
+`packages/agent-skills/` from an explicit nine-skill allowlist, and writes the
+package-local index. Ordinal ref sorting keeps both JSON files byte-stable across
+host locales. `BRIEF.md` remains optional for the full toolkit catalog, but the
+shared package requires one for every included skill; the skills audit rejects
+empty briefs, briefs over 2,500 characters, and broken local links.

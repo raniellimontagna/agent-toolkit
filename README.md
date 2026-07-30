@@ -83,6 +83,26 @@ React Doctor is installed from [`millionco/react-doctor`](https://github.com/mil
 
 Bundled third-party skills preserve upstream attribution and license files in their skill directories. The repository catalog and immutable source pins in [`tools.lock.json`](tools.lock.json) are the source of truth.
 
+## Shared Skills Package
+
+The build generates [`skills.index.json`](skills.index.json), a deterministic
+catalog of every bundled skill. Each entry exposes a stable repository-relative
+`ref`, the full `SKILL.md` path, and an optional prompt-sized `BRIEF.md` path.
+
+Nine skills shared with prompt-injection consumers are also assembled into the
+workspace package `@ranimontagna/agent-skills`. That package has no Node.js
+runtime dependency or executable entrypoint: consumers can load the Markdown
+directly, preferring `BRIEF.md` when prompt space is limited and `SKILL.md` when
+progressive disclosure is available. Review its exact npm payload without
+publishing:
+
+```bash
+pnpm run pack:skills
+```
+
+Publishing this package is intentionally independent from the Agent Toolkit
+release scripts.
+
 The first-party `security` skills are defensive rewrites informed by [`uphiago/recon-skills`](https://github.com/uphiago/recon-skills), under its MIT License. They are intended for authorized, non-destructive reviews; upstream offensive infrastructure, agent instructions, scripts, and mass-scanning workflows are not included. See [`skills/security/NOTICE.md`](skills/security/NOTICE.md) for attribution.
 
 The first-party `ariadne` and `ariadne-prd` skills are Ariadne-specific adaptations of concepts from [`snarktank/ralph`](https://github.com/snarktank/ralph) under the MIT License. They install through the ordinary Custom Skills pipeline for all five runtimes; `tools.ariadne` records reviewed attribution only and is not fetched or executed during a normal Ariadne run. Each skill directory contains its source path, reviewed commit, and source hash in `NOTICE.md`.
