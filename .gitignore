@@ -6,6 +6,9 @@ dist/
 build/
 coverage/
 .nyc_output/
+/skills.index.json
+/packages/agent-skills/skills/
+/packages/agent-skills/skills.index.json
 
 # Logs
 *.log

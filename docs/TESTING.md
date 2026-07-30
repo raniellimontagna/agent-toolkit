@@ -29,8 +29,8 @@ If RTK is unavailable, omit only the `rtk` prefix.
 | `rtk pnpm run test:unit` | Vitest behavior for arguments, installers, provenance, lifecycle, releases, networking, targets, and catalogs. |
 | `rtk pnpm run test:ariadne` | Ariadne's cross-platform Vitest unit surface only; safe for public CI. |
 | `rtk pnpm run test:ariadne:real` | Opt-in authenticated smoke; skips unless both Ariadne environment gates are set. |
-| `rtk pnpm run build` | Clean production TypeScript build plus deterministic root and shared-package skill indexes. |
-| `rtk pnpm run pack:skills` | Build and show the dependency-free shared-skills package payload without publishing. |
+| `rtk pnpm run build` | Clean production TypeScript build plus the ignored deterministic root skill index. |
+| `rtk pnpm run pack:skills` | Build, stage from root `skills/`, and show the dependency-free shared-skills package payload without publishing. |
 | `rtk pnpm run test:integration` | Built CLI, shell wrapper, README contracts, install flows, and npm publish retry script. |
 | `rtk pnpm test` | Unit plus integration suites. |
 | `rtk pnpm run check` | Full local release gate: lint, typecheck, unit, build, JavaScript syntax, shell syntax, and integration. |
@@ -96,6 +96,7 @@ rtk pnpm run check
 | `tests/unit/system.test.ts` | Process planning and bounded local HTTP request, redirect, timeout, cleanup, and download behavior. |
 | `tests/unit/release.test.ts` | Version changes, repository preflights, tags, atomic push behavior, and workflow defenses. |
 | `tests/unit/tooling-config.test.ts` | Biome and Vitest worktree exclusions. |
+| `tests/unit/agent-skills-package.test.ts` | Git source ownership, temporary staging, exact npm tarball contents, and independent provenance workflow. |
 | `tests/unit/ariadne/*.test.ts` | Ariadne parsing, schema/store, runtime adapters, prompts/results, process/lock, Git/checks, loop success/recovery, init, status, Doctor, and CLI exit mapping. |
 | `tests/test-agent-toolkit.sh`, `tests/ariadne-e2e.mjs`, `tests/fixtures/ariadne-*.mjs` | Compiled CLI and wrapper contracts, fake-runtime Ariadne end-to-end behavior, and isolated install behavior. |
 | `tests/ariadne-smoke.mjs` | Explicitly gated authenticated one-story smoke with retained failure fixtures. |
