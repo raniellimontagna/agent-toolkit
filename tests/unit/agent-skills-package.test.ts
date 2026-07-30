@@ -5,8 +5,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
-  buildSkillsArtifacts,
   sharedSkillRefs,
+  stageAgentSkillsPackage,
 } from "../../src/build-skills-index.js";
 import { generateSkillsIndex } from "../../src/skills-index.js";
 
@@ -18,13 +18,31 @@ const repoRoot = path.resolve(
 const packageRoot = path.join(repoRoot, "packages", "agent-skills");
 
 describe("@ranimontagna/agent-skills", () => {
+  it("keeps root skills as the only Git-tracked source tree", () => {
+    const trackedGeneratedFiles = execFileSync(
+      "git",
+      [
+        "ls-files",
+        "skills.index.json",
+        "packages/agent-skills/skills",
+        "packages/agent-skills/skills.index.json",
+      ],
+      { cwd: repoRoot, encoding: "utf8" },
+    )
+      .trim()
+      .split("\n")
+      .filter(Boolean);
+
+    expect(trackedGeneratedFiles).toEqual([]);
+  });
+
   it("uses an independent release tag namespace and provenance workflow", () => {
     const rootPackageJson = JSON.parse(
       fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"),
     ) as { scripts: Record<string, string> };
 
     expect(rootPackageJson.scripts["pack:skills"]).toBe(
-      "pnpm --filter @ranimontagna/agent-skills pack --dry-run",
+      "pnpm run build && node dist/src/stage-agent-skills.js --pack-dry-run",
     );
     expect(rootPackageJson.scripts["release:patch"]).not.toContain(
       "@ranimontagna/agent-skills",
@@ -46,9 +64,11 @@ describe("@ranimontagna/agent-skills", () => {
     );
     expect(workflow).toContain("id-token: write");
     expect(workflow).toContain("packages/agent-skills/package.json");
-    expect(workflow).toContain("working-directory: packages/agent-skills");
+    expect(workflow).toContain("pnpm run stage:skills --");
+    expect(workflow).toContain("AGENT_SKILLS_STAGING_DIR");
+    expect(workflow).not.toContain("working-directory: packages/agent-skills");
     expect(workflow).toContain(
-      'bash ../../scripts/publish-npm-with-retry.sh "$package_name" "$package_version"',
+      'bash "$GITHUB_WORKSPACE/scripts/publish-npm-with-retry.sh" "$package_name" "$package_version"',
     );
     expect(
       fs.readFileSync(
@@ -79,25 +99,33 @@ describe("@ranimontagna/agent-skills", () => {
     expect(packageJson.bin).toBeUndefined();
     expect(packageJson.scripts).toBeUndefined();
 
-    const index = generateSkillsIndex(path.join(packageRoot, "skills"));
-    expect(index.skills.map((skill) => skill.ref)).toEqual(sharedSkillRefs);
-    expect(index.skills.every((skill) => skill.brief !== null)).toBe(true);
-
     for (const ref of sharedSkillRefs) {
-      for (const file of ["SKILL.md", "BRIEF.md"]) {
-        expect(
-          fs.readFileSync(path.join(packageRoot, "skills", ref, file), "utf8"),
-        ).toBe(
-          fs.readFileSync(path.join(repoRoot, "skills", ref, file), "utf8"),
-        );
-      }
+      expect(
+        fs.existsSync(path.join(repoRoot, "skills", ref, "SKILL.md")),
+      ).toBe(true);
+      expect(
+        fs.existsSync(path.join(repoRoot, "skills", ref, "BRIEF.md")),
+      ).toBe(true);
     }
+  });
 
-    expect(
-      JSON.parse(
-        fs.readFileSync(path.join(packageRoot, "skills.index.json"), "utf8"),
-      ),
-    ).toEqual(index);
+  it("refuses to replace an existing staging directory", () => {
+    const tempRoot = fs.mkdtempSync(
+      path.join(os.tmpdir(), "agent-skills-staging-safety-"),
+    );
+    const stagingRoot = path.join(tempRoot, "existing");
+    const sentinel = path.join(stagingRoot, "keep.txt");
+    fs.mkdirSync(stagingRoot);
+    fs.writeFileSync(sentinel, "preserve me");
+
+    try {
+      expect(() => stageAgentSkillsPackage(repoRoot, stagingRoot)).toThrow(
+        "Agent Skills staging destination already exists",
+      );
+      expect(fs.readFileSync(sentinel, "utf8")).toBe("preserve me");
+    } finally {
+      fs.rmSync(tempRoot, { recursive: true, force: true });
+    }
   });
 
   it("generates and packs a standalone payload with the root license and index", () => {
@@ -126,10 +154,11 @@ describe("@ranimontagna/agent-skills", () => {
         );
       }
 
-      buildSkillsArtifacts(tempRoot);
+      const stagingRoot = path.join(tempRoot, "staging", "agent-skills");
+      stageAgentSkillsPackage(tempRoot, stagingRoot);
 
       const packOutput = execFileSync("npm", ["pack", "--json"], {
-        cwd: tempPackageRoot,
+        cwd: stagingRoot,
         encoding: "utf8",
       });
       const packResults = JSON.parse(packOutput) as Array<{
@@ -160,7 +189,7 @@ describe("@ranimontagna/agent-skills", () => {
         expect(payload).toContain(`skills/${ref}/BRIEF.md`);
       }
 
-      const tarball = path.join(tempPackageRoot, packResult.filename);
+      const tarball = path.join(stagingRoot, packResult.filename);
       const packedLicense = execFileSync(
         "tar",
         ["-xOf", tarball, "package/LICENSE"],
@@ -176,7 +205,7 @@ describe("@ranimontagna/agent-skills", () => {
         fs.readFileSync(path.join(repoRoot, "LICENSE"), "utf8"),
       );
       expect(packedIndex).toEqual(
-        generateSkillsIndex(path.join(tempPackageRoot, "skills")),
+        generateSkillsIndex(path.join(stagingRoot, "skills")),
       );
     } finally {
       fs.rmSync(tempRoot, { recursive: true, force: true });

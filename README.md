@@ -89,8 +89,10 @@ The build generates [`skills.index.json`](skills.index.json), a deterministic
 catalog of every bundled skill. Each entry exposes a stable repository-relative
 `ref`, the full `SKILL.md` path, and an optional prompt-sized `BRIEF.md` path.
 
-Nine skills shared with prompt-injection consumers are also assembled into the
-workspace package `@ranimontagna/agent-skills`. That package has no Node.js
+Nine skills shared with prompt-injection consumers are also assembled from that
+single root `skills/` source into the workspace package
+`@ranimontagna/agent-skills`. The generated index and copied package tree are
+created only in temporary staging and are not tracked by Git. The package has no Node.js
 runtime dependency or executable entrypoint: consumers can load the Markdown
 directly, preferring `BRIEF.md` when prompt space is limited and `SKILL.md` when
 progressive disclosure is available. Review its exact npm payload without

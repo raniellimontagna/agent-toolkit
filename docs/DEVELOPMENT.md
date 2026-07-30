@@ -83,6 +83,7 @@ These are all developer-relevant scripts defined in `package.json`.
 | `rtk pnpm run release:patch` | Build, then run the release helper for a patch version. |
 | `rtk pnpm run security` | Run the project's dependency-security entrypoint. |
 | `rtk pnpm run security:audit` | Run `pnpm audit` and fail for moderate-or-higher findings. |
+| `rtk pnpm run stage:skills -- <directory>` | Assemble `@ranimontagna/agent-skills` from root sources in an explicit disposable directory. Requires a production build first. |
 | `rtk pnpm test` | Run the unit and integration suites. |
 | `rtk pnpm run test:integration` | Build, then exercise the compiled CLI, wrapper, documentation contracts, install flows, and publish retry helper. |
 | `rtk pnpm run test:unit` | Run the Vitest unit suite once. |
@@ -90,13 +91,14 @@ These are all developer-relevant scripts defined in `package.json`.
 
 The release scripts mutate version-controlled release files and tags. Use them only as part of the reviewed process in [Deployment and Releases](DEPLOYMENT.md).
 
-`packages/agent-skills/skills/` and both `skills.index.json` files are generated
-artifacts. Edit canonical content only under the root `skills/` tree, then run
-`rtk pnpm run build`. Do not publish `@ranimontagna/agent-skills` as part of the
-toolkit release command; review `rtk pnpm run pack:skills` first and publish the
-workspace package through its own `agent-skills-vX.Y.Z` tag and
-`release-agent-skills.yml` workflow. The package has no prepack dependency on
-the workspace; committed generated content is the exact publish input.
+The root `skills/` tree is the only versioned source for shared skill content.
+The root `skills.index.json`, Agent Skills package index, and staged skill tree
+are generated and ignored rather than committed. `rtk pnpm run pack:skills`
+builds the toolkit, assembles an isolated temporary package, inspects its npm
+payload, and removes the staging directory. Do not publish
+`@ranimontagna/agent-skills` as part of the toolkit release command; publish it
+through its own `agent-skills-vX.Y.Z` tag and `release-agent-skills.yml`
+workflow, which assembles a fresh staging directory before publication.
 
 ## Code Style
 

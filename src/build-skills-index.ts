@@ -18,25 +18,43 @@ export const sharedSkillRefs = [
 
 export function buildSkillsArtifacts(repoRoot = REPO_ROOT): void {
   const sourceSkillsDir = path.join(repoRoot, "skills");
-  const packageRoot = path.join(repoRoot, "packages", "agent-skills");
-  const packageSkillsDir = path.join(packageRoot, "skills");
-
   writeSkillsIndex(sourceSkillsDir, path.join(repoRoot, "skills.index.json"));
-  fs.rmSync(packageSkillsDir, { recursive: true, force: true });
+}
+
+export function stageAgentSkillsPackage(
+  repoRoot: string,
+  stagingRoot: string,
+): void {
+  const sourceSkillsDir = path.join(repoRoot, "skills");
+  const packageRoot = path.join(repoRoot, "packages", "agent-skills");
+  const stagingSkillsDir = path.join(stagingRoot, "skills");
+
+  if (path.resolve(stagingRoot) === path.resolve(packageRoot)) {
+    throw new Error("Agent Skills staging must not overwrite package metadata");
+  }
+  if (fs.existsSync(stagingRoot)) {
+    throw new Error("Agent Skills staging destination already exists");
+  }
+
+  fs.mkdirSync(stagingRoot, { recursive: true });
+  for (const file of ["package.json", "README.md"]) {
+    fs.copyFileSync(path.join(packageRoot, file), path.join(stagingRoot, file));
+  }
+  fs.copyFileSync(
+    path.join(repoRoot, "LICENSE"),
+    path.join(stagingRoot, "LICENSE"),
+  );
+
   for (const ref of sharedSkillRefs) {
     const source = path.join(sourceSkillsDir, ref);
     if (!fs.existsSync(path.join(source, "SKILL.md"))) {
       throw new Error(`Shared skill source is missing: skills/${ref}/SKILL.md`);
     }
-    fs.cpSync(source, path.join(packageSkillsDir, ref), { recursive: true });
+    fs.cpSync(source, path.join(stagingSkillsDir, ref), { recursive: true });
   }
   writeSkillsIndex(
-    packageSkillsDir,
-    path.join(packageRoot, "skills.index.json"),
-  );
-  fs.copyFileSync(
-    path.join(repoRoot, "LICENSE"),
-    path.join(packageRoot, "LICENSE"),
+    stagingSkillsDir,
+    path.join(stagingRoot, "skills.index.json"),
   );
 }
 

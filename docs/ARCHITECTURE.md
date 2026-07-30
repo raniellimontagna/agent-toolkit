@@ -152,7 +152,10 @@ These controls protect the toolkit's own download, copy, and recorded-path lifec
 the same ancestry, full-check, OIDC provenance, and retry gates to the
 dependency-free Markdown package. Its independent `agent-skills-v*` tag
 namespace is matched against `packages/agent-skills/package.json`, so toolkit
-and shared-catalog versions advance separately.
+and shared-catalog versions advance separately. Root `skills/` is its sole
+versioned content source: the workflow creates a disposable package tree and
+index, inspects that exact staging payload, then publishes from it with npm
+provenance.
 
 ## Key Abstractions
 

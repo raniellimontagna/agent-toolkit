@@ -21,7 +21,7 @@ its README, root MIT license, generated index, and Markdown skill tree.
 ## Independent Agent Skills Release
 
 Agent Skills versions never reuse the toolkit `vX.Y.Z` namespace. Update
-`packages/agent-skills/package.json`, commit the generated package contents on
+`packages/agent-skills/package.json`, commit the canonical root skill changes on
 `main`, and create the exact matching tag:
 
 ```bash
@@ -32,9 +32,12 @@ git push origin main "agent-skills-v${VERSION}"
 
 The dedicated workflow installs frozen dependencies, runs the full repository
 check, requires the tag to equal `agent-skills-v` plus the package version,
-verifies main ancestry, and publishes from `packages/agent-skills` through the
-same bounded retry helper and `npm publish --provenance --access public`. The
-package itself has no lifecycle script that reaches into the monorepo.
+verifies main ancestry, assembles and dry-run packs a clean package below
+`RUNNER_TEMP`, and publishes from that staging directory through the same
+bounded retry helper and `npm publish --provenance --access public`. Only root
+`skills/` content is versioned; the staged tree and generated index never need
+to be committed. The package itself has no lifecycle script that reaches into
+the monorepo.
 
 ## Release Prerequisites and Environment Setup
 

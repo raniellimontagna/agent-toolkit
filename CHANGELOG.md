@@ -22,6 +22,9 @@ The release entries below are based on Git tag ranges and npm publication metada
   workspace package with nine shared skills, a review-only pack command, an
   isolated `agent-skills-vX.Y.Z` provenance release, and tarball-level payload,
   index, and root-license verification.
+- Removed the Git-tracked Agent Skills mirror and generated indexes; local pack
+  inspection and provenance publication now assemble the exact npm payload from
+  root `skills/` in disposable staging.
 - Added Ariadne, a runtime-neutral autonomous coding loop for Claude Code, Codex CLI, OpenCode, Gemini CLI, and Antigravity, with private-index exact-tree commits on an explicit certified ref, persistent pre-probe and cross-invocation ownership certification, contained creator-certified artifacts, project-root durable quarantine, strict lock ownership, sanitized failure memory, retries, recovery, diagnostics, and stable exit codes.
 - Added first-party `ariadne` and `ariadne-prd` companion skills through the existing Custom Skills pipeline, plus immutable MIT-licensed upstream attribution in `tools.lock.json` and per-skill notices.
 - Documented Ariadne setup, configuration, permissions, migration, runtime support, logs, recovery, testing, architecture boundaries, and non-goals without creating a release.
