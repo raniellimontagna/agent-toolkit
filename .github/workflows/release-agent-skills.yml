@@ -1,0 +1,65 @@
+name: Release Agent Skills
+
+on:
+  push:
+    tags:
+      - "agent-skills-v*"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish Agent Skills npm package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Fetch main ancestry
+        run: git fetch --quiet --no-tags origin +refs/heads/main:refs/remotes/origin/main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+          registry-url: https://registry.npmjs.org
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare "$(node -p "require('./package.json').packageManager")" --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run checks
+        run: pnpm run check
+
+      - name: Verify tag matches Agent Skills package version
+        run: |
+          package_version="$(node -p "require('./packages/agent-skills/package.json').version")"
+          expected_tag="agent-skills-v${package_version}"
+          if [ "${expected_tag}" != "${GITHUB_REF_NAME}" ]; then
+            echo "Release tag ${GITHUB_REF_NAME} does not match Agent Skills package version ${package_version}."
+            exit 1
+          fi
+
+      - name: Verify tag commit is on main
+        run: |
+          if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/main; then
+            echo "::error::Release tag commit ${GITHUB_SHA} is not reachable from origin/main."
+            exit 1
+          fi
+
+      - name: Publish to npm with provenance
+        working-directory: packages/agent-skills
+        run: |
+          package_name="$(node -p "require('./package.json').name")"
+          package_version="$(node -p "require('./package.json').version")"
+          bash ../../scripts/publish-npm-with-retry.sh "$package_name" "$package_version"

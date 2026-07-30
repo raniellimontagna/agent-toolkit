@@ -1,12 +1,40 @@
 # Deployment and Releases
 
-Agent Toolkit is a command-line package, not a hosted application. Its only deployment target is the public npm package [`@ranimontagna/agent-toolkit`](https://www.npmjs.com/package/@ranimontagna/agent-toolkit). A version tag pushed to GitHub starts the repository's [`Release` workflow](../.github/workflows/release.yml), which validates the tagged commit before attempting publication to npm.
+Agent Toolkit is not a hosted application. The repository publishes the CLI
+package [`@ranimontagna/agent-toolkit`](https://www.npmjs.com/package/@ranimontagna/agent-toolkit)
+and, on an independent version line, the dependency-free Markdown package
+`@ranimontagna/agent-skills`. A toolkit `vX.Y.Z` tag starts
+[`Release`](../.github/workflows/release.yml); an `agent-skills-vX.Y.Z` tag
+starts [`Release Agent Skills`](../.github/workflows/release-agent-skills.yml).
+Both validate the tagged commit before attempting publication to npm.
 
 ## Deployment Target
 
 - **Artifact:** the files selected by [`package.json`](../package.json), including the compiled `dist/` entrypoints and the public documentation, skills, lock data, and wrapper shipped with the package.
 - **Registry:** the public npm registry, using the package's `publishConfig.access` setting and the workflow's explicit public-access publication flag.
 - **Automation:** a tag-triggered GitHub Actions job. The repository does not define a container, application host, server deployment, or separate infrastructure rollout.
+
+The toolkit artifact is selected by the root `package.json`. The Agent Skills
+artifact is selected by `packages/agent-skills/package.json` and contains only
+its README, root MIT license, generated index, and Markdown skill tree.
+
+## Independent Agent Skills Release
+
+Agent Skills versions never reuse the toolkit `vX.Y.Z` namespace. Update
+`packages/agent-skills/package.json`, commit the generated package contents on
+`main`, and create the exact matching tag:
+
+```bash
+VERSION="X.Y.Z"
+git tag "agent-skills-v${VERSION}"
+git push origin main "agent-skills-v${VERSION}"
+```
+
+The dedicated workflow installs frozen dependencies, runs the full repository
+check, requires the tag to equal `agent-skills-v` plus the package version,
+verifies main ancestry, and publishes from `packages/agent-skills` through the
+same bounded retry helper and `npm publish --provenance --access public`. The
+package itself has no lifecycle script that reaches into the monorepo.
 
 ## Release Prerequisites and Environment Setup
 

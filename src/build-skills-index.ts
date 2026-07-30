@@ -34,6 +34,10 @@ export function buildSkillsArtifacts(repoRoot = REPO_ROOT): void {
     packageSkillsDir,
     path.join(packageRoot, "skills.index.json"),
   );
+  fs.copyFileSync(
+    path.join(repoRoot, "LICENSE"),
+    path.join(packageRoot, "LICENSE"),
+  );
 }
 
 const invokedFile = process.argv[1];

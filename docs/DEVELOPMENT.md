@@ -94,7 +94,9 @@ The release scripts mutate version-controlled release files and tags. Use them o
 artifacts. Edit canonical content only under the root `skills/` tree, then run
 `rtk pnpm run build`. Do not publish `@ranimontagna/agent-skills` as part of the
 toolkit release command; review `rtk pnpm run pack:skills` first and publish the
-workspace package through its own explicit release step.
+workspace package through its own `agent-skills-vX.Y.Z` tag and
+`release-agent-skills.yml` workflow. The package has no prepack dependency on
+the workspace; committed generated content is the exact publish input.
 
 ## Code Style
 

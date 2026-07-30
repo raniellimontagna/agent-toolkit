@@ -6,11 +6,9 @@
   "files": [
     "skills",
     "skills.index.json",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
-  "scripts": {
-    "prepack": "pnpm --dir ../.. run build"
-  },
   "publishConfig": {
     "access": "public"
   }

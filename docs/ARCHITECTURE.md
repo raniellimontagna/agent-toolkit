@@ -148,6 +148,12 @@ These controls protect the toolkit's own download, copy, and recorded-path lifec
 
 [`Release`](../.github/workflows/release.yml) is triggered by `v*` tags. The Node.js 24 publish job installs frozen dependencies, reruns the full check, requires the tag name to equal `v` plus the package version, and verifies that the tagged commit is an ancestor of `origin/main`. Workflow permissions are limited to read-only repository contents and OIDC `id-token: write`; [`scripts/publish-npm-with-retry.sh`](../scripts/publish-npm-with-retry.sh) publishes the public package with npm provenance and verifies publication across bounded retries. Operational release and recovery steps belong in [Deployment and Releases](DEPLOYMENT.md).
 
+[`Release Agent Skills`](../.github/workflows/release-agent-skills.yml) applies
+the same ancestry, full-check, OIDC provenance, and retry gates to the
+dependency-free Markdown package. Its independent `agent-skills-v*` tag
+namespace is matched against `packages/agent-skills/package.json`, so toolkit
+and shared-catalog versions advance separately.
+
 ## Key Abstractions
 
 | Abstraction | Role |

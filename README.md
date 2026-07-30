@@ -101,7 +101,9 @@ pnpm run pack:skills
 ```
 
 Publishing this package is intentionally independent from the Agent Toolkit
-release scripts.
+release scripts. Tags in the `agent-skills-vX.Y.Z` namespace trigger the
+dedicated [`Release Agent Skills`](.github/workflows/release-agent-skills.yml)
+workflow; toolkit tags remain `vX.Y.Z`.
 
 The first-party `security` skills are defensive rewrites informed by [`uphiago/recon-skills`](https://github.com/uphiago/recon-skills), under its MIT License. They are intended for authorized, non-destructive reviews; upstream offensive infrastructure, agent instructions, scripts, and mass-scanning workflows are not included. See [`skills/security/NOTICE.md`](skills/security/NOTICE.md) for attribution.
 
