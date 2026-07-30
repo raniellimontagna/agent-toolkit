@@ -65,6 +65,36 @@ function auditSkillFile(skillFile: string): SkillAuditIssue[] {
   return issues;
 }
 
+function auditBriefFile(briefFile: string): SkillAuditIssue[] {
+  const text = fs.readFileSync(briefFile, "utf8");
+  if (text.trim().length === 0 || text.length > 2500) {
+    return [
+      {
+        file: briefFile,
+        message: "BRIEF.md must be non-empty and at most 2500 characters",
+      },
+    ];
+  }
+
+  const issues: SkillAuditIssue[] = [];
+  for (const match of text.matchAll(markdownLinkPattern)) {
+    const raw = match[1]?.trim() || "";
+    if (!isLocalReference(raw)) continue;
+
+    const target = raw.split("#")[0] || "";
+    if (!target) continue;
+
+    const absolute = path.resolve(path.dirname(briefFile), target);
+    if (!fs.existsSync(absolute)) {
+      issues.push({
+        file: briefFile,
+        message: `Broken local Markdown link: ${target}`,
+      });
+    }
+  }
+  return issues;
+}
+
 /**
  * Skills are installed by directory name alone, so two skills that live in
  * different categories but share a folder name overwrite each other silently.
@@ -110,6 +140,10 @@ export function auditSkills(
       ...skillDirs.flatMap((skillDir) =>
         auditSkillFile(path.join(skillDir, "SKILL.md")),
       ),
+      ...skillDirs.flatMap((skillDir) => {
+        const briefFile = path.join(skillDir, "BRIEF.md");
+        return fs.existsSync(briefFile) ? auditBriefFile(briefFile) : [];
+      }),
       ...auditDuplicateSkillNames(skillDirs),
     ];
     return { checked: skillDirs.length, issues };
