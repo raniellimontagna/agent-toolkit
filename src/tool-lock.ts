@@ -31,6 +31,17 @@ export type AgentSkillBundle = {
   skills: AgentSkillEntry[];
 };
 
+export type AriadneProvenance = {
+  source: "github";
+  repository: "snarktank/ralph";
+  ref: string;
+  license: { path: string; sha256: string };
+  sources: {
+    prd: { path: string; sha256: string };
+    ralph: { path: string; sha256: string };
+  };
+};
+
 export type ToolLock = {
   version: 1;
   tools: {
@@ -70,6 +81,7 @@ export type ToolLock = {
       repositories: Record<string, AgentSkillRepository>;
       bundles: Record<AgentSkillBundleId, AgentSkillBundle>;
     };
+    ariadne: AriadneProvenance;
   };
   runtimeClis: Record<
     RuntimeCliLockName,
@@ -319,6 +331,50 @@ function validateAgentSkillsCatalog(
   }
 }
 
+function validateAriadneProvenance(
+  provenance: ToolLock["tools"]["ariadne"] | undefined,
+): void {
+  if (!provenance || typeof provenance !== "object") {
+    throw new Error(
+      "Invalid tools.lock.json: tools.ariadne must define reviewed provenance.",
+    );
+  }
+  if (provenance.source !== "github") {
+    throw new Error(
+      "Invalid tools.lock.json: tools.ariadne.source must be github.",
+    );
+  }
+  if (provenance.repository !== "snarktank/ralph") {
+    throw new Error(
+      "Invalid tools.lock.json: tools.ariadne.repository must be snarktank/ralph.",
+    );
+  }
+  assertGitSha(provenance.ref, "tools.ariadne.ref");
+  assertSafeRelativePath(
+    provenance.license?.path,
+    "tools.ariadne.license.path",
+  );
+  assertSha256(provenance.license?.sha256, "tools.ariadne.license.sha256");
+  const sourceNames = Object.keys(provenance.sources ?? {});
+  if (
+    sourceNames.length !== 2 ||
+    !sourceNames.includes("prd") ||
+    !sourceNames.includes("ralph")
+  ) {
+    throw new Error(
+      "Invalid tools.lock.json: tools.ariadne.sources must define prd and ralph.",
+    );
+  }
+  for (const sourceName of ["prd", "ralph"] as const) {
+    const source = provenance.sources[sourceName];
+    assertSafeRelativePath(
+      source?.path,
+      `tools.ariadne.sources.${sourceName}.path`,
+    );
+    assertSha256(source?.sha256, `tools.ariadne.sources.${sourceName}.sha256`);
+  }
+}
+
 function validateToolLock(lock: ToolLock): ToolLock {
   if (lock.version !== 1) {
     throw new Error("Invalid tools.lock.json: version must be 1.");
@@ -342,6 +398,7 @@ function validateToolLock(lock: ToolLock): ToolLock {
   assertString(lock.tools.gsd.package, "tools.gsd.package");
   assertExactVersion(lock.tools.gsd.version, "tools.gsd.version");
   validateAgentSkillsCatalog(lock.tools.agentSkills);
+  validateAriadneProvenance(lock.tools.ariadne);
   assertString(lock.tools.agentBrowser.package, "tools.agentBrowser.package");
   assertExactVersion(
     lock.tools.agentBrowser.version,

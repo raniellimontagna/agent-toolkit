@@ -29,6 +29,29 @@ A normal invocation follows this path:
 5. [`src/main.ts`](../src/main.ts) dispatches selected installers in a fixed order: RTK, Caveman, Superpowers, Graphify, GSD, Improve, Agent Browser, Frontend Skills, Planning Skills, and Custom Skills. Each adapter returns success or failure; nonfatal failures are accumulated so independent later installers can still run.
 6. Successful Custom Skill installations call `recordSkillInstall()`; when Gemini CLI performs the install, the toolkit records the expected runtime destination after that command succeeds. At the end of dispatch, [`src/manifest.ts`](../src/manifest.ts) writes any pending manifest atomically, the UI prints the final scope and source summary, and any accumulated failure sets `process.exitCode` to `1`. Fatal validation errors propagate to the CLI boundary and terminate immediately.
 
+## Ariadne Subsystem Boundary
+
+The top-level CLI routes `agent-toolkit ariadne` away from the installer and into [`src/ariadne/`](../src/ariadne/). Ariadne keeps its own argument parser, schema validation, atomic store, Git/check adapters, process lifecycle, runtime registry, loop, diagnostics, and rendering. Its runtime-neutral control flow is:
+
+```mermaid
+flowchart LR
+  Command["init, doctor, run, or status"] --> Store[".ariadne canonical state"]
+  Store --> Loop["Ariadne orchestrator"]
+  Loop --> Adapter["Selected runtime adapter"]
+  Adapter --> Agent["One headless story iteration"]
+  Agent --> Evidence["Structured result and run artifacts"]
+  Evidence --> Checks["Ariadne quality checks"]
+  Checks --> Commit["Ariadne-owned Git commit"]
+```
+
+`.ariadne/config.json`, `.ariadne/prd.json`, `.ariadne/progress.md`, and `.ariadne/archive/` are canonical versionable state. `.ariadne/lock`, `.ariadne/runs/`, and the repository-root `.ariadne-quarantine.json` and `.ariadne-quarantine.checkpoint.json` files are operational and ignored. The runtime agent may edit project files and durable applicable `AGENTS.md`, but the generated prompt forbids commits and edits to the canonical PRD or progress log. Ariadne alone transitions story state, runs configured checks, stages the successful story delta, and commits it. Before staging, the Git port case-folds and scans the complete real index and `HEAD` tree, verifies effective ignores, and rejects every operational artifact. It copies the exact real index into a private index, stages only the literal project delta there, proves the private delta complete, and writes an immutable candidate tree. Only after rechecking the real index, certified fully-qualified branch ref, `HEAD`, worktree, and operational boundary does it atomically install the private index and publish the exact tree with an expected-old compare-and-swap on that explicit ref. Post-publication verification covers the ref, index, tree, and worktree; a detected late race triggers a safe ref CAS rollback and original-index restore. Repository hooks cannot add operational artifacts, remove project files, or substitute a new parent after certification. Prompts, results, lock coordination, quarantine state, and raw stdout/stderr therefore cannot enter an Ariadne-owned commit even if a runtime edits `.gitignore`, force-stages a local artifact with case-variant spelling, installs a hook, switches branches at the same commit, or moves `HEAD`; the run fails closed and preserves the evidence instead.
+
+Normal runs are autonomous and use each runtime's supported headless permission mode. The Git boundary therefore requires the configured branch and either a clean worktree or a preserved `in_progress`/`blocked` story diff. Before any runtime probe, Ariadne captures an in-memory ref/`HEAD` and canonical-file baseline; it validates that baseline before the first mutation. Immediately before untrusted execution, Ariadne writes the ignored `.ariadne-quarantine.checkpoint.json` with the certified ref/`HEAD` and exact PRD/progress identity and bytes. A marker in canonical progress makes this checkpoint mandatory, so later iterations and later mutating invocations cannot silently accept changed ownership state as a new baseline. Prompt and result leaves are created exclusively before the runtime starts. Runtime and check logs are also opened exclusively; the process returns their exact file-descriptor identities synchronously before completion, and the Store extends rather than re-baselines the pinned run boundary. The coordinator similarly pins the state root, runs root, active run directory, lock coordinator, and public lock identities, revalidating them around untrusted execution, checks, staging, and publication. Canonical PRD writes and progress appends return exact coordinator-written byte/identity certificates instead of recapturing arbitrary later bytes. Stale-lock recovery uses owner tokens and private atomic transitions; retained diagnostics stay inside the verified pinned lock-coordinator directory. A ref/HEAD, canonical, or operational violation creates the strict repository-root `.ariadne-quarantine.json` sentinel containing sanitized certification metadata and affected surface names. Because it is outside `.ariadne`, replacing the state/archive/runs tree cannot suppress it. Init, normal runs, and dry runs fail closed while the sentinel exists; status and Doctor remain available for inspection, Doctor exposes it as an error, and Ariadne never clears it automatically. Ariadne never pushes, resets, reverts, cleans, checks out over changes, or discards a failed diff.
+
+The `tools.ariadne` lock entry is a provenance record for the first-party `ariadne` and `ariadne-prd` adaptations. It pins `snarktank/ralph`, the reviewed MIT license, and both upstream source hashes. It is not an installer source: normal Ariadne execution performs no upstream download or prompt execution, and the adapted skills travel through the existing Custom Skills pipeline.
+
+Ariadne does not schedule multiple stories concurrently, push branches, open pull requests, rewrite Git history, manage remote CI, choose product requirements, or replace repository-specific quality checks. Runtime adapters translate the same bounded iteration contract; they do not own orchestration policy or canonical state.
+
 ## Module Map
 
 The top-level `src/` modules each have one primary responsibility:
@@ -53,7 +76,7 @@ The top-level `src/` modules each have one primary responsibility:
 | [`state.ts`](../src/state.ts) | Define tool/runtime names and hold the lock-backed mutable invocation state. |
 | [`status.ts`](../src/status.ts) | Detect installed or available tools and runtimes and format the install plan. |
 | [`system.ts`](../src/system.ts) | Wrap command execution, command lookup, and bounded HTTP fetch/download behavior. |
-| [`tool-lock.ts`](../src/tool-lock.ts) | Define and validate the external-tool lock and Agent Skills catalog schema. |
+| [`tool-lock.ts`](../src/tool-lock.ts) | Define and validate the external-tool lock, Agent Skills catalog, and Ariadne attribution schema. |
 | [`ui.ts`](../src/ui.ts) | Render the install header, resolved selections, and final summary. |
 | [`usage.ts`](../src/usage.ts) | Own public CLI help text. |
 

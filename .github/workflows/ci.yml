@@ -40,6 +40,44 @@ jobs:
       - name: Run checks
         run: pnpm run check
 
+  ariadne-cross-platform:
+    name: Ariadne cross-platform (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Setup pnpm from packageManager
+        uses: pnpm/action-setup@v4
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Test Ariadne units
+        run: pnpm run test:ariadne
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Test compiled Ariadne runtime path
+        run: pnpm run test:ariadne:compiled
+
   secret-scan:
     name: Secret scan
     runs-on: ubuntu-latest

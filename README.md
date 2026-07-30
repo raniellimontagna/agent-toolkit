@@ -13,6 +13,17 @@ npx -y @ranimontagna/agent-toolkit --all --codex
 
 `--all` installs the default tool set. Agent Browser remains a separate opt-in because it also provisions Chrome for Testing. See [Getting Started](docs/GETTING-STARTED.md) for interactive setup, project-local installs, and selective skill examples.
 
+To start an Ariadne autonomous coding loop inside a Git repository:
+
+```bash
+npx -y @ranimontagna/agent-toolkit ariadne init
+npx -y @ranimontagna/agent-toolkit ariadne doctor
+npx -y @ranimontagna/agent-toolkit ariadne run
+npx -y @ranimontagna/agent-toolkit ariadne status
+```
+
+A normal Ariadne run autonomously edits the project and creates successful-story commits. It never pushes or uses destructive Git cleanup; use `ariadne run --dry-run` before granting the selected runtime's headless permission mode. See [Getting Started](docs/GETTING-STARTED.md#run-ariadne) for state, recovery, logs, and exit codes.
+
 ## Choose Tools and Runtimes
 
 | Selection | CLI form | What it targets |
@@ -58,6 +69,7 @@ Current external sources:
 | Agent Browser | `agent-browser@0.33.1` |
 | Agent Skills CLI | `skills@1.5.20`, with each source repository pinned to a full commit |
 | Runtime CLIs | `@anthropic-ai/claude-code@2.1.220`, `@openai/codex@0.145.0`, `opencode-ai@1.18.8`, and `@google/gemini-cli@0.52.0` |
+| Ariadne adaptation provenance | `snarktank/ralph@6c53cb0b831ebe8739c6a003e22af14902d8b0b5`, with reviewed SHA-256 values for the MIT license and both adapted source skills |
 
 The Agent Skills catalog exposes these locked bundle IDs and skill names:
 
@@ -72,6 +84,8 @@ React Doctor is installed from [`millionco/react-doctor`](https://github.com/mil
 Bundled third-party skills preserve upstream attribution and license files in their skill directories. The repository catalog and immutable source pins in [`tools.lock.json`](tools.lock.json) are the source of truth.
 
 The first-party `security` skills are defensive rewrites informed by [`uphiago/recon-skills`](https://github.com/uphiago/recon-skills), under its MIT License. They are intended for authorized, non-destructive reviews; upstream offensive infrastructure, agent instructions, scripts, and mass-scanning workflows are not included. See [`skills/security/NOTICE.md`](skills/security/NOTICE.md) for attribution.
+
+The first-party `ariadne` and `ariadne-prd` skills are Ariadne-specific adaptations of concepts from [`snarktank/ralph`](https://github.com/snarktank/ralph) under the MIT License. They install through the ordinary Custom Skills pipeline for all five runtimes; `tools.ariadne` records reviewed attribution only and is not fetched or executed during a normal Ariadne run. Each skill directory contains its source path, reviewed commit, and source hash in `NOTICE.md`.
 
 ## Documentation
 

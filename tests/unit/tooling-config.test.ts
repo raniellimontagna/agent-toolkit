@@ -34,4 +34,12 @@ describe("tooling configuration", () => {
     expect(excludes).toContain(".worktrees/**");
     expect(excludes).toEqual(expect.arrayContaining(defaultExcludes));
   });
+
+  it("keeps test sources out of the published TypeScript build", () => {
+    const tsconfig = JSON.parse(
+      fs.readFileSync(path.join(repoRoot, "tsconfig.json"), "utf8"),
+    ) as { include: string[] };
+
+    expect(tsconfig.include).toEqual(["bin/**/*.ts", "src/**/*.ts"]);
+  });
 });

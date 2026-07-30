@@ -106,6 +106,85 @@ Package filtering runs first, scope filtering narrows that result, and exact pat
 | `--allow-mutable-sources` | Permit mutable sources, source-identity changes, a non-default Antigravity installer URL, RTK release-source exceptions, or an alternate lock for this invocation. This changes the trust policy and emits warnings. |
 | `--help`, `-h` | Print CLI help and exit. No other short flags are defined. |
 
+## Ariadne Configuration
+
+`agent-toolkit ariadne` has an isolated command surface; installer selectors and environment overrides do not alter its project state.
+
+| Command | Supported flags |
+|---|---|
+| `init` | `--runtime <name>`, repeatable `--check <command>`, `--json` |
+| `run` | `--runtime <name>`, `--max-iterations <positive-integer>`, `--max-runtime <number><ms|s|m|h>`, `--dry-run`, `--json` |
+| `status` | `--json` |
+| `doctor` | `--json` |
+
+The version-1 `.ariadne/config.json` contract is:
+
+```json
+{
+  "schemaVersion": 1,
+  "runtime": "codex",
+  "qualityChecks": ["pnpm test"],
+  "maxAttemptsPerStory": 3
+}
+```
+
+During `init`, `runtime` may be omitted: Ariadne uses an existing configured
+runtime only when it is healthy. An unverified, unavailable, or incompatible
+configured runtime falls through to automatic selection of a sole healthy or
+unverified detected runtime when available.
+`qualityChecks` are also detected automatically: a package `check` script wins;
+otherwise Ariadne collects available `lint`, `typecheck`, and `test` scripts in
+that order. Explicit repeated `--check` values replace detected checks. A
+non-interactive init with no explicit, existing, or detected check fails and
+requires `--check`.
+
+For `run`, `--runtime` wins, followed by a healthy configured project runtime.
+An unverified, unavailable, or incompatible configured runtime falls through to
+automatic selection: a sole healthy candidate (or a sole unverified one), then a
+healthy global preference when one is configured; remaining ambiguity prompts
+interactively and errors in non-interactive mode, asking for `--runtime`.
+`maxAttemptsPerStory` defaults to exactly `3`. Its retry/blocking
+limit applies to process, result, criterion, and quality-check failures. A
+commit failure is recorded while the story remains `in_progress`; Ariadne keeps
+the worktree diff, original shared-index state, and run progress intact for
+manual resolution and deliberate resume, without automatic retry or blocking. There is no default global
+iteration or wall-clock limit; add `--max-iterations` or `--max-runtime` when a
+bounded run is required. Once Git has atomically published the certified
+commit, a later machine-local summary-write failure does not roll the canonical
+story back to `in_progress`.
+
+The `.ariadne/lock`, `.ariadne/runs/`, `.ariadne-quarantine.json`, and
+`.ariadne-quarantine.checkpoint.json` ignore rules are execution invariants,
+not only initialization defaults. A normal run verifies their effective Git
+behavior and rejects any operational path already tracked or staged. Runtime
+commits, branch/HEAD retargets, canonical PRD/progress edits, or pinned-path
+violations create the ignored repository-root `.ariadne-quarantine.json`
+sentinel; configuration cannot bypass it. The checkpoint holds Ariadne's last
+certified fully qualified ref, `HEAD`, and exact canonical-file identities and
+bytes. Once canonical progress contains the ownership marker, a missing,
+malformed, or mismatched checkpoint also fails closed instead of allowing a
+later command to adopt changed state. Both `init` and `run` stop before
+probing, mutation, or Git preflight while the sentinel exists; `status` and
+`doctor` remain available. Recovery requires an operator to restore the
+recorded ref/HEAD and intended state and then deliberately remove the marker.
+The state/runs directories and operational files must also remain real
+contained paths rather than symbolic links or special files. Runtime output
+leaves must retain their creator-certified device/inode identity and a single
+filesystem link; the lock, state root, runs root, active run directory, exact
+canonical bytes, explicit branch ref, real index, and private candidate tree are
+revalidated through commit publication. The owned commit remains anchored to
+the pre-runtime certified ref and `HEAD`.
+
+| Ariadne runtime | Version contract | Headless permission mode |
+|---|---|---|
+| Claude Code (`claude`) | exactly `2.1.220` | `--print --dangerously-skip-permissions` |
+| Codex CLI (`codex`) | exactly `0.145.0` | `exec --dangerously-bypass-approvals-and-sandbox --ephemeral` |
+| OpenCode (`opencode`) | exactly `1.18.8` | `run --auto` |
+| Gemini CLI (`gemini`) | exactly `0.52.0` | `--approval-mode yolo --skip-trust` |
+| Antigravity CLI (`agy`) | minimum `1.1.8` | `--print --dangerously-skip-permissions` |
+
+These modes intentionally grant autonomous project access. Run `ariadne doctor` and `ariadne run --dry-run`, review `.ariadne/prd.json` and configured checks, and preserve unrelated work before a normal run. Ariadne constrains Git ownership but cannot make an underspecified story or unsafe repository command safe.
+
 ## Runtime Skill Targets
 
 Local targets are always relative to the directory where Agent Toolkit runs. Global environment overrides affect only global scope.
@@ -191,6 +270,7 @@ Graphify executable discovery checks the active `PATH` first, then `UV_TOOL_BIN_
 | `tools.caveman` | Defines a GitHub repository and full 40-character commit SHA. |
 | `tools.graphify`, `tools.gsd`, and `tools.agentBrowser` | Define package names with exact immutable versions. |
 | `tools.agentSkills` | Defines the exact Agent Skills CLI, full-commit repository identities, supported bundle metadata, and safe repository-relative skill paths. |
+| `tools.ariadne` | Records the exact reviewed `snarktank/ralph` commit, MIT license path/hash, and the safe paths/hashes of the PRD and Ralph source skills. It is attribution metadata, not a runtime download source. |
 | `runtimeClis` | Defines exact npm package versions for Claude Code, Codex CLI, OpenCode, and Gemini CLI. |
 
 The lock rejects mutable package versions, short Git refs, invalid SHA-256 values, unsupported bundle identifiers, unknown repository references, and unsafe relative paths. Prefer a reviewed lock change when intentionally updating project defaults. `TOOLS_LOCK_PATH` replaces the entire trust catalog and therefore requires the mutable-source permission gate for applicable provenance checks.

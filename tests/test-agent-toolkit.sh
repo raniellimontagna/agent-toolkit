@@ -9,9 +9,15 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 REAL_NODE="$(command -v node || true)"
+REAL_NPM="$(command -v npm || true)"
 
 if [[ -z "$REAL_NODE" ]]; then
   echo "Node.js is required to test the Node installer." >&2
+  exit 1
+fi
+
+if [[ -z "$REAL_NPM" ]]; then
+  echo "npm is required to inspect the package contents." >&2
   exit 1
 fi
 
@@ -69,6 +75,55 @@ if ! grep -Fq -- '"access": "public"' <<<"$PACKAGE_JSON_CONTENT"; then
   echo "Expected scoped package to publish publicly" >&2
   exit 1
 fi
+
+ROOT_DIR="$ROOT_DIR" "$REAL_NODE" --input-type=module <<'NODE'
+import { readFile } from "node:fs/promises";
+
+const packageJson = JSON.parse(
+  await readFile(`${process.env.ROOT_DIR}/package.json`, "utf8"),
+);
+const expectedScripts = {
+  "test:ariadne": "vitest run tests/unit/ariadne",
+  "test:ariadne:compiled": "node tests/ariadne-e2e.mjs --platform-smoke",
+  "test:ariadne:package": "node tests/ariadne-package-e2e.mjs",
+  "test:ariadne:real": "node tests/ariadne-smoke.mjs",
+};
+for (const [name, command] of Object.entries(expectedScripts)) {
+  if (packageJson.scripts?.[name] !== command) {
+    throw new Error(`Expected package script ${name} to equal ${command}`);
+  }
+}
+NODE
+
+PACKAGE_DRY_RUN_JSON="$(
+  cd "$ROOT_DIR"
+  "$REAL_NPM" pack --dry-run --json --ignore-scripts
+)"
+PACKAGE_DRY_RUN_JSON="$PACKAGE_DRY_RUN_JSON" "$REAL_NODE" --input-type=module <<'NODE'
+const report = JSON.parse(process.env.PACKAGE_DRY_RUN_JSON);
+const files = new Set(report[0]?.files?.map(({ path }) => path));
+const required = [
+  "dist/bin/agent-toolkit.js",
+  "dist/src/ariadne/cli.js",
+  "skills/workflow/ariadne/SKILL.md",
+  "skills/workflow/ariadne/NOTICE.md",
+  "skills/workflow/ariadne-prd/SKILL.md",
+  "skills/workflow/ariadne-prd/NOTICE.md",
+  "tools.lock.json",
+  "LICENSE",
+];
+for (const path of required) {
+  if (!files.has(path)) throw new Error(`Expected package to contain ${path}`);
+}
+for (const path of files) {
+  if (path === ".ariadne" || path.startsWith(".ariadne/")) {
+    throw new Error(`Package must omit project-local Ariadne state: ${path}`);
+  }
+  if (path.includes("/.ariadne/runs/")) {
+    throw new Error(`Package must omit Ariadne run artifacts: ${path}`);
+  }
+}
+NODE
 
 ROOT_DIR="$ROOT_DIR" "$REAL_NODE" --input-type=module <<'NODE'
 import { existsSync, readdirSync } from "node:fs";
@@ -136,6 +191,7 @@ fi
 for module in \
   args.ts \
   checksum.ts \
+  cli.ts \
   context.ts \
   doctor.ts \
   lock-update.ts \
@@ -152,6 +208,32 @@ for module in \
   tool-lock.ts \
   usage.ts \
   ui.ts \
+  ariadne/args.ts \
+  ariadne/checks.ts \
+  ariadne/cli.ts \
+  ariadne/doctor.ts \
+  ariadne/git.ts \
+  ariadne/import.ts \
+  ariadne/init.ts \
+  ariadne/lock.ts \
+  ariadne/loop.ts \
+  ariadne/process.ts \
+  ariadne/prompt.ts \
+  ariadne/render.ts \
+  ariadne/result.ts \
+  ariadne/schema.ts \
+  ariadne/status.ts \
+  ariadne/store.ts \
+  ariadne/types.ts \
+  ariadne/usage.ts \
+  ariadne/runtimes/antigravity.ts \
+  ariadne/runtimes/claude.ts \
+  ariadne/runtimes/codex.ts \
+  ariadne/runtimes/gemini.ts \
+  ariadne/runtimes/index.ts \
+  ariadne/runtimes/opencode.ts \
+  ariadne/runtimes/shared.ts \
+  ariadne/runtimes/types.ts \
   installers/caveman.ts \
   installers/agent-browser.ts \
   installers/agent-skills.ts \
@@ -165,8 +247,8 @@ for module in \
   fi
 done
 
-if ! grep -Fq -- "../src/main.js" "$ROOT_DIR/bin/agent-toolkit.ts"; then
-  echo "Expected bin/agent-toolkit.ts to be a thin entrypoint into src/main.ts" >&2
+if ! grep -Fq -- "../src/cli.js" "$ROOT_DIR/bin/agent-toolkit.ts"; then
+  echo "Expected bin/agent-toolkit.ts to be a thin entrypoint into src/cli.ts" >&2
   exit 1
 fi
 
@@ -2084,3 +2166,6 @@ fs.writeFileSync(dest, `${JSON.stringify(lock, null, 2)}\n`);
   kill "$RTK_SERVER_PID" 2>/dev/null || true
   wait "$RTK_SERVER_PID" 2>/dev/null || true
 fi
+
+ARIADNE_REAL_GIT="$(command -v git)" \
+  "$REAL_NODE" "$ROOT_DIR/tests/ariadne-e2e.mjs"
