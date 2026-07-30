@@ -47,7 +47,11 @@ export function generateSkillsIndex(skillsDir: string): SkillsIndex {
       brief: fs.existsSync(briefFile) ? `skills/${ref}/BRIEF.md` : null,
     };
   });
-  skills.sort((left, right) => left.ref.localeCompare(right.ref));
+  skills.sort((left, right) => {
+    if (left.ref < right.ref) return -1;
+    if (left.ref > right.ref) return 1;
+    return 0;
+  });
   return { version: 1, skills };
 }
 

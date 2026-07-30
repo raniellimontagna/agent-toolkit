@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "skills": [
+    {
+      "name": "accessibility",
+      "ref": "frontend/accessibility",
+      "path": "skills/frontend/accessibility/SKILL.md",
+      "brief": "skills/frontend/accessibility/BRIEF.md"
+    },
+    {
+      "name": "astro-react-landing",
+      "ref": "frontend/astro/astro-react-landing",
+      "path": "skills/frontend/astro/astro-react-landing/SKILL.md",
+      "brief": "skills/frontend/astro/astro-react-landing/BRIEF.md"
+    },
+    {
+      "name": "frontend-design",
+      "ref": "frontend/design/frontend-design",
+      "path": "skills/frontend/design/frontend-design/SKILL.md",
+      "brief": "skills/frontend/design/frontend-design/BRIEF.md"
+    },
+    {
+      "name": "ui-ux-pro-max",
+      "ref": "frontend/design/ui-ux-pro-max",
+      "path": "skills/frontend/design/ui-ux-pro-max/SKILL.md",
+      "brief": "skills/frontend/design/ui-ux-pro-max/BRIEF.md"
+    },
+    {
+      "name": "gsap-motion",
+      "ref": "frontend/gsap/gsap-motion",
+      "path": "skills/frontend/gsap/gsap-motion/SKILL.md",
+      "brief": "skills/frontend/gsap/gsap-motion/BRIEF.md"
+    },
+    {
+      "name": "seo-page",
+      "ref": "frontend/seo/seo-page",
+      "path": "skills/frontend/seo/seo-page/SKILL.md",
+      "brief": "skills/frontend/seo/seo-page/BRIEF.md"
+    },
+    {
+      "name": "biome-formatting",
+      "ref": "quality/biome-formatting",
+      "path": "skills/quality/biome-formatting/SKILL.md",
+      "brief": "skills/quality/biome-formatting/BRIEF.md"
+    },
+    {
+      "name": "instagram-public-research",
+      "ref": "research/instagram-public-research",
+      "path": "skills/research/instagram-public-research/SKILL.md",
+      "brief": "skills/research/instagram-public-research/BRIEF.md"
+    },
+    {
+      "name": "research-data-collection",
+      "ref": "research/research-data-collection",
+      "path": "skills/research/research-data-collection/SKILL.md",
+      "brief": "skills/research/research-data-collection/BRIEF.md"
+    }
+  ]
+}

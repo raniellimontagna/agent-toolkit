@@ -13,6 +13,7 @@
   },
   "files": [
     "dist",
+    "skills.index.json",
     "docs/assets",
     "skills",
     "tools.lock.json",
@@ -26,11 +27,12 @@
     "access": "public"
   },
   "scripts": {
-    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.json",
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.json && node dist/src/build-skills-index.js",
     "check": "pnpm run lint && pnpm run typecheck && pnpm run test:unit && pnpm run build && find dist/bin dist/src -name '*.js' -print0 | xargs -0 -n1 node --check && bash -n setup-agent-toolkit.sh && bash -n scripts/publish-npm-with-retry.sh && bash -n tests/publish-npm-with-retry.test.sh && pnpm run test:integration",
     "format": "biome format --write .",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
+    "pack:skills": "pnpm --filter @ranimontagna/agent-skills pack --dry-run",
     "prepare": "pnpm run build",
     "release:major": "pnpm run build && node dist/src/release.js major",
     "release:minor": "pnpm run build && node dist/src/release.js minor",

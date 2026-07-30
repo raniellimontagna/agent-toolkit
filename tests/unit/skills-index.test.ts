@@ -49,4 +49,13 @@ describe("skills index", () => {
       ],
     });
   });
+
+  it("uses locale-independent byte ordering for stable build output", () => {
+    writeSkill("frontend/Zulu", "zulu");
+    writeSkill("frontend/alpha", "alpha");
+
+    expect(
+      generateSkillsIndex(tempDir).skills.map((skill) => skill.ref),
+    ).toEqual(["frontend/Zulu", "frontend/alpha"]);
+  });
 });
