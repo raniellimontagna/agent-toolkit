@@ -4,51 +4,51 @@
     "rtk": {
       "source": "github-release",
       "repository": "rtk-ai/rtk",
-      "tag": "v0.44.0",
+      "tag": "v0.45.0",
       "assets": {
         "rtk-aarch64-apple-darwin.tar.gz": {
-          "sha256": "2f6492ffc6c5a2f355b159aef17f30e5bb250abd80329dc03a099b5411638b1c"
+          "sha256": "064151cfc2d50b24d810b06a0af2e41b9c945e83534e4c438c3d3eae607fc3f4"
         },
         "rtk-aarch64-unknown-linux-gnu.tar.gz": {
-          "sha256": "48be2ebe6332ceb67301909125ea20a3f557b07a7c6614defed29f9bf8e1d074"
+          "sha256": "80a746dd305ef944ff50ef011ae4ce3878dd5ba88dfe35d859d05498191637c3"
         },
         "rtk-x86_64-apple-darwin.tar.gz": {
-          "sha256": "027e940d2e9928ea44290577163570bf2540b54c4698d23e3ba170bb34ffeffc"
+          "sha256": "9ea02f889d5a2779e4fb700df4587824303c5a57cda22e903e30058079fca0ef"
         },
         "rtk-x86_64-pc-windows-msvc.zip": {
-          "sha256": "f5824278f7f668a8638a6b0ec6286fd31190165b1f2bc7b031d53cb2dfa6ead5"
+          "sha256": "34cea9009a8099acdaf85147b971d95f65efabfa63fb3aea7d3e2b73e6f517c3"
         },
         "rtk-x86_64-unknown-linux-musl.tar.gz": {
-          "sha256": "3c3316cfc068e372432b415faeab73d46f8047750d488dd94d01d8d9f016a2a1"
+          "sha256": "c4c036fbf181fc55ef329786c8c17e0d427972b053b825944d968a6aafef1ba4"
         }
       }
     },
     "caveman": {
       "source": "github",
       "repository": "JuliusBrussee/caveman",
-      "ref": "0d95a81d35a9f2d123a5e9430d1cfc43d55f1bb0"
+      "ref": "ec83e5bace4c20484d704dea21e12fc4eb94e9aa"
     },
     "graphify": {
       "source": "pypi",
       "package": "graphifyy",
-      "version": "0.9.29"
+      "version": "0.9.35"
     },
     "gsd": {
       "source": "npm",
       "package": "@opengsd/gsd-core",
-      "version": "1.8.0"
+      "version": "1.9.1"
     },
     "agentBrowser": {
       "source": "npm",
       "package": "agent-browser",
-      "version": "0.33.1"
+      "version": "0.33.2"
     },
     "agentSkills": {
       "source": "skills-cli",
       "skillsCli": {
         "source": "npm",
         "package": "skills",
-        "version": "1.5.20"
+        "version": "1.5.22"
       },
       "repositories": {
         "shadcnImprove": {
@@ -59,12 +59,12 @@
         "agentBrowser": {
           "source": "github",
           "repository": "vercel-labs/agent-browser",
-          "ref": "6dcea79b4b567a5671f1e1164807204f69542a5c"
+          "ref": "acbc22bdc5d4f6c5a88d97d4a4745d3c5eb0591f"
         },
         "impeccable": {
           "source": "github",
           "repository": "pbakaus/impeccable",
-          "ref": "1cf7d7ab0f1ac0bb3319fd20be389a3009f4037d"
+          "ref": "aee6ce9352b842217b3f57c78296a7a4fa35a7f3"
         },
         "webDesignGuidelines": {
           "source": "github",
@@ -74,17 +74,17 @@
         "reactDoctor": {
           "source": "github",
           "repository": "millionco/react-doctor",
-          "ref": "f1a1b16eb51ca89fb152cd2b472065e73bc51cac"
+          "ref": "59ae70b4fb596f62462d17cb9f6b56fd4b16d027"
         },
         "remotionBestPractices": {
           "source": "github",
           "repository": "remotion-dev/skills",
-          "ref": "0e444efe46a8eb606acefd54d70ae64e8f908e36"
+          "ref": "7809e7935bc2e18f4b86526fa6022e6aadd8fe8b"
         },
         "mattPocockSkills": {
           "source": "github",
           "repository": "mattpocock/skills",
-          "ref": "2ab958093e83e0ec752e6c1c5932da465bf23e0c"
+          "ref": "84fdeffd12f2ee307994d1eb6feb48173b6e0502"
         }
       },
       "bundles": {
@@ -176,22 +176,22 @@
     "claude": {
       "source": "npm",
       "package": "@anthropic-ai/claude-code",
-      "version": "2.1.220"
+      "version": "2.1.224"
     },
     "codex": {
       "source": "npm",
       "package": "@openai/codex",
-      "version": "0.145.0"
+      "version": "0.147.0"
     },
     "opencode": {
       "source": "npm",
       "package": "opencode-ai",
-      "version": "1.18.8"
+      "version": "1.18.15"
     },
     "gemini": {
       "source": "npm",
       "package": "@google/gemini-cli",
-      "version": "0.52.0"
+      "version": "0.54.4"
     }
   }
 }

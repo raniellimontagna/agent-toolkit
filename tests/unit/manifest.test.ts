@@ -194,21 +194,24 @@ describe("install manifest", () => {
       }),
       "installedAt",
     ],
-  ])("rejects invalid %s without mutating an installed path", (_name, makeValue, field) => {
-    const installedPath = firstEntry(validManifest()).destination;
-    fs.mkdirSync(installedPath, { recursive: true });
-    const filePath = writeRawManifest(makeValue());
+  ])(
+    "rejects invalid %s without mutating an installed path",
+    (_name, makeValue, field) => {
+      const installedPath = firstEntry(validManifest()).destination;
+      fs.mkdirSync(installedPath, { recursive: true });
+      const filePath = writeRawManifest(makeValue());
 
-    expect(() => readManifest(filePath, "local")).toThrow(
-      new RegExp(
-        `${filePath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}.*${field.replace(
-          /[.*+?^${}()|[\]\\]/g,
-          "\\$&",
-        )}`,
-      ),
-    );
-    expect(fs.existsSync(installedPath)).toBe(true);
-  });
+      expect(() => readManifest(filePath, "local")).toThrow(
+        new RegExp(
+          `${filePath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}.*${field.replace(
+            /[.*+?^${}()|[\]\\]/g,
+            "\\$&",
+          )}`,
+        ),
+      );
+      expect(fs.existsSync(installedPath)).toBe(true);
+    },
+  );
 
   it("reports malformed JSON with the manifest path and no echoed content", () => {
     const filePath = path.join(tempDir, "install-manifest.json");

@@ -183,32 +183,32 @@ describe("external tool lock", () => {
     const lock = loadToolLock(lockPath);
 
     expect(lock.version).toBe(1);
-    expect(lock.tools.rtk.tag).toBe("v0.44.0");
+    expect(lock.tools.rtk.tag).toBe("v0.45.0");
     expect(
       lock.tools.rtk.assets["rtk-x86_64-unknown-linux-musl.tar.gz"],
     ).toEqual({
       sha256:
-        "3c3316cfc068e372432b415faeab73d46f8047750d488dd94d01d8d9f016a2a1",
+        "c4c036fbf181fc55ef329786c8c17e0d427972b053b825944d968a6aafef1ba4",
     });
     expect(lock.tools.caveman.ref).toBe(
-      "0d95a81d35a9f2d123a5e9430d1cfc43d55f1bb0",
+      "ec83e5bace4c20484d704dea21e12fc4eb94e9aa",
     );
-    expect(lock.tools.gsd.version).toBe("1.8.0");
-    expect(lock.tools.graphify.version).toBe("0.9.29");
+    expect(lock.tools.gsd.version).toBe("1.9.1");
+    expect(lock.tools.graphify.version).toBe("0.9.35");
     expect(lock.tools.agentBrowser).toEqual({
       source: "npm",
       package: "agent-browser",
-      version: "0.33.1",
+      version: "0.33.2",
     });
     expect(lock.tools.agentSkills.skillsCli).toEqual({
       source: "npm",
       package: "skills",
-      version: "1.5.20",
+      version: "1.5.22",
     });
     expect(lock.tools.agentSkills.repositories.mattPocockSkills).toEqual({
       source: "github",
       repository: "mattpocock/skills",
-      ref: "2ab958093e83e0ec752e6c1c5932da465bf23e0c",
+      ref: "84fdeffd12f2ee307994d1eb6feb48173b6e0502",
     });
     expect(lock.tools.agentSkills.bundles["planning-skills"].skills).toEqual([
       { repository: "mattPocockSkills", skill: "grill-me" },
@@ -222,7 +222,7 @@ describe("external tool lock", () => {
       },
     ]);
     expect(lock.tools.ariadne).toEqual(expectedAriadneLock);
-    expect(lock.runtimeClis.gemini.version).toBe("0.52.0");
+    expect(lock.runtimeClis.gemini.version).toBe("0.54.4");
   });
 
   it.each([
@@ -262,34 +262,35 @@ describe("external tool lock", () => {
     );
   });
 
-  it.each(
-    invalidCatalogCases,
-  )("rejects an Agent Skills catalog with %s", (_label, mutate) => {
-    expect(() => loadToolLock(writeMutatedLock(mutate))).toThrow(
-      "Invalid tools.lock.json",
-    );
-  });
+  it.each(invalidCatalogCases)(
+    "rejects an Agent Skills catalog with %s",
+    (_label, mutate) => {
+      expect(() => loadToolLock(writeMutatedLock(mutate))).toThrow(
+        "Invalid tools.lock.json",
+      );
+    },
+  );
 
   it("formats immutable package specs from locked versions", () => {
     expect(formatNpmPackageSpec("@opengsd/gsd-core", "1.6.1")).toBe(
       "@opengsd/gsd-core@1.6.1",
     );
-    expect(formatNpmPackageSpec("@google/gemini-cli", "0.52.0")).toBe(
-      "@google/gemini-cli@0.52.0",
+    expect(formatNpmPackageSpec("@google/gemini-cli", "0.54.4")).toBe(
+      "@google/gemini-cli@0.54.4",
     );
-    expect(formatPythonPackageSpec("graphifyy", "0.9.29")).toBe(
-      "graphifyy==0.9.29",
+    expect(formatPythonPackageSpec("graphifyy", "0.9.35")).toBe(
+      "graphifyy==0.9.35",
     );
     expect(
       formatGithubPackageSpec(
         "JuliusBrussee/caveman",
-        "0d95a81d35a9f2d123a5e9430d1cfc43d55f1bb0",
+        "ec83e5bace4c20484d704dea21e12fc4eb94e9aa",
       ),
     ).toBe(
-      "github:JuliusBrussee/caveman#0d95a81d35a9f2d123a5e9430d1cfc43d55f1bb0",
+      "github:JuliusBrussee/caveman#ec83e5bace4c20484d704dea21e12fc4eb94e9aa",
     );
-    expect(githubReleaseApiUrl("rtk-ai/rtk", "v0.44.0")).toBe(
-      "https://api.github.com/repos/rtk-ai/rtk/releases/tags/v0.44.0",
+    expect(githubReleaseApiUrl("rtk-ai/rtk", "v0.45.0")).toBe(
+      "https://api.github.com/repos/rtk-ai/rtk/releases/tags/v0.45.0",
     );
   });
 
@@ -303,10 +304,10 @@ describe("external tool lock", () => {
     expect(isMutableExternalSource("graphifyy")).toBe(true);
 
     expect(isMutableExternalSource("@opengsd/gsd-core@1.6.1")).toBe(false);
-    expect(isMutableExternalSource("graphifyy==0.9.29")).toBe(false);
+    expect(isMutableExternalSource("graphifyy==0.9.35")).toBe(false);
     expect(
       isMutableExternalSource(
-        "github:JuliusBrussee/caveman#0d95a81d35a9f2d123a5e9430d1cfc43d55f1bb0",
+        "github:JuliusBrussee/caveman#ec83e5bace4c20484d704dea21e12fc4eb94e9aa",
       ),
     ).toBe(false);
   });
@@ -318,11 +319,11 @@ describe("external tool lock", () => {
     expect(externalSourceIdentity("@opengsd/gsd-core@latest")).toBe(
       "@opengsd/gsd-core",
     );
-    expect(externalSourceIdentity("skills@1.5.20")).toBe("skills");
-    expect(externalSourceIdentity("graphifyy==0.9.29")).toBe("graphifyy");
+    expect(externalSourceIdentity("skills@1.5.22")).toBe("skills");
+    expect(externalSourceIdentity("graphifyy==0.9.35")).toBe("graphifyy");
     expect(
       externalSourceIdentity(
-        "github:JuliusBrussee/caveman#0d95a81d35a9f2d123a5e9430d1cfc43d55f1bb0",
+        "github:JuliusBrussee/caveman#ec83e5bace4c20484d704dea21e12fc4eb94e9aa",
       ),
     ).toBe("github:JuliusBrussee/caveman");
     expect(externalSourceIdentity("@attacker/evil@1.6.1")).not.toBe(

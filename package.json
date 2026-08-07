@@ -59,12 +59,12 @@
   "homepage": "https://github.com/raniellimontagna/agent-toolkit#readme",
   "license": "MIT",
   "devDependencies": {
-    "@biomejs/biome": "^2.5.1",
-    "@types/node": "^26.0.1",
-    "typescript": "^6.0.3",
+    "@biomejs/biome": "^2.5.7",
+    "@types/node": "^26.1.2",
+    "typescript": "^7.0.2",
     "vitest": "^4.1.10"
   },
   "dependencies": {
-    "@clack/prompts": "^1.6.0"
+    "@clack/prompts": "^1.7.0"
   }
 }

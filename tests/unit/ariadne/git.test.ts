@@ -306,41 +306,44 @@ describe("AriadneGit", () => {
       "negates",
       ".ariadne/lock\n.ariadne/runs/\n!.ariadne/lock\n!.ariadne/runs/\n!.ariadne/runs/**\n",
     ],
-  ])("fails safely when the runtime %s machine-local ignores", (_scenario, gitignore) => {
-    const { root, git } = createRepository();
-    fs.writeFileSync(path.join(root, ".gitignore"), gitignore, "utf8");
-    fs.writeFileSync(
-      path.join(root, "feature.ts"),
-      "export const safe = true;\n",
-    );
-    fs.mkdirSync(path.join(root, ".ariadne", "runs", ".lock-coordinator"), {
-      recursive: true,
-    });
-    fs.writeFileSync(path.join(root, ".ariadne", "lock"), "local lock\n");
-    fs.writeFileSync(
-      path.join(root, ".ariadne", "runs", ".lock-coordinator", "root.json"),
-      "local coordinator\n",
-    );
-    for (const name of [
-      "prompt.md",
-      "result.json",
-      "runtime.stdout.log",
-      "runtime.stderr.log",
-    ]) {
+  ])(
+    "fails safely when the runtime %s machine-local ignores",
+    (_scenario, gitignore) => {
+      const { root, git } = createRepository();
+      fs.writeFileSync(path.join(root, ".gitignore"), gitignore, "utf8");
       fs.writeFileSync(
-        path.join(root, ".ariadne", "runs", name),
-        `local ${name}\n`,
+        path.join(root, "feature.ts"),
+        "export const safe = true;\n",
       );
-    }
+      fs.mkdirSync(path.join(root, ".ariadne", "runs", ".lock-coordinator"), {
+        recursive: true,
+      });
+      fs.writeFileSync(path.join(root, ".ariadne", "lock"), "local lock\n");
+      fs.writeFileSync(
+        path.join(root, ".ariadne", "runs", ".lock-coordinator", "root.json"),
+        "local coordinator\n",
+      );
+      for (const name of [
+        "prompt.md",
+        "result.json",
+        "runtime.stdout.log",
+        "runtime.stderr.log",
+      ]) {
+        fs.writeFileSync(
+          path.join(root, ".ariadne", "runs", name),
+          `local ${name}\n`,
+        );
+      }
 
-    expect(() => git.stageAll()).toThrow(/machine-local.*ignored/i);
-    expect(executeGit(["diff", "--cached", "--name-only"], root).stdout).toBe(
-      "",
-    );
-    expect(executeGit(["status", "--porcelain=v1"], root).stdout).toContain(
-      "feature.ts",
-    );
-  });
+      expect(() => git.stageAll()).toThrow(/machine-local.*ignored/i);
+      expect(executeGit(["diff", "--cached", "--name-only"], root).stdout).toBe(
+        "",
+      );
+      expect(executeGit(["status", "--porcelain=v1"], root).stdout).toContain(
+        "feature.ts",
+      );
+    },
+  );
 
   it("refuses an index pre-contaminated with a forced machine-local artifact", () => {
     const { root, git } = createRepository();
@@ -543,16 +546,16 @@ describe("AriadneGit", () => {
     expect(() => git.assertPublished(commit)).not.toThrow();
   });
 
-  it.each([
-    { id: "US-005\nmalicious" },
-    { title: "Title\rwith a newline" },
-  ])("rejects newline commit-message input without invoking Git", (overrides) => {
-    const { calls, git } = createRepository();
-    const callsBefore = calls.length;
+  it.each([{ id: "US-005\nmalicious" }, { title: "Title\rwith a newline" }])(
+    "rejects newline commit-message input without invoking Git",
+    (overrides) => {
+      const { calls, git } = createRepository();
+      const callsBefore = calls.length;
 
-    expect(() => git.commit(story(overrides), "unused-head")).toThrow(
-      /newline/i,
-    );
-    expect(calls).toHaveLength(callsBefore);
-  });
+      expect(() => git.commit(story(overrides), "unused-head")).toThrow(
+        /newline/i,
+      );
+      expect(calls).toHaveLength(callsBefore);
+    },
+  );
 });

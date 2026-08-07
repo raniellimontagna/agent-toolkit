@@ -180,7 +180,7 @@ function createHarness(
       return {
         name: "codex",
         state: "healthy",
-        version: "0.145.0",
+        version: "0.147.0",
         reason: "deterministic test adapter",
       };
     },
@@ -441,7 +441,7 @@ describe("runAriadneLoop successful lifecycle", () => {
         ),
       ),
     ).toMatchObject({
-      runtimeVersion: "0.145.0",
+      runtimeVersion: "0.147.0",
       initialHead: "initial-head",
       invocation: {
         command: "fake-codex",
@@ -578,7 +578,7 @@ describe("runAriadneLoop successful lifecycle", () => {
           args: [path.join(harness.store.paths.runs, "dry-run", "prompt.md")],
           cwd: harness.root,
         },
-        runtime: { name: "codex", state: "healthy", version: "0.145.0" },
+        runtime: { name: "codex", state: "healthy", version: "0.147.0" },
         checks: ["pnpm test"],
         limits: {
           maxAttemptsPerStory: 3,
@@ -995,28 +995,31 @@ describe("runAriadneLoop successful lifecycle", () => {
   it.each([
     ["prd", { agentEditsPrd: true }],
     ["progress", { agentEditsProgress: true }],
-  ] as const)("refuses runtime edits to canonical %s state", async (_label, options) => {
-    const harness = createHarness([story("US-001", 1)], options);
-    const { runAriadneLoop } = await import("../../../src/ariadne/loop.js");
+  ] as const)(
+    "refuses runtime edits to canonical %s state",
+    async (_label, options) => {
+      const harness = createHarness([story("US-001", 1)], options);
+      const { runAriadneLoop } = await import("../../../src/ariadne/loop.js");
 
-    await expect(
-      runAriadneLoop({ runtime: "codex", dryRun: false }, harness.deps),
-    ).rejects.toThrow(/runtime edited canonical Ariadne state/i);
+      await expect(
+        runAriadneLoop({ runtime: "codex", dryRun: false }, harness.deps),
+      ).rejects.toThrow(/runtime edited canonical Ariadne state/i);
 
-    expect(harness.events).not.toContain("git.stageAll");
-    expect(harness.events).not.toContain("git.commit");
-    expect(
-      JSON.parse(
-        fs.readFileSync(harness.store.paths.ownershipViolation, "utf8"),
-      ),
-    ).toMatchObject({
-      schemaVersion: 1,
-      runId: "run-1",
-      storyId: "US-001",
-      certifiedHead: "initial-head",
-      changed: [_label],
-    });
-  });
+      expect(harness.events).not.toContain("git.stageAll");
+      expect(harness.events).not.toContain("git.commit");
+      expect(
+        JSON.parse(
+          fs.readFileSync(harness.store.paths.ownershipViolation, "utf8"),
+        ),
+      ).toMatchObject({
+        schemaVersion: 1,
+        runId: "run-1",
+        storyId: "US-001",
+        certifiedHead: "initial-head",
+        changed: [_label],
+      });
+    },
+  );
 
   it("treats a byte-identical canonical progress symlink as an ownership violation", async () => {
     const harness = createHarness([story("US-001", 1)], {

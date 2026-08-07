@@ -437,50 +437,50 @@ describe("runAgentProcess", () => {
     if (process.platform !== "win32") expect(result.signal).toBe("SIGKILL");
   });
 
-  it.each([
-    "SIGINT",
-    "SIGTERM",
-  ] as const)("forwards supervisor %s to the child and removes supervisor listeners", async (signal) => {
-    const { root, stdoutPath, stderrPath } = fixture();
-    const controller = new AbortController();
-    const listenersBefore = new Set(process.listeners(signal));
-    const running = runAgentProcess(
-      {
-        command: process.execPath,
-        args: [
-          "-e",
-          `process.on('${signal}', () => process.exit(23)); console.log('ready'); setInterval(() => {}, 1_000)`,
-        ],
-        cwd: root,
-        env: process.env,
-      },
-      {
-        stdoutPath,
-        stderrPath,
-        signal: controller.signal,
-        gracePeriodMs: 200,
-      },
-    );
+  it.each(["SIGINT", "SIGTERM"] as const)(
+    "forwards supervisor %s to the child and removes supervisor listeners",
+    async (signal) => {
+      const { root, stdoutPath, stderrPath } = fixture();
+      const controller = new AbortController();
+      const listenersBefore = new Set(process.listeners(signal));
+      const running = runAgentProcess(
+        {
+          command: process.execPath,
+          args: [
+            "-e",
+            `process.on('${signal}', () => process.exit(23)); console.log('ready'); setInterval(() => {}, 1_000)`,
+          ],
+          cwd: root,
+          env: process.env,
+        },
+        {
+          stdoutPath,
+          stderrPath,
+          signal: controller.signal,
+          gracePeriodMs: 200,
+        },
+      );
 
-    try {
-      await waitForFileContent(stdoutPath, "ready\n");
-      const forward = process
-        .listeners(signal)
-        .find((listener) => !listenersBefore.has(listener));
-      expect(forward).toBeDefined();
-      forward?.(signal);
+      try {
+        await waitForFileContent(stdoutPath, "ready\n");
+        const forward = process
+          .listeners(signal)
+          .find((listener) => !listenersBefore.has(listener));
+        expect(forward).toBeDefined();
+        forward?.(signal);
 
-      const result = await running;
-      expect(result).toMatchObject({
-        status: 23,
-        signal: null,
-        timedOut: false,
-        aborted: false,
-      });
-      expect(process.listeners(signal)).toEqual([...listenersBefore]);
-    } finally {
-      controller.abort();
-      await running;
-    }
-  });
+        const result = await running;
+        expect(result).toMatchObject({
+          status: 23,
+          signal: null,
+          timedOut: false,
+          aborted: false,
+        });
+        expect(process.listeners(signal)).toEqual([...listenersBefore]);
+      } finally {
+        controller.abort();
+        await running;
+      }
+    },
+  );
 });

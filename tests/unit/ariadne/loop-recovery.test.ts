@@ -147,7 +147,7 @@ function createHarness(
     detect: () => ({
       name: "codex",
       state: "healthy",
-      version: "0.145.0",
+      version: "0.147.0",
       reason: "fake adapter",
     }),
     buildInvocation(context: IterationContext): AgentInvocation {
@@ -357,38 +357,41 @@ describe("runAriadneLoop recovery", () => {
     ["missing_result", "result", "Agent result contains invalid JSON"],
     ["false_criterion", "criterion", "Acceptance criterion was false"],
     ["check", "check", "quality check failed"],
-  ] as const)("recovers a %s failure with the same diff and prior summary", async (mode, category, priorMessage) => {
-    const harness = createHarness([mode, "success"]);
+  ] as const)(
+    "recovers a %s failure with the same diff and prior summary",
+    async (mode, category, priorMessage) => {
+      const harness = createHarness([mode, "success"]);
 
-    const result = await runAriadneLoop(
-      { runtime: "codex", dryRun: false },
-      harness.deps,
-    );
+      const result = await runAriadneLoop(
+        { runtime: "codex", dryRun: false },
+        harness.deps,
+      );
 
-    expect(result.outcome).toBe("complete");
-    expect(harness.processStarts).toBe(2);
-    expect(harness.store.loadPrd().userStories[0]).toMatchObject({
-      status: "completed",
-      attempts: 2,
-    });
-    expect(fs.readFileSync(path.join(harness.root, "kept.diff"), "utf8")).toBe(
-      "preserve me\n",
-    );
-    expect(harness.readyDiffFlags).toEqual([false, true]);
-    expect(harness.prompts[1]).toContain("## Prior failure");
-    expect(harness.prompts[1]).toContain(priorMessage);
-    expect(fs.readFileSync(harness.store.paths.progress, "utf8")).toContain(
-      `failure category: ${category}`,
-    );
-    expect(
-      JSON.parse(
-        fs.readFileSync(
-          path.join(harness.store.paths.runs, "run-1", "failure.json"),
-          "utf8",
+      expect(result.outcome).toBe("complete");
+      expect(harness.processStarts).toBe(2);
+      expect(harness.store.loadPrd().userStories[0]).toMatchObject({
+        status: "completed",
+        attempts: 2,
+      });
+      expect(
+        fs.readFileSync(path.join(harness.root, "kept.diff"), "utf8"),
+      ).toBe("preserve me\n");
+      expect(harness.readyDiffFlags).toEqual([false, true]);
+      expect(harness.prompts[1]).toContain("## Prior failure");
+      expect(harness.prompts[1]).toContain(priorMessage);
+      expect(fs.readFileSync(harness.store.paths.progress, "utf8")).toContain(
+        `failure category: ${category}`,
+      );
+      expect(
+        JSON.parse(
+          fs.readFileSync(
+            path.join(harness.store.paths.runs, "run-1", "failure.json"),
+            "utf8",
+          ),
         ),
-      ),
-    ).toMatchObject({ runId: "run-1", category });
-  });
+      ).toMatchObject({ runId: "run-1", category });
+    },
+  );
 
   it("persists sanitized validated result and check evidence before retrying", async () => {
     const harness = createHarness(["check", "success"]);
@@ -680,32 +683,35 @@ describe("runAriadneLoop recovery", () => {
     ["sigint", "signal"],
     ["cancelled_sigterm", "cancelled"],
     ["cancelled", "cancelled"],
-  ] as const)("returns interrupted for %s and preserves active state", async (mode, reason) => {
-    const harness = createHarness([mode]);
+  ] as const)(
+    "returns interrupted for %s and preserves active state",
+    async (mode, reason) => {
+      const harness = createHarness([mode]);
 
-    const result = await runAriadneLoop(
-      { runtime: "codex", dryRun: false },
-      harness.deps,
-    );
+      const result = await runAriadneLoop(
+        { runtime: "codex", dryRun: false },
+        harness.deps,
+      );
 
-    expect(result).toMatchObject({
-      outcome: "interrupted",
-      iterations: 1,
-      activeStoryId: "US-008",
-    });
-    expect(harness.store.loadPrd().userStories[0]).toMatchObject({
-      status: "in_progress",
-      attempts: 1,
-    });
-    expect(
-      JSON.parse(
-        fs.readFileSync(
-          path.join(harness.store.paths.runs, "run-1", "stop.json"),
-          "utf8",
+      expect(result).toMatchObject({
+        outcome: "interrupted",
+        iterations: 1,
+        activeStoryId: "US-008",
+      });
+      expect(harness.store.loadPrd().userStories[0]).toMatchObject({
+        status: "in_progress",
+        attempts: 1,
+      });
+      expect(
+        JSON.parse(
+          fs.readFileSync(
+            path.join(harness.store.paths.runs, "run-1", "stop.json"),
+            "utf8",
+          ),
         ),
-      ),
-    ).toMatchObject({ outcome: "interrupted", reason });
-  });
+      ).toMatchObject({ outcome: "interrupted", reason });
+    },
+  );
 
   it("classifies a runtime timeout before the SIGTERM used to stop the child", async () => {
     const harness = createHarness(["timeout_sigterm"]);
@@ -726,40 +732,43 @@ describe("runAriadneLoop recovery", () => {
   it.each([
     ["check_timeout", "budget_exhausted", "max_runtime"],
     ["check_cancelled", "interrupted", "cancelled"],
-  ] as const)("propagates %s from quality checks without committing", async (mode, outcome, reason) => {
-    const harness = createHarness([mode]);
-    let checkInput: Parameters<AriadneLoopDeps["runChecks"]>[0] | undefined;
-    const originalRunChecks = harness.deps.runChecks;
-    harness.deps.runChecks = async (input) => {
-      checkInput = input;
-      return originalRunChecks(input);
-    };
-    const controller = new AbortController();
+  ] as const)(
+    "propagates %s from quality checks without committing",
+    async (mode, outcome, reason) => {
+      const harness = createHarness([mode]);
+      let checkInput: Parameters<AriadneLoopDeps["runChecks"]>[0] | undefined;
+      const originalRunChecks = harness.deps.runChecks;
+      harness.deps.runChecks = async (input) => {
+        checkInput = input;
+        return originalRunChecks(input);
+      };
+      const controller = new AbortController();
 
-    const result = await runAriadneLoop(
-      {
-        runtime: "codex",
-        dryRun: false,
-        maxRuntimeMs: 100,
-        signal: controller.signal,
-      },
-      harness.deps,
-    );
+      const result = await runAriadneLoop(
+        {
+          runtime: "codex",
+          dryRun: false,
+          maxRuntimeMs: 100,
+          signal: controller.signal,
+        },
+        harness.deps,
+      );
 
-    expect(result).toMatchObject({ outcome, lastRunId: "run-1" });
-    expect(checkInput?.timeoutMs).toBeGreaterThan(0);
-    expect(checkInput?.timeoutMs).toBeLessThanOrEqual(100);
-    expect(checkInput?.signal).toBe(controller.signal);
-    expect(harness.commits).toBe(0);
-    expect(
-      JSON.parse(
-        fs.readFileSync(
-          path.join(harness.store.paths.runs, "run-1", "stop.json"),
-          "utf8",
+      expect(result).toMatchObject({ outcome, lastRunId: "run-1" });
+      expect(checkInput?.timeoutMs).toBeGreaterThan(0);
+      expect(checkInput?.timeoutMs).toBeLessThanOrEqual(100);
+      expect(checkInput?.signal).toBe(controller.signal);
+      expect(harness.commits).toBe(0);
+      expect(
+        JSON.parse(
+          fs.readFileSync(
+            path.join(harness.store.paths.runs, "run-1", "stop.json"),
+            "utf8",
+          ),
         ),
-      ),
-    ).toMatchObject({ outcome, reason });
-  });
+      ).toMatchObject({ outcome, reason });
+    },
+  );
 
   it.each([
     {
@@ -770,62 +779,63 @@ describe("runAriadneLoop recovery", () => {
       maxRuntimeMs: 31 * 60 * 1_000,
       scenario: "while the global runtime budget still has time",
     },
-  ] as const)("retries a local quality-check timeout $scenario", async ({
-    maxRuntimeMs,
-  }) => {
-    const harness = createHarness(["check_local_timeout", "success"]);
+  ] as const)(
+    "retries a local quality-check timeout $scenario",
+    async ({ maxRuntimeMs }) => {
+      const harness = createHarness(["check_local_timeout", "success"]);
 
-    const result = await runAriadneLoop(
-      {
-        runtime: "codex",
-        dryRun: false,
-        ...(maxRuntimeMs === undefined ? {} : { maxRuntimeMs }),
-      },
-      harness.deps,
-    );
+      const result = await runAriadneLoop(
+        {
+          runtime: "codex",
+          dryRun: false,
+          ...(maxRuntimeMs === undefined ? {} : { maxRuntimeMs }),
+        },
+        harness.deps,
+      );
 
-    expect(result.outcome).toBe("complete");
-    expect(harness.processStarts).toBe(2);
-    expect(harness.store.loadPrd().userStories[0]).toMatchObject({
-      status: "completed",
-      attempts: 2,
-    });
-    expect(harness.commits).toBe(1);
-  });
-
-  it.each([
-    "SIGINT",
-    "SIGTERM",
-  ] as const)("treats a parent %s as interrupted even when the child is killed with SIGKILL", async (parentSignal) => {
-    const harness = createHarness(["success"]);
-    const listenersBefore = new Set(process.listeners(parentSignal));
-    harness.deps.runProcess = async (_invocation, processOptions) => {
-      fs.writeFileSync(processOptions.stdoutPath, "", { flag: "wx" });
-      fs.writeFileSync(processOptions.stderrPath, "", { flag: "wx" });
-      const loopListener = process
-        .listeners(parentSignal)
-        .find((listener) => !listenersBefore.has(listener));
-      expect(loopListener).toBeDefined();
-      loopListener?.(parentSignal);
-      processOptions.certifyOutput?.({
-        stdout: outputIdentity(processOptions.stdoutPath),
-        stderr: outputIdentity(processOptions.stderrPath),
+      expect(result.outcome).toBe("complete");
+      expect(harness.processStarts).toBe(2);
+      expect(harness.store.loadPrd().userStories[0]).toMatchObject({
+        status: "completed",
+        attempts: 2,
       });
-      return processResult({ status: null, signal: "SIGKILL" });
-    };
+      expect(harness.commits).toBe(1);
+    },
+  );
 
-    const result = await runAriadneLoop(
-      { runtime: "codex", dryRun: false },
-      harness.deps,
-    );
+  it.each(["SIGINT", "SIGTERM"] as const)(
+    "treats a parent %s as interrupted even when the child is killed with SIGKILL",
+    async (parentSignal) => {
+      const harness = createHarness(["success"]);
+      const listenersBefore = new Set(process.listeners(parentSignal));
+      harness.deps.runProcess = async (_invocation, processOptions) => {
+        fs.writeFileSync(processOptions.stdoutPath, "", { flag: "wx" });
+        fs.writeFileSync(processOptions.stderrPath, "", { flag: "wx" });
+        const loopListener = process
+          .listeners(parentSignal)
+          .find((listener) => !listenersBefore.has(listener));
+        expect(loopListener).toBeDefined();
+        loopListener?.(parentSignal);
+        processOptions.certifyOutput?.({
+          stdout: outputIdentity(processOptions.stdoutPath),
+          stderr: outputIdentity(processOptions.stderrPath),
+        });
+        return processResult({ status: null, signal: "SIGKILL" });
+      };
 
-    expect(result).toMatchObject({
-      outcome: "interrupted",
-      iterations: 1,
-      lastRunId: "run-1",
-    });
-    expect(harness.commits).toBe(0);
-  });
+      const result = await runAriadneLoop(
+        { runtime: "codex", dryRun: false },
+        harness.deps,
+      );
+
+      expect(result).toMatchObject({
+        outcome: "interrupted",
+        iterations: 1,
+        lastRunId: "run-1",
+      });
+      expect(harness.commits).toBe(0);
+    },
+  );
 
   it("archives a stale lock and does not increment when the budget expires before child start", async () => {
     let harness: Harness;

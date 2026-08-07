@@ -158,50 +158,50 @@ describe("Ariadne init", () => {
     ).toThrow("repository root");
   });
 
-  it.each([
-    "userStories",
-    "stories",
-  ] as const)("imports a %s PRD without changing its source and archives the exact bytes", async (storiesKey) => {
-    const root = repository();
-    const source = path.join(root, "prd.json");
-    writeJson(source, legacyPrd(storiesKey));
-    const original = fs.readFileSync(source, "utf8");
+  it.each(["userStories", "stories"] as const)(
+    "imports a %s PRD without changing its source and archives the exact bytes",
+    async (storiesKey) => {
+      const root = repository();
+      const source = path.join(root, "prd.json");
+      writeJson(source, legacyPrd(storiesKey));
+      const original = fs.readFileSync(source, "utf8");
 
-    const report = await initializeAriadne({
-      cwd: root,
-      runtime: "codex",
-      qualityChecks: ["pnpm test"],
-      interactive: false,
-    });
-    const canonicalRoot = fs.realpathSync(root);
+      const report = await initializeAriadne({
+        cwd: root,
+        runtime: "codex",
+        qualityChecks: ["pnpm test"],
+        interactive: false,
+      });
+      const canonicalRoot = fs.realpathSync(root);
 
-    expect(report).toMatchObject({
-      schemaVersion: 1,
-      command: "init",
-      outcome: "initialized",
-      projectRoot: canonicalRoot,
-      importedFrom: path.join(canonicalRoot, "prd.json"),
-      runtime: "codex",
-      qualityChecks: ["pnpm test"],
-    });
-    expect(fs.readFileSync(source, "utf8")).toBe(original);
-    const imported = JSON.parse(
-      fs.readFileSync(path.join(root, ".ariadne", "prd.json"), "utf8"),
-    );
-    expect(imported).toMatchObject({
-      schemaVersion: 1,
-      project: "Imported project",
-      userStories: [{ id: "US-001", status: "pending", attempts: 0 }],
-    });
-    const archive = path.join(root, ".ariadne", "archive");
-    const archivedPrds = fs
-      .readdirSync(archive, { recursive: true })
-      .filter((entry) => String(entry).endsWith("prd.json"));
-    expect(archivedPrds).toHaveLength(1);
-    expect(
-      fs.readFileSync(path.join(archive, String(archivedPrds[0])), "utf8"),
-    ).toBe(original);
-  });
+      expect(report).toMatchObject({
+        schemaVersion: 1,
+        command: "init",
+        outcome: "initialized",
+        projectRoot: canonicalRoot,
+        importedFrom: path.join(canonicalRoot, "prd.json"),
+        runtime: "codex",
+        qualityChecks: ["pnpm test"],
+      });
+      expect(fs.readFileSync(source, "utf8")).toBe(original);
+      const imported = JSON.parse(
+        fs.readFileSync(path.join(root, ".ariadne", "prd.json"), "utf8"),
+      );
+      expect(imported).toMatchObject({
+        schemaVersion: 1,
+        project: "Imported project",
+        userStories: [{ id: "US-001", status: "pending", attempts: 0 }],
+      });
+      const archive = path.join(root, ".ariadne", "archive");
+      const archivedPrds = fs
+        .readdirSync(archive, { recursive: true })
+        .filter((entry) => String(entry).endsWith("prd.json"));
+      expect(archivedPrds).toHaveLength(1);
+      expect(
+        fs.readFileSync(path.join(archive, String(archivedPrds[0])), "utf8"),
+      ).toBe(original);
+    },
+  );
 
   it("classifies malformed imported JSON as typed Ariadne state", () => {
     const root = repository();

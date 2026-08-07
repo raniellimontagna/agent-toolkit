@@ -149,15 +149,16 @@ describe("Antigravity install plan", () => {
 });
 
 describe("checkPrerequisites", () => {
-  it.each(
-    agentSkillBundleIds,
-  )("requires the Agent Skills toolchain for %s", (bundleId) => {
-    state.tools[bundleId] = true;
+  it.each(agentSkillBundleIds)(
+    "requires the Agent Skills toolchain for %s",
+    (bundleId) => {
+      state.tools[bundleId] = true;
 
-    checkPrerequisites();
+      checkPrerequisites();
 
-    expect(requireNodeMock).toHaveBeenCalledWith(24);
-    expect(requireCommandMock).toHaveBeenCalledWith("git");
-    expect(requireCommandMock).toHaveBeenCalledWith("npx");
-  });
+      expect(requireNodeMock).toHaveBeenCalledWith(24);
+      expect(requireCommandMock).toHaveBeenCalledWith("git");
+      expect(requireCommandMock).toHaveBeenCalledWith("npx");
+    },
+  );
 });
