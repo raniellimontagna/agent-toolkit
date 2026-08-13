@@ -36,7 +36,7 @@
     "gsd": {
       "source": "npm",
       "package": "@opengsd/gsd-core",
-      "version": "1.9.1"
+      "version": "1.10.0"
     },
     "agentBrowser": {
       "source": "npm",
@@ -64,7 +64,7 @@
         "impeccable": {
           "source": "github",
           "repository": "pbakaus/impeccable",
-          "ref": "aee6ce9352b842217b3f57c78296a7a4fa35a7f3"
+          "ref": "bd2535974861db28a9f4a18ec78608488cd868dd"
         },
         "webDesignGuidelines": {
           "source": "github",
