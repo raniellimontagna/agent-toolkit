@@ -170,6 +170,10 @@ function checkpointError(message: string): never {
   );
 }
 
+function isNonNegativeInteger(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0;
+}
+
 function validatePersistedCertificate(
   value: unknown,
   label: string,
@@ -182,8 +186,10 @@ function validatePersistedCertificate(
     Object.keys(record).some(
       (key) => !["device", "inode", "links", "sha256"].includes(key),
     ) ||
-    !Number.isSafeInteger(record.device) ||
-    !Number.isSafeInteger(record.inode) ||
+    // Windows reports a 64-bit NTFS file index, which can exceed the safe
+    // integer range, so only integrality and sign are enforced here.
+    !isNonNegativeInteger(record.device) ||
+    !isNonNegativeInteger(record.inode) ||
     record.links !== 1 ||
     typeof record.sha256 !== "string" ||
     !/^[0-9a-f]{64}$/i.test(record.sha256)

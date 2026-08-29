@@ -82,7 +82,9 @@ describe("validateAgentResult", () => {
 
 describe("agent result files and durable progress", () => {
   it("reads and validates a JSON result file", () => {
-    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-result-"));
+    const directory = fs.realpathSync.native(
+      fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-result-")),
+    );
     directories.push(directory);
     const source = path.join(directory, "result.json");
     fs.writeFileSync(source, `${JSON.stringify(result)}\n`);
@@ -91,7 +93,9 @@ describe("agent result files and durable progress", () => {
   });
 
   it("does not expose parseable validation details to the coordinator", () => {
-    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-result-"));
+    const directory = fs.realpathSync.native(
+      fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-result-")),
+    );
     directories.push(directory);
     const source = path.join(directory, "result.json");
     fs.writeFileSync(

@@ -35,12 +35,14 @@ function git(root: string, ...args: string[]): string {
 }
 
 function repository(): string {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-status-"));
+  const root = fs.realpathSync.native(
+    fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-status-")),
+  );
   directories.push(root);
   git(root, "init", "-b", "main");
   git(root, "config", "user.email", "ariadne@example.test");
   git(root, "config", "user.name", "Ariadne Test");
-  return fs.realpathSync(root);
+  return root;
 }
 
 function prd(

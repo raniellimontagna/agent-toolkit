@@ -39,7 +39,9 @@ function createRepository(): {
   calls: string[][];
   git: AriadneGit;
 } {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-git-"));
+  const root = fs.realpathSync.native(
+    fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-git-")),
+  );
   directories.push(root);
   expect(executeGit(["init", "-b", "main"], root).ok).toBe(true);
   expect(executeGit(["config", "user.name", "Ariadne Test"], root).ok).toBe(
@@ -93,7 +95,9 @@ describe("AriadneGit", () => {
     const nestedGit = new AriadneGit(nested, (_command, args, cwd, env) =>
       executeGit(args, cwd, env),
     );
-    const outside = fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-outside-"));
+    const outside = fs.realpathSync.native(
+      fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-outside-")),
+    );
     directories.push(outside);
     const outsideGit = new AriadneGit(outside, (_command, args, cwd, env) =>
       executeGit(args, cwd, env),

@@ -94,7 +94,9 @@ function createHarness(
   initialStory: AriadneStory | AriadneStory[] = story(),
   acquire?: AriadneLoopDeps["acquireLock"],
 ): Harness {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-recovery-"));
+  const root = fs.realpathSync.native(
+    fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-recovery-")),
+  );
   directories.push(root);
   const store = new AriadneStore(root);
   store.saveConfig({

@@ -113,7 +113,9 @@ function createHarness(
     agentSymlinksArchive?: boolean;
   } = {},
 ): Harness {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-loop-"));
+  const root = fs.realpathSync.native(
+    fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-loop-")),
+  );
   directories.push(root);
   const events: string[] = [];
   const runtimeRunIds: string[] = [];

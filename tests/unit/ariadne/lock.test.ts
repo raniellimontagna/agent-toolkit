@@ -13,7 +13,9 @@ const LEGACY_OWNER_TOKEN = "00000000-0000-4000-8000-000000000011";
 const REPLACEMENT_OWNER_TOKEN = "00000000-0000-4000-8000-000000000012";
 
 function fixture() {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-lock-"));
+  const root = fs.realpathSync.native(
+    fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-lock-")),
+  );
   directories.push(root);
   return {
     root,
@@ -493,7 +495,10 @@ describe("acquireProjectLock", () => {
 
     expect(injected).toBe(true);
     expect(readLock(params.lockPath)).toEqual(replacement);
-    expect(fs.statSync(params.lockPath).mode & 0o777).toBe(0o600);
+    // Windows does not implement POSIX permission bits.
+    if (process.platform !== "win32") {
+      expect(fs.statSync(params.lockPath).mode & 0o777).toBe(0o600);
+    }
   });
 
   it("conditionally releases only a still-matching public record", () => {

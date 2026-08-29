@@ -18,7 +18,9 @@ const prd: AriadnePrd = {
 const directories: string[] = [];
 
 function temporaryProject(): string {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-store-"));
+  const root = fs.realpathSync.native(
+    fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-store-")),
+  );
   directories.push(root);
   return root;
 }

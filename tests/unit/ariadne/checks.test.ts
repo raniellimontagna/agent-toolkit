@@ -9,7 +9,9 @@ import type { ProcessResult } from "../../../src/ariadne/types.js";
 const directories: string[] = [];
 
 function fixture(): { projectRoot: string; runDir: string } {
-  const projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-checks-"));
+  const projectRoot = fs.realpathSync.native(
+    fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-checks-")),
+  );
   directories.push(projectRoot);
   return { projectRoot, runDir: path.join(projectRoot, ".ariadne", "run-1") };
 }

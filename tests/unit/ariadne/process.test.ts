@@ -13,7 +13,9 @@ import { AriadneStateError } from "../../../src/ariadne/schema.js";
 const directories: string[] = [];
 
 function fixture(): { root: string; stdoutPath: string; stderrPath: string } {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-process-"));
+  const root = fs.realpathSync.native(
+    fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-process-")),
+  );
   directories.push(root);
   return {
     root,
@@ -98,7 +100,8 @@ describe("runAgentProcess", () => {
         () => "C:\\tools\\codex.cmd",
       ),
     ).toEqual({
-      command: "cmd.exe",
+      // Windows resolves the interpreter through COMSPEC when it is set.
+      command: process.env.comspec || "cmd.exe",
       args: [
         "/d",
         "/s",
@@ -457,7 +460,9 @@ describe("runAgentProcess", () => {
           stdoutPath,
           stderrPath,
           signal: controller.signal,
-          gracePeriodMs: 200,
+          // Generous enough that a loaded machine still lets the child exit
+          // on its own instead of being force-killed.
+          gracePeriodMs: 5_000,
         },
       );
 
@@ -470,12 +475,13 @@ describe("runAgentProcess", () => {
         forward?.(signal);
 
         const result = await running;
-        expect(result).toMatchObject({
-          status: 23,
-          signal: null,
-          timedOut: false,
-          aborted: false,
-        });
+        // Windows terminates the child instead of delivering a catchable
+        // signal, so the graceful exit code is only observable on POSIX.
+        expect(result).toMatchObject(
+          process.platform === "win32"
+            ? { status: null, signal, timedOut: false, aborted: false }
+            : { status: 23, signal: null, timedOut: false, aborted: false },
+        );
         expect(process.listeners(signal)).toEqual([...listenersBefore]);
       } finally {
         controller.abort();

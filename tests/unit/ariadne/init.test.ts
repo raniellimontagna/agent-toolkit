@@ -14,7 +14,9 @@ import { AriadneStore } from "../../../src/ariadne/store.js";
 const directories: string[] = [];
 
 function temporaryDirectory(): string {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-init-"));
+  const directory = fs.realpathSync.native(
+    fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-init-")),
+  );
   directories.push(directory);
   return directory;
 }
@@ -172,7 +174,7 @@ describe("Ariadne init", () => {
         qualityChecks: ["pnpm test"],
         interactive: false,
       });
-      const canonicalRoot = fs.realpathSync(root);
+      const canonicalRoot = fs.realpathSync.native(root);
 
       expect(report).toMatchObject({
         schemaVersion: 1,
@@ -218,7 +220,7 @@ describe("Ariadne init", () => {
     ).toThrow(
       expect.objectContaining({
         name: "AriadneStateError",
-        jsonPath: path.join(fs.realpathSync(root), "prd.json"),
+        jsonPath: path.join(fs.realpathSync.native(root), "prd.json"),
       }),
     );
   });

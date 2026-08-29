@@ -14,7 +14,9 @@ import { runCli } from "../../../src/cli.js";
 const directories: string[] = [];
 
 function temporaryProject(): string {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-cli-"));
+  const root = fs.realpathSync.native(
+    fs.mkdtempSync(path.join(os.tmpdir(), "ariadne-cli-")),
+  );
   directories.push(root);
   return root;
 }
