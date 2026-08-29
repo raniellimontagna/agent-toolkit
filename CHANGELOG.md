@@ -29,6 +29,8 @@ The release entries below are based on Git tag ranges and npm publication metada
 - Added first-party `ariadne` and `ariadne-prd` companion skills through the existing Custom Skills pipeline, plus immutable MIT-licensed upstream attribution in `tools.lock.json` and per-skill notices.
 - Refreshed the pinned GSD Core and Impeccable sources used by local hook and skill repairs.
 - Documented Ariadne setup, configuration, permissions, migration, runtime support, logs, recovery, testing, architecture boundaries, and non-goals without creating a release.
+- Refreshed every pinned external source: RTK `v0.46.0` with new archive checksums, Caveman, Graphify `0.9.51`, GSD Core `1.11.0`, Agent Browser `0.35.1`, Agent Skills CLI `1.5.23`, all pinned skill repositories, and the Claude Code, Codex, OpenCode and Gemini runtime CLIs.
+- Updated Biome, `@types/node` and Vitest development dependencies and re-verified the bundled `revenue-centric-design` skill against its upstream commit.
 
 ## [0.2.1] - 2026-07-14
 

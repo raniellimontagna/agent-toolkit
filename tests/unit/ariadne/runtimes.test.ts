@@ -31,10 +31,10 @@ const commands: Record<AriadneRuntimeName, string> = {
 };
 
 const versions: Record<AriadneRuntimeName, string> = {
-  claude: "2.1.224",
-  codex: "0.147.0",
-  opencode: "1.18.15",
-  gemini: "0.54.4",
+  claude: "2.1.251",
+  codex: "0.151.0",
+  opencode: "1.18.25",
+  gemini: "0.57.0",
   antigravity: "1.1.8",
 };
 
@@ -230,7 +230,7 @@ describe("runtime detection", () => {
           const runtime = runtimeForCommand(command);
           if (args[0] === "--version") {
             const version =
-              runtime === "codex" ? "10.147.00" : versions[runtime];
+              runtime === "codex" ? "10.151.00" : versions[runtime];
             return result(`${runtime} ${version}`);
           }
           if (args.includes("--help")) return result(helpOutput[runtime]);
@@ -241,11 +241,11 @@ describe("runtime detection", () => {
 
     expect(registry.codex.detect()).toMatchObject({
       state: "incompatible",
-      version: "10.147.00",
+      version: "10.151.00",
     });
     expect(registry.claude.detect()).toMatchObject({
       state: "healthy",
-      version: "2.1.224",
+      version: "2.1.251",
     });
   });
 
