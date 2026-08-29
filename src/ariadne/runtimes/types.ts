@@ -12,6 +12,9 @@ export type AgentInvocation = {
   args: string[];
   cwd: string;
   env: NodeJS.ProcessEnv;
+  // Set when the caller already built a Windows command line that cmd.exe must
+  // receive unmodified, so Node must not re-quote the arguments.
+  verbatim?: boolean;
 };
 
 export type RuntimeDetection = {

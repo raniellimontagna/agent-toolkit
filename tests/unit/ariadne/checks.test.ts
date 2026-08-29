@@ -189,10 +189,37 @@ describe("runQualityChecks", () => {
     });
 
     expect(calls[0]?.[0]).toMatchObject({
-      command: "cmd.exe",
-      args: ["/d", "/s", "/c", "pnpm test"],
+      command: process.env.comspec || "cmd.exe",
+      // /s makes cmd.exe drop the first and last character, so the command
+      // needs one wrapping pair of quotes to survive intact.
+      args: ["/d", "/s", "/c", '"pnpm test"'],
       cwd: projectRoot,
+      verbatim: true,
     });
+  });
+
+  it("keeps a quoted Windows executable path intact for cmd.exe", async () => {
+    vi.spyOn(process, "platform", "get").mockReturnValue("win32");
+    const { projectRoot, runDir } = fixture();
+    const command = '"C:\\Program Files\\nodejs\\node.exe" check.mjs';
+    const calls: Parameters<typeof runAgentProcess>[] = [];
+    const runProcess: typeof runAgentProcess = async (...args) => {
+      calls.push(args);
+      return result(0, 1);
+    };
+
+    await runQualityChecks({
+      commands: [command],
+      projectRoot,
+      runDir,
+      runProcess,
+    });
+
+    const invocation = calls[0]?.[0];
+    expect(invocation?.args.at(-1)).toBe(`"${command}"`);
+    expect(invocation?.verbatim).toBe(true);
+    // Dropping the outer pair leaves exactly the command cmd.exe must parse.
+    expect((invocation?.args.at(-1) ?? "").slice(1, -1)).toBe(command);
   });
 
   it("forwards cancellation and enforces an individual command timeout", async () => {

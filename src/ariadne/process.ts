@@ -22,6 +22,13 @@ export function planAgentSpawn(
   platform: NodeJS.Platform = process.platform,
   resolve: (command: string) => string | null = findCommand,
 ): AgentSpawnPlan {
+  if (platform === "win32" && invocation.verbatim) {
+    return {
+      command: invocation.command,
+      args: invocation.args,
+      verbatim: true,
+    };
+  }
   return platform === "win32"
     ? windowsSpawnPlan(invocation.command, invocation.args, resolve)
     : {

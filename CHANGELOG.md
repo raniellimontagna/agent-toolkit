@@ -32,6 +32,7 @@ The release entries below are based on Git tag ranges and npm publication metada
 - Refreshed every pinned external source: RTK `v0.46.0` with new archive checksums, Caveman, Graphify `0.9.51`, GSD Core `1.11.0`, Agent Browser `0.35.1`, Agent Skills CLI `1.5.23`, all pinned skill repositories, and the Claude Code, Codex, OpenCode and Gemini runtime CLIs.
 - Updated Biome, `@types/node` and Vitest development dependencies and re-verified the bundled `revenue-centric-design` skill against its upstream commit.
 - Fixed cross-platform Ariadne failures: parent-directory `fsync` is now best effort where the platform refuses it, repository-root comparison uses native realpath so Windows short names and casing resolve to the same root, and the status snapshot helper tolerates Git background-maintenance churn.
+- Fixed Ariadne quality checks on Windows: the command line is wrapped for `cmd.exe /s` and spawned verbatim, so a quoted executable path is no longer mangled into an unrecognized command, and persisted canonical certificates accept the 64-bit NTFS file index.
 
 ## [0.2.1] - 2026-07-14
 

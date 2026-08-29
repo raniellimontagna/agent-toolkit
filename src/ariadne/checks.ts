@@ -32,10 +32,15 @@ export type QualityCheckInput = {
 function shellInvocation(command: string, projectRoot: string) {
   if (process.platform === "win32") {
     return {
-      command: "cmd.exe",
-      args: ["/d", "/s", "/c", command],
+      command: process.env.comspec || "cmd.exe",
+      // With /s, cmd.exe removes the first and last character of the command
+      // line, so the whole check has to be wrapped in one extra pair of quotes
+      // for a quoted executable path to survive. The plan is spawned verbatim
+      // because Node's default quoting uses escapes cmd.exe does not accept.
+      args: ["/d", "/s", "/c", `"${command}"`],
       cwd: projectRoot,
       env: process.env,
+      verbatim: true,
     };
   }
   return {
