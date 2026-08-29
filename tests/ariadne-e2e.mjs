@@ -138,7 +138,7 @@ function createProject(name, runtime, shape = "ralph", allRuntimes = false) {
   const gitLog = path.join(temporaryRoot, "logs", `${name}-git.jsonl`);
   const stateDir = path.join(temporaryRoot, "state", name);
   fs.mkdirSync(projectPath, { recursive: true });
-  const project = fs.realpathSync(projectPath);
+  const project = fs.realpathSync.native(projectPath);
   git(project, "init", "-b", branchName);
   git(project, "config", "user.name", "Ariadne E2E");
   git(project, "config", "user.email", "ariadne@example.test");

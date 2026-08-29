@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import fs from "node:fs";
 import process from "node:process";
 import * as prompts from "@clack/prompts";
 import { isRuntimeName } from "../state.js";
@@ -88,11 +89,14 @@ async function chooseRuntime(
 
 function findProjectRoot(cwd: string): string {
   try {
-    return execFileSync("git", ["rev-parse", "--show-toplevel"], {
+    const toplevel = execFileSync("git", ["rev-parse", "--show-toplevel"], {
       cwd,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
     }).trim();
+    // Git prints POSIX separators and may echo a short path component on
+    // Windows, so canonicalize before it becomes the stored project root.
+    return fs.realpathSync.native(toplevel);
   } catch {
     throw new AriadneStateError(
       "$git",
