@@ -358,6 +358,43 @@ function assertSuccessfulRun(fixture, expectedAttempts = 1) {
   );
 }
 
+function dumpFixtures() {
+  const logs = path.join(temporaryRoot, "logs");
+  if (fs.existsSync(logs)) {
+    for (const entry of fs.readdirSync(logs).sort()) {
+      const contents = fs
+        .readFileSync(path.join(logs, entry), "utf8")
+        .slice(0, 4_000);
+      console.error(`--- logs/${entry}\n${contents}`);
+    }
+  }
+  const projects = fs
+    .readdirSync(temporaryRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => path.join(temporaryRoot, entry.name))
+    .filter((project) => fs.existsSync(path.join(project, ".ariadne")));
+  for (const project of projects) {
+    const state = path.join(project, ".ariadne");
+    const entries = fs
+      .readdirSync(state, { recursive: true })
+      .map(String)
+      .filter((entry) => /\.(md|json|log|jsonl)$/.test(entry))
+      .sort();
+    console.error(`--- ${project}`);
+    for (const entry of entries) {
+      const absolute = path.join(state, entry);
+      let contents = "";
+      try {
+        if (!fs.statSync(absolute).isFile()) continue;
+        contents = fs.readFileSync(absolute, "utf8").slice(0, 4_000);
+      } catch {
+        continue;
+      }
+      console.error(`--- ${entry}\n${contents}`);
+    }
+  }
+}
+
 function runHappyRuntime(runtime) {
   const fixture = createProject(`happy-${runtime}`, runtime);
   initialize(fixture);
@@ -785,5 +822,6 @@ try {
   console.log("Ariadne compiled CLI E2E passed");
 } catch (error) {
   console.error(`Ariadne E2E fixture retained at ${temporaryRoot}`);
+  dumpFixtures();
   throw error;
 }
