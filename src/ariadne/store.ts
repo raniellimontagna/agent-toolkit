@@ -1003,11 +1003,16 @@ export class AriadneStore {
       this.assertProjectRoot();
       fs.renameSync(temporary, destination);
       this.capturePathIdentity(destination, "file", label);
-      const parentDescriptor = fs.openSync(this.projectRoot, "r");
       try {
-        fs.fsyncSync(parentDescriptor);
-      } finally {
-        fs.closeSync(parentDescriptor);
+        const parentDescriptor = fs.openSync(this.projectRoot, "r");
+        try {
+          fs.fsyncSync(parentDescriptor);
+        } finally {
+          fs.closeSync(parentDescriptor);
+        }
+      } catch {
+        // The atomic rename is the durability boundary. Some platforms do not
+        // permit opening or fsyncing a directory, so this step is best effort.
       }
     } catch (error) {
       fs.rmSync(temporary, { force: true });

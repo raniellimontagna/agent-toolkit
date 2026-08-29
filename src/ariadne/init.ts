@@ -89,8 +89,10 @@ function repositoryRoot(cwd: string): string {
   let actual: string;
   let root: string;
   try {
-    actual = fs.realpathSync(cwd);
-    root = fs.realpathSync(discovered);
+    // Native realpath expands Windows 8.3 short names and normalizes case,
+    // so both sides compare as the same canonical repository root.
+    actual = fs.realpathSync.native(cwd);
+    root = fs.realpathSync.native(discovered);
   } catch {
     throw new AriadneUsageError(
       "Ariadne could not resolve the Git repository root.",

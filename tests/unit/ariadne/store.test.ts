@@ -216,8 +216,10 @@ describe("AriadneStore", () => {
     );
     fs.symlinkSync(externalMarker, store.paths.ownershipViolation, "file");
 
+    // POSIX refuses the open through O_NOFOLLOW; Windows has no such flag, so
+    // the post-open identity check rejects the symbolic link instead.
     expect(() => store.loadOwnershipViolation()).toThrow(
-      /regular non-symbolic file/i,
+      /regular non-symbolic file|must be a real file/i,
     );
   });
 

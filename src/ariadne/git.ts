@@ -316,8 +316,10 @@ export class AriadneGit {
     let configuredRoot: string;
     let discoveredRoot: string;
     try {
-      configuredRoot = fs.realpathSync(this.root);
-      discoveredRoot = fs.realpathSync(result.stdout.trim());
+      // Native realpath expands Windows 8.3 short names and normalizes case,
+      // so both sides compare as the same canonical repository root.
+      configuredRoot = fs.realpathSync.native(this.root);
+      discoveredRoot = fs.realpathSync.native(result.stdout.trim());
     } catch {
       throw new AriadneStateError(
         "$git",

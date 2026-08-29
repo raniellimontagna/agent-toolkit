@@ -286,19 +286,24 @@ describe("AriadneGit", () => {
     ).toContain(certifiedHead);
   });
 
-  it("stages a legal filename beginning with pathspec magic literally", () => {
-    const { root, git } = createRepository();
-    const filename = ":(exclude)**";
-    fs.writeFileSync(path.join(root, filename), "literal pathspec name\n");
+  // Windows filenames cannot contain ":" or "*", so the literal pathspec name
+  // is only creatable on POSIX filesystems.
+  it.skipIf(process.platform === "win32")(
+    "stages a legal filename beginning with pathspec magic literally",
+    () => {
+      const { root, git } = createRepository();
+      const filename = ":(exclude)**";
+      fs.writeFileSync(path.join(root, filename), "literal pathspec name\n");
 
-    git.stageAll();
-    git.commit(story(), git.head());
+      git.stageAll();
+      git.commit(story(), git.head());
 
-    expect(
-      executeGit(["ls-tree", "-r", "--name-only", "HEAD"], root).stdout,
-    ).toContain(`${filename}\n`);
-    expect(executeGit(["status", "--porcelain=v1"], root).stdout).toBe("");
-  });
+      expect(
+        executeGit(["ls-tree", "-r", "--name-only", "HEAD"], root).stdout,
+      ).toContain(`${filename}\n`);
+      expect(executeGit(["status", "--porcelain=v1"], root).stdout).toBe("");
+    },
+  );
 
   it.each([
     ["removes", "# runtime removed Ariadne safety ignores\n"],

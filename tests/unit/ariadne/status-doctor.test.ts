@@ -151,16 +151,33 @@ function writeProject(
   return store;
 }
 
+function isTransientGitArtifact(entry: string): boolean {
+  const parts = entry.split(/[\\/]/);
+  if (parts[0] !== ".git") return false;
+  const name = parts.at(-1) ?? "";
+  return name.endsWith(".lock") || name.startsWith("tmp_");
+}
+
 function snapshot(root: string): string[] {
   return fs
     .readdirSync(root, { recursive: true })
     .map(String)
+    .filter((entry) => !isTransientGitArtifact(entry))
     .sort()
-    .map((entry) => {
+    .flatMap((entry) => {
       const absolute = path.join(root, entry);
-      return fs.statSync(absolute).isFile()
-        ? `${entry}:${fs.readFileSync(absolute).toString("base64")}`
-        : `${entry}/`;
+      try {
+        return [
+          fs.statSync(absolute).isFile()
+            ? `${entry}:${fs.readFileSync(absolute).toString("base64")}`
+            : `${entry}/`,
+        ];
+      } catch (error) {
+        // Git background maintenance can remove its own scratch entries
+        // between the directory listing and the read.
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+        throw error;
+      }
     });
 }
 
