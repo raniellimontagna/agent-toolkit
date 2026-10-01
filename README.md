@@ -109,6 +109,8 @@ workflow; toolkit tags remain `vX.Y.Z`.
 
 The first-party `security` skills are defensive rewrites informed by [`uphiago/recon-skills`](https://github.com/uphiago/recon-skills), under its MIT License. They are intended for authorized, non-destructive reviews; upstream offensive infrastructure, agent instructions, scripts, and mass-scanning workflows are not included. See [`skills/security/NOTICE.md`](skills/security/NOTICE.md) for attribution.
 
+The bundled `media/brag-slim` skill is vendored from [`latent-spaces/brag`](https://github.com/latent-spaces/brag) at commit `fd7de7e418334876b3ea4e9258231a66a2c2a38d` under the MIT License. It turns a project directory or website URL into a short launch video with share copy, built with tools already on the machine; the full `/brag` skill, its render scripts, and bundled music are not included. See [`skills/media/brag-slim/NOTICE.md`](skills/media/brag-slim/NOTICE.md) for attribution.
+
 The first-party `ariadne` and `ariadne-prd` skills are Ariadne-specific adaptations of concepts from [`snarktank/ralph`](https://github.com/snarktank/ralph) under the MIT License. They install through the ordinary Custom Skills pipeline for all five runtimes; `tools.ariadne` records reviewed attribution only and is not fetched or executed during a normal Ariadne run. Each skill directory contains its source path, reviewed commit, and source hash in `NOTICE.md`.
 
 ## Documentation

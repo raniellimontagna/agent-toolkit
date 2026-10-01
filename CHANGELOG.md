@@ -15,6 +15,7 @@ The release entries below are based on Git tag ranges and npm publication metada
 
 ## [Unreleased]
 
+- Added the bundled `media/brag-slim` launch-video skill, vendored from `latent-spaces/brag@fd7de7e` with its MIT license and attribution notice.
 - Added deterministic `skills.index.json` generation, prompt-sized `BRIEF.md`
   auditing, six shared skill imports, and editorial merges for accessibility,
   UI/UX, and GSAP motion guidance.

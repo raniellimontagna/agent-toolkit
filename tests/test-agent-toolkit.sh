@@ -1233,6 +1233,19 @@ if ! grep -Fq -- "backend/database/postgres-patterns" <<<"$REPO_DATABASE_SKILLS_
   exit 1
 fi
 
+REPO_MEDIA_SKILLS_OUTPUT="$(
+  HOME="$TECH_SKILLS_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-list --skills-package media
+)"
+
+if ! grep -Fq -- "media/brag-slim" <<<"$REPO_MEDIA_SKILLS_OUTPUT" || \
+  grep -Fq -- "frontend/" <<<"$REPO_MEDIA_SKILLS_OUTPUT"; then
+  echo "Expected media package to list only media skills" >&2
+  echo "$REPO_MEDIA_SKILLS_OUTPUT" >&2
+  exit 1
+fi
+
 REPO_FRONTEND_SKILLS_OUTPUT="$(
   HOME="$TECH_SKILLS_HOME" \
   PATH="$FAKE_BIN:/usr/bin:/bin" \
