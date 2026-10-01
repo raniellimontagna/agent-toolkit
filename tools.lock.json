@@ -41,7 +41,7 @@
     "agentBrowser": {
       "source": "npm",
       "package": "agent-browser",
-      "version": "0.35.1"
+      "version": "0.38.1"
     },
     "agentSkills": {
       "source": "skills-cli",
@@ -54,17 +54,17 @@
         "shadcnImprove": {
           "source": "github",
           "repository": "shadcn/improve",
-          "ref": "03369ee6d7cafbfcecc4346539b05b3dc0a603bb"
+          "ref": "cac56e1ebd3c279aa9153616cfeac7b174ab90f9"
         },
         "agentBrowser": {
           "source": "github",
           "repository": "vercel-labs/agent-browser",
-          "ref": "fbd046c23a2c1156891bda294aaaee715c23b3f1"
+          "ref": "aff6125c023b810ea3f2e5deec5379e9a4270bdc"
         },
         "impeccable": {
           "source": "github",
           "repository": "pbakaus/impeccable",
-          "ref": "b0594c72d18006b5865c70eb3a97e8b04064e600"
+          "ref": "c74755d920985f7a92cef691ca970ba95f90126e"
         },
         "webDesignGuidelines": {
           "source": "github",
@@ -74,17 +74,17 @@
         "reactDoctor": {
           "source": "github",
           "repository": "millionco/react-doctor",
-          "ref": "afa1780254bfd72175e6d0025841560582d32ad1"
+          "ref": "631366777e01637f3c36b8a8c2ae8f19ba1060e8"
         },
         "remotionBestPractices": {
           "source": "github",
           "repository": "remotion-dev/skills",
-          "ref": "7a3d0ca45d2f6a00bf35cb3c525734a36d55a834"
+          "ref": "0b5db9daae40f42c73544d1cc0a8c733bd530eaa"
         },
         "mattPocockSkills": {
           "source": "github",
           "repository": "mattpocock/skills",
-          "ref": "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76"
+          "ref": "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
         }
       },
       "bundles": {

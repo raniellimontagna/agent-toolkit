@@ -198,7 +198,7 @@ describe("external tool lock", () => {
     expect(lock.tools.agentBrowser).toEqual({
       source: "npm",
       package: "agent-browser",
-      version: "0.35.1",
+      version: "0.38.1",
     });
     expect(lock.tools.agentSkills.skillsCli).toEqual({
       source: "npm",
@@ -208,7 +208,7 @@ describe("external tool lock", () => {
     expect(lock.tools.agentSkills.repositories.mattPocockSkills).toEqual({
       source: "github",
       repository: "mattpocock/skills",
-      ref: "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76",
+      ref: "d81f3a183412e71a5b1e84ca21bc1a35eea03a60",
     });
     expect(lock.tools.agentSkills.bundles["planning-skills"].skills).toEqual([
       { repository: "mattPocockSkills", skill: "grill-me" },

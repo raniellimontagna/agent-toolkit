@@ -66,7 +66,7 @@ Current external sources:
 | Caveman | `JuliusBrussee/caveman@17f9f2ec2377b0bfe16b52ee03a462e7f0a02bc8` |
 | Graphify | `graphifyy==0.9.51` |
 | GSD | `@opengsd/gsd-core@1.11.0` |
-| Agent Browser | `agent-browser@0.35.1` |
+| Agent Browser | `agent-browser@0.38.1` |
 | Agent Skills CLI | `skills@1.5.23`, with each source repository pinned to a full commit |
 | Runtime CLIs | `@anthropic-ai/claude-code@2.1.251`, `@openai/codex@0.151.0`, `opencode-ai@1.18.25`, and `@google/gemini-cli@0.57.0` |
 | Ariadne adaptation provenance | `snarktank/ralph@6c53cb0b831ebe8739c6a003e22af14902d8b0b5`, with reviewed SHA-256 values for the MIT license and both adapted source skills |

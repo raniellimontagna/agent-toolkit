@@ -16,6 +16,7 @@ The release entries below are based on Git tag ranges and npm publication metada
 ## [Unreleased]
 
 - Added the bundled `media/brag-slim` launch-video skill, vendored from `latent-spaces/brag@fd7de7e` with its MIT license and attribution notice.
+- Refreshed the pinned Agent Skills sources: `shadcn/improve`, `pbakaus/impeccable`, `millionco/react-doctor`, `remotion-dev/skills`, `mattpocock/skills`, and Agent Browser `0.38.1` with its matching `vercel-labs/agent-browser` tag commit.
 - Added deterministic `skills.index.json` generation, prompt-sized `BRIEF.md`
   auditing, six shared skill imports, and editorial merges for accessibility,
   UI/UX, and GSAP motion guidance.

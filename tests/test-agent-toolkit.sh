@@ -320,7 +320,7 @@ cat > "$FAKE_BIN/agent-browser" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$AGENT_BROWSER_LOG"
 case "\${1:-}" in
-  --version) echo "agent-browser 0.35.1" ;;
+  --version) echo "agent-browser 0.38.1" ;;
 esac
 exit 0
 EOF
@@ -536,7 +536,7 @@ HOME="$HOME_DIR" \
 PATH="$FAKE_BIN:/usr/bin:/bin" \
 bash "$ROOT_DIR/setup-agent-toolkit.sh" --agent-browser-only --codex >/dev/null
 
-if ! grep -Fxq -- "install --global agent-browser@0.35.1" "$NPM_LOG"; then
+if ! grep -Fxq -- "install --global agent-browser@0.38.1" "$NPM_LOG"; then
   echo "Expected Agent Browser package install through npm" >&2
   cat "$NPM_LOG" >&2
   exit 1
