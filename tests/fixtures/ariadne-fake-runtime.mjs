@@ -23,10 +23,10 @@ fs.mkdirSync(path.dirname(logPath), { recursive: true });
 fs.appendFileSync(logPath, `${JSON.stringify({ runtime, args })}\n`, "utf8");
 
 const versions = {
-  claude: "2.1.251",
-  codex: "0.151.0",
-  opencode: "1.18.25",
-  gemini: "0.57.0",
+  claude: "2.1.286",
+  codex: "0.159.3",
+  opencode: "1.18.34",
+  gemini: "0.62.0",
   antigravity: "1.1.8",
 };
 

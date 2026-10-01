@@ -183,18 +183,18 @@ describe("external tool lock", () => {
     const lock = loadToolLock(lockPath);
 
     expect(lock.version).toBe(1);
-    expect(lock.tools.rtk.tag).toBe("v0.46.0");
+    expect(lock.tools.rtk.tag).toBe("v0.50.0");
     expect(
       lock.tools.rtk.assets["rtk-x86_64-unknown-linux-musl.tar.gz"],
     ).toEqual({
       sha256:
-        "79aa5b89c69566bbfeceb66c8a27cfbe52237fc7ee3e683115f43745a3262d21",
+        "bc2b8902b0d9c796c82ef45f16ae2307e17757afeca5ee156235a3dc7bda5f89",
     });
     expect(lock.tools.caveman.ref).toBe(
-      "17f9f2ec2377b0bfe16b52ee03a462e7f0a02bc8",
+      "f5d729488caa8f6a5b6c8086fe2cccd3e8a63f91",
     );
-    expect(lock.tools.gsd.version).toBe("1.11.0");
-    expect(lock.tools.graphify.version).toBe("0.9.51");
+    expect(lock.tools.gsd.version).toBe("1.15.0");
+    expect(lock.tools.graphify.version).toBe("0.9.73");
     expect(lock.tools.agentBrowser).toEqual({
       source: "npm",
       package: "agent-browser",
@@ -203,7 +203,7 @@ describe("external tool lock", () => {
     expect(lock.tools.agentSkills.skillsCli).toEqual({
       source: "npm",
       package: "skills",
-      version: "1.5.23",
+      version: "1.7.0",
     });
     expect(lock.tools.agentSkills.repositories.mattPocockSkills).toEqual({
       source: "github",
@@ -222,7 +222,7 @@ describe("external tool lock", () => {
       },
     ]);
     expect(lock.tools.ariadne).toEqual(expectedAriadneLock);
-    expect(lock.runtimeClis.gemini.version).toBe("0.57.0");
+    expect(lock.runtimeClis.gemini.version).toBe("0.62.0");
   });
 
   it.each([
@@ -275,22 +275,22 @@ describe("external tool lock", () => {
     expect(formatNpmPackageSpec("@opengsd/gsd-core", "1.6.1")).toBe(
       "@opengsd/gsd-core@1.6.1",
     );
-    expect(formatNpmPackageSpec("@google/gemini-cli", "0.57.0")).toBe(
-      "@google/gemini-cli@0.57.0",
+    expect(formatNpmPackageSpec("@google/gemini-cli", "0.62.0")).toBe(
+      "@google/gemini-cli@0.62.0",
     );
-    expect(formatPythonPackageSpec("graphifyy", "0.9.51")).toBe(
-      "graphifyy==0.9.51",
+    expect(formatPythonPackageSpec("graphifyy", "0.9.73")).toBe(
+      "graphifyy==0.9.73",
     );
     expect(
       formatGithubPackageSpec(
         "JuliusBrussee/caveman",
-        "17f9f2ec2377b0bfe16b52ee03a462e7f0a02bc8",
+        "f5d729488caa8f6a5b6c8086fe2cccd3e8a63f91",
       ),
     ).toBe(
-      "github:JuliusBrussee/caveman#17f9f2ec2377b0bfe16b52ee03a462e7f0a02bc8",
+      "github:JuliusBrussee/caveman#f5d729488caa8f6a5b6c8086fe2cccd3e8a63f91",
     );
-    expect(githubReleaseApiUrl("rtk-ai/rtk", "v0.46.0")).toBe(
-      "https://api.github.com/repos/rtk-ai/rtk/releases/tags/v0.46.0",
+    expect(githubReleaseApiUrl("rtk-ai/rtk", "v0.50.0")).toBe(
+      "https://api.github.com/repos/rtk-ai/rtk/releases/tags/v0.50.0",
     );
   });
 
@@ -304,10 +304,10 @@ describe("external tool lock", () => {
     expect(isMutableExternalSource("graphifyy")).toBe(true);
 
     expect(isMutableExternalSource("@opengsd/gsd-core@1.6.1")).toBe(false);
-    expect(isMutableExternalSource("graphifyy==0.9.51")).toBe(false);
+    expect(isMutableExternalSource("graphifyy==0.9.73")).toBe(false);
     expect(
       isMutableExternalSource(
-        "github:JuliusBrussee/caveman#17f9f2ec2377b0bfe16b52ee03a462e7f0a02bc8",
+        "github:JuliusBrussee/caveman#f5d729488caa8f6a5b6c8086fe2cccd3e8a63f91",
       ),
     ).toBe(false);
   });
@@ -319,11 +319,11 @@ describe("external tool lock", () => {
     expect(externalSourceIdentity("@opengsd/gsd-core@latest")).toBe(
       "@opengsd/gsd-core",
     );
-    expect(externalSourceIdentity("skills@1.5.23")).toBe("skills");
-    expect(externalSourceIdentity("graphifyy==0.9.51")).toBe("graphifyy");
+    expect(externalSourceIdentity("skills@1.7.0")).toBe("skills");
+    expect(externalSourceIdentity("graphifyy==0.9.73")).toBe("graphifyy");
     expect(
       externalSourceIdentity(
-        "github:JuliusBrussee/caveman#17f9f2ec2377b0bfe16b52ee03a462e7f0a02bc8",
+        "github:JuliusBrussee/caveman#f5d729488caa8f6a5b6c8086fe2cccd3e8a63f91",
       ),
     ).toBe("github:JuliusBrussee/caveman");
     expect(externalSourceIdentity("@attacker/evil@1.6.1")).not.toBe(

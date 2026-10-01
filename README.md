@@ -62,13 +62,13 @@ Current external sources:
 
 | Tool | Locked source |
 |---|---|
-| RTK | `rtk-ai/rtk@v0.46.0`, with a SHA-256 pin for every supported archive |
-| Caveman | `JuliusBrussee/caveman@17f9f2ec2377b0bfe16b52ee03a462e7f0a02bc8` |
-| Graphify | `graphifyy==0.9.51` |
-| GSD | `@opengsd/gsd-core@1.11.0` |
+| RTK | `rtk-ai/rtk@v0.50.0`, with a SHA-256 pin for every supported archive |
+| Caveman | `JuliusBrussee/caveman@f5d729488caa8f6a5b6c8086fe2cccd3e8a63f91` |
+| Graphify | `graphifyy==0.9.73` |
+| GSD | `@opengsd/gsd-core@1.15.0` |
 | Agent Browser | `agent-browser@0.38.1` |
-| Agent Skills CLI | `skills@1.5.23`, with each source repository pinned to a full commit |
-| Runtime CLIs | `@anthropic-ai/claude-code@2.1.251`, `@openai/codex@0.151.0`, `opencode-ai@1.18.25`, and `@google/gemini-cli@0.57.0` |
+| Agent Skills CLI | `skills@1.7.0`, with each source repository pinned to a full commit |
+| Runtime CLIs | `@anthropic-ai/claude-code@2.1.286`, `@openai/codex@0.159.3`, `opencode-ai@1.18.34`, and `@google/gemini-cli@0.62.0` |
 | Ariadne adaptation provenance | `snarktank/ralph@6c53cb0b831ebe8739c6a003e22af14902d8b0b5`, with reviewed SHA-256 values for the MIT license and both adapted source skills |
 
 The Agent Skills catalog exposes these locked bundle IDs and skill names:
