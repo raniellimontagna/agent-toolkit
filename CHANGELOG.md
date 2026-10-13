@@ -15,6 +15,7 @@ The release entries below are based on Git tag ranges and npm publication metada
 
 ## [Unreleased]
 
+- Fixed the Codex Superpowers install on a `CODEX_HOME` that never synced the local `openai-curated` marketplace: the installer now falls back to `superpowers@openai-curated-remote`, the account's remote catalog.
 - Added the bundled `media/brag-slim` launch-video skill, vendored from `latent-spaces/brag@fd7de7e` with its MIT license and attribution notice.
 - Refreshed the pinned external tools: RTK `v0.50.0` with new archive checksums, Caveman `3.0.0` at `f5d7294`, Graphify `0.9.73`, GSD Core `1.15.0`, Agent Skills CLI `1.7.0`, and the Claude Code `2.1.286`, Codex `0.159.3`, OpenCode `1.18.34` and Gemini `0.62.0` runtime CLIs, after re-checking the Ariadne headless flags on each.
 - Refreshed the pinned Agent Skills sources: `shadcn/improve`, `pbakaus/impeccable`, `millionco/react-doctor`, `remotion-dev/skills`, `mattpocock/skills`, and Agent Browser `0.38.1` with its matching `vercel-labs/agent-browser` tag commit.

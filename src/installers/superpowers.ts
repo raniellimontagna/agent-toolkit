@@ -1,6 +1,26 @@
 import { info, ok, step, warn } from "../logger.js";
 import { state } from "../state.js";
-import { findCommand, run } from "../system.js";
+import { capture, findCommand, run } from "../system.js";
+
+// Codex lists Superpowers in the local `openai-curated` marketplace once it has
+// synced that catalog. A CODEX_HOME that never synced it only has the account's
+// remote catalog, where the same plugin is `openai-curated-remote`.
+const CODEX_SUPERPOWERS_PLUGINS = [
+  "superpowers@openai-curated",
+  "superpowers@openai-curated-remote",
+];
+
+function addCodexSuperpowers(codex: string): boolean {
+  const errors: string[] = [];
+  for (const plugin of CODEX_SUPERPOWERS_PLUGINS) {
+    const result = capture(codex, ["plugin", "add", plugin]);
+    if (result.ok) return true;
+    const error = (result.stderr || result.stdout).trim();
+    if (error) errors.push(error);
+  }
+  for (const error of errors) warn(error);
+  return false;
+}
 
 export function installSuperpowers(): boolean {
   step("Superpowers");
@@ -31,12 +51,7 @@ export function installSuperpowers(): boolean {
     const codex = findCommand("codex");
     if (codex) {
       info("Installing Superpowers for Codex CLI...");
-      const result = run(codex, [
-        "plugin",
-        "add",
-        "superpowers@openai-curated",
-      ]);
-      if (result.ok) ok("Superpowers installed for Codex CLI");
+      if (addCodexSuperpowers(codex)) ok("Superpowers installed for Codex CLI");
       else {
         warn("Codex plugin install did not complete.");
         hadError = true;
