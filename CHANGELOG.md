@@ -16,6 +16,8 @@ The release entries below are based on Git tag ranges and npm publication metada
 ## [Unreleased]
 
 - Added the bundled `media/brag-slim` launch-video skill, vendored from `latent-spaces/brag@fd7de7e` with its MIT license and attribution notice.
+- Refreshed the pinned external tools: RTK `v0.51.0` with new archive checksums, Caveman `3.2.0` at `2e08b91`, Graphify `0.9.87`, GSD Core `1.16.0`, Agent Skills CLI `1.7.2`, Agent Browser `0.39.0` with its matching `vercel-labs/agent-browser` tag commit, the `pbakaus/impeccable`, `millionco/react-doctor`, `remotion-dev/skills` and `mattpocock/skills` sources, and the Claude Code `2.1.296`, Codex `0.162.1`, OpenCode `1.19.0` and Gemini `0.63.0` runtime CLIs, after re-checking the installer and Ariadne headless flags on each.
+- Updated `@clack/prompts` to `1.8.1` and the development dependencies `@biomejs/biome` `2.5.15`, `@types/node` `26.6.5` and `vitest` `5.0.3`.
 - Refreshed the pinned external tools: RTK `v0.50.0` with new archive checksums, Caveman `3.0.0` at `f5d7294`, Graphify `0.9.73`, GSD Core `1.15.0`, Agent Skills CLI `1.7.0`, and the Claude Code `2.1.286`, Codex `0.159.3`, OpenCode `1.18.34` and Gemini `0.62.0` runtime CLIs, after re-checking the Ariadne headless flags on each.
 - Refreshed the pinned Agent Skills sources: `shadcn/improve`, `pbakaus/impeccable`, `millionco/react-doctor`, `remotion-dev/skills`, `mattpocock/skills`, and Agent Browser `0.38.1` with its matching `vercel-labs/agent-browser` tag commit.
 - Added deterministic `skills.index.json` generation, prompt-sized `BRIEF.md`
