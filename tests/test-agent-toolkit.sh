@@ -1804,6 +1804,46 @@ if ! grep -Fxq -- "plugin add superpowers@openai-curated" "$OUTDATED_CODEX_LOG";
   exit 1
 fi
 
+REMOTE_CATALOG_BIN="$TMP_DIR/remote-catalog-bin"
+REMOTE_CATALOG_HOME="$TMP_DIR/remote-catalog-home"
+REMOTE_CATALOG_CODEX_LOG="$TMP_DIR/remote-catalog-codex.log"
+mkdir -p "$REMOTE_CATALOG_BIN" "$REMOTE_CATALOG_HOME"
+cp "$FAKE_BIN/node" "$REMOTE_CATALOG_BIN/node"
+cat > "$REMOTE_CATALOG_BIN/codex" <<EOF
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "$REMOTE_CATALOG_CODEX_LOG"
+case "\$*" in
+  --version) echo "codex 0.0.0-test" ;;
+  "plugin add superpowers@openai-curated")
+    echo "Error: plugin superpowers was not found in marketplace openai-curated" >&2
+    exit 1 ;;
+esac
+exit 0
+EOF
+chmod +x "$REMOTE_CATALOG_BIN/codex"
+
+if ! REMOTE_CATALOG_OUTPUT="$(
+  HOME="$REMOTE_CATALOG_HOME" \
+  PATH="$REMOTE_CATALOG_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --superpowers-only --codex 2>&1
+)"; then
+  echo "Expected Superpowers to fall back to the remote Codex catalog" >&2
+  printf '%s\n' "$REMOTE_CATALOG_OUTPUT" >&2
+  exit 1
+fi
+
+if ! grep -Fxq -- "plugin add superpowers@openai-curated-remote" "$REMOTE_CATALOG_CODEX_LOG"; then
+  echo "Expected Superpowers install from openai-curated-remote after openai-curated failed" >&2
+  cat "$REMOTE_CATALOG_CODEX_LOG" >&2
+  exit 1
+fi
+
+if grep -Fq -- "marketplace openai-curated" <<<"$REMOTE_CATALOG_OUTPUT"; then
+  echo "The openai-curated error should stay hidden when the remote catalog works" >&2
+  printf '%s\n' "$REMOTE_CATALOG_OUTPUT" >&2
+  exit 1
+fi
+
 MUTABLE_OUTPUT="$(
   set +e
   HOME="$INSTALL_HOME" \
