@@ -2,6 +2,12 @@
 
 > Curated, distilled wisdom from @richardrx ("Richard — Design for startups"), translated from Portuguese. Each entry is a reusable principle linked to its source post.
 
+## Map the whole journey to value — then fix the biggest drop, not the first step
+**Principle.** Founders rush to the top of the funnel when activation falls, but the leak is usually in the middle — the step where effort is already high and the user hasn't seen proof it's worth it. Method: (1) Define what "value" is (the first moment the user gets the promised result — measurable, visible in data). (2) List every step between signup and that value (every screen, click, wait, field — always more than you remember). (3) Measure drop per step; find the steepest fall. (4) Fix the biggest drop first — that's where the money is. (5) Diagnose why: friction (cut), confusion (direct attention), ordering (deliver value before asking effort).
+**Apply when.** Activation is low and you're not sure where the leak is.
+**The move.** Count the steps before first value — each is a chance to quit. High activation lives in the shortest path to first result, not the most complete product before it. Almost every founder has this map in their head and never on paper; the head version always looks shorter.
+**Source.** [@richardrx · 2026-07-08](https://x.com/richardrx/status/2074814716824731651)
+
 ## An onboarding video welcomes — it doesn't teach
 **Principle.** A good onboarding video isn't a manual (nobody reads their car's or iPhone's). It welcomes, builds connection, shows the product at a glance, and points to where value comes fastest.
 **Apply when.** Designing first-run onboarding or a welcome video.
@@ -97,7 +103,7 @@
 **Apply when.** You're weighing an 8-field signup form against email + password.
 **The move.** Default to the minimal form and let qualification happen later, inside the product, from real behavior. Deciding where to add versus remove friction is what separates a product that grows from one that spins its wheels — but it's contextual ("it depends").
 **Evidence.** Same product, two founders: 8-field form (name, email, company, role, phone, segment, team size, how-did-you-hear) → 12% signup rate; email + password only → 34%.
-**Visual.** Annotated onboarding step (DevNoodles): an ICP/intent question flagged "Zeigarnik effect" (the step progress dots) and a B2C/B2B card selector flagged "Progress effect" — showing where each bias is engineered into the flow. — `../assets/2042558822825239030__1.jpg`
+**Visual.** Annotated onboarding step (DevNoodles): an ICP/intent question flagged "Zeigarnik effect" (the step progress dots) and a B2C/B2B card selector flagged "Default effect" (the B2C card is pre-badged "Mais comum") — showing where each bias is engineered into the flow. — `../assets/2042558822825239030__1.jpg`
 **Source.** [@richardrx · 2026-04-10](https://x.com/richardrx/status/2042558822825239030)
 
 ## Celebrate the activation moment, don't just confirm it

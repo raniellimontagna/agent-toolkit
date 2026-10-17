@@ -15,6 +15,7 @@ The release entries below are based on Git tag ranges and npm publication metada
 
 ## [Unreleased]
 
+- Updated the bundled `revenue-centric-design` skill to upstream `heliocosta-dev/revenue-centric-design@1942760` (1.3.0, 101 → 134 principles), adding the Checkout & Forms and Dashboards & Data Visualization references and vendoring only the assets they cite.
 - Fixed the Codex Superpowers install on a `CODEX_HOME` that never synced the local `openai-curated` marketplace: the installer now falls back to `superpowers@openai-curated-remote`, the account's remote catalog.
 - Added the bundled `media/brag-slim` launch-video skill, vendored from `latent-spaces/brag@fd7de7e` with its MIT license and attribution notice.
 - Refreshed the pinned external tools: RTK `v0.51.0` with new archive checksums, Caveman `3.2.0` at `2e08b91`, Graphify `0.9.87`, GSD Core `1.16.0`, Agent Skills CLI `1.7.2`, Agent Browser `0.39.0` with its matching `vercel-labs/agent-browser` tag commit, the `pbakaus/impeccable`, `millionco/react-doctor`, `remotion-dev/skills` and `mattpocock/skills` sources, and the Claude Code `2.1.296`, Codex `0.162.1`, OpenCode `1.19.0` and Gemini `0.63.0` runtime CLIs, after re-checking the installer and Ariadne headless flags on each.

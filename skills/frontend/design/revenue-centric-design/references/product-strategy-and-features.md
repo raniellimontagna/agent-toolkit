@@ -2,6 +2,43 @@
 
 > Curated, distilled wisdom from @richardrx ("Richard — Design for startups"), translated from Portuguese. Each entry is a reusable principle linked to its source post.
 
+## Feature requests from cancellations don't buy features
+**Principle.** Three auto shops canceled RepareCar over missing boleto (bank-slip) issuance — request logged in Linear with name and date, 20+ in the same queue, oldest since June. But cancellation doesn't buy a feature: the ICP profile is defined, and boleto sits in a deliberately-not-doing package. Support is semi-automated (AI triages, human on novel questions, both open Linear tickets; a daily Claude task prioritizes). Bugs jump the queue; anything new defaults to parking lot.
+**Apply when.** Cancelling customers' feature requests pressure the roadmap.
+**The move.** Log each request with the customer and date, aggregate demand, then prioritize by bug severity, ICP fit, and strategy — not by the latest cancellation. Default net-new work to the parking lot. When asked for timing, communicate the real queue ("20 requests are ahead of yours") instead of making a false promise.
+**Source.** [@richardrx · 2026-08-10](https://x.com/richardrx/status/2086931878251057479)
+
+## Building is the comfort zone; distribution is the game
+**Principle.** Founders choose to build because selling hurts — Richard spent 90% of his time perfecting a delivery product one year before iFood existed; it died beautiful. Humane raised ~US$240M, ex-Apple founders, gorgeous hardware; returns outpaced sales by summer 2024 and HP took the assets for US$116M. In survival phase you do both jobs and almost always pick building — your comfort zone — pretending the next feature will make selling easier. Exercise: how many months of runway does your next feature cost?
+**Apply when.** Roadmap keeps growing while distribution is untested.
+**The move.** Before every roadmap item in the survival phase, ask the post's question — how many months of runway does this feature cost? — and whether it actually makes selling easier or just postpones selling. If the honest answer is "it's the comfortable thing to build," spend that time on the job that hurts: selling.
+**Source.** [@richardrx · 2026-07-21](https://x.com/richardrx/status/2079575881115226453)
+
+## 94% of features are filler — Pendo's data and what to do about it
+**Principle.** Pendo's analysis across ~2,500 companies' apps found roughly 6% feature adoption in the average product; even top-10% products reached only 15.6%. That leaves about 94% rarely or never used in the average product (84.4% even in the top decile), creating low activation, churn, a larger attack surface, and higher sustaining cost/complexity. Some features sell without being used, but that doesn't explain the gap.
+**Apply when.** Auditing a bloated roadmap or justifying a feature purge.
+**The move.** Classify every feature by usage correlation: A. Core (the 6% carrying the product; 15% if you're top-10%), B. Strategic (contributes to sales), C. Discard. Then shrink the product based on use and/or cash generation.
+**Source.** [@richardrx · 2026-07-17](https://x.com/richardrx/status/2078079228717764886)
+
+## PMF is step 8 in a 10-step sequence — founders start there too early
+**Principle.** Sequence: (1) Define the ICP — does it really exist, or is it who you wish it were? (2) Surface the ICP's pains and desires — real? verified where, with how many? (3) Understand awareness level — knows the pain? the solution? yours? (4) Slice niche/sub-niche — their particularities, do they exclude each other? (5) Size TAM of niche and sub — enough market, and does enough remain after niching? (6) Actively decide who the solution serves — can you stand out there? (7) Validate the thesis — the ICP's pain solved in a way that pays; are they paying? (8) Reach PMF — does the product stick? do users recommend it unprompted? does the business sustain itself without you pushing? (9) Fix inefficiencies in acquisition, activation, retention — always leaks; measured where? (10) Scale.
+**Apply when.** A founder says they "want PMF" without the groundwork.
+**The move.** Work the sequence in order and require evidence at each gate: a verified ICP and pain, a viable niche/TAM, paying thesis validation, then PMF. Only after measuring and fixing acquisition, activation, and retention leaks should you scale.
+**Source.** [@richardrx · 2026-07-09](https://x.com/richardrx/status/2075192130184630688)
+
+## Feature creep ("fiturite") is a business cost, not just a UX one
+**Principle.** The Homer Simpson car problem: every unsatisfied user request implemented as a feature eventually makes the product hard to operate, steepens the learning curve, and worsens experience through cognitive overload and choice paradox. It's bad for the business too — you spend more on dev for features serving few users, more on maintenance, eventually whole teams for barely-needed areas. Prune based on: who are our most strategic users, what are they using, what's unused that I can abstract, what aligns with the vision.
+**Apply when.** A product keeps growing features without a subtraction ritual.
+**The move.** Treat pruning like a cost line: grass grows by itself, you have to mow. Look for low-usage features serving low-paying/high-churn subniches and cut them to serve better those who pay more and stay longer.
+**Source.** [@richardrx · 2025-11-03](https://x.com/richardrx/status/1985329704312709254) and [@richardrx · 2026-07-06](https://x.com/richardrx/status/2074118439321350163)
+
+## Maturing the product means doing the same thing better, not adding power-user features
+**Principle.** Technical founders keep densifying the product for heavy users, making it expensive, complex, and hard for the average user — a Boeing 747 cockpit. Maturing means doing better what the product already does: smoother flows, bug fixes, attention direction. Hidden risk: a power-user product has a smaller top of funnel, so you must charge more — you changed markets (TAM/SAM changed) and price must follow. The founder then reads "product is bad" when really ICP isn't adjusted. Adjust copy (more executive, less tool-like), visuals (show the result, less product internals), and detail care (high-paying ICP tolerates AI-slop design less).
+**Apply when.** The product keeps getting denser and conversion falls.
+**The move.** Stop adding depth by default; smooth the core flows, fix bugs, and direct attention first. If the product is deliberately moving upmarket, recalculate TAM/SAM and price, then align the ICP, copy, visuals, and detail quality with that smaller, higher-value market.
+**Evidence.** Christoph Janz's five paths to $100M — from the elephant (few customers paying a lot) to the fly (millions paying little) — all work; the problem is becoming an elephant without noticing and still charging mouse prices.
+**Source.** [@richardrx · 2026-07-02](https://x.com/richardrx/status/2072718071060447691)
+
 ## Run every feature through a two-layer "Swiss Knife filter" before building
 **Principle.** A feature you ship stays forever and charges rent forever, so the right question isn't "is this good?" but "does it deserve the permanent cost it imposes on the product?"
 **Apply when.** A roadmap item feels appealing but nobody applied a filter before committing to build.
