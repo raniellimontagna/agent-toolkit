@@ -2,9 +2,9 @@
 
 This skill was copied from the latent-spaces brag repository.
 
-- Source: https://github.com/latent-spaces/brag/tree/fd7de7e418334876b3ea4e9258231a66a2c2a38d/skills/brag-slim
-- Source commit: fd7de7e418334876b3ea4e9258231a66a2c2a38d
-- Source SHA-256 (`skills/brag-slim/SKILL.md`): c97ea53d7c5df2a3dd64694a388c013a05c363ac7c2e4e0d956c18ad3bfaa5ee
+- Source: https://github.com/latent-spaces/brag/tree/069432cac935ed1895859df201c31436c07fb74e/skills/brag-slim
+- Source commit: 069432cac935ed1895859df201c31436c07fb74e
+- Source SHA-256 (`skills/brag-slim/SKILL.md`): 3079af81f4239682fb2d1d6a1a008f1542b20bee8a3ceb06030e2fcae38b2e29
 - License: MIT
 - Copyright: Copyright (c) 2026 Shunit Haviv Hakimi
 

@@ -28,5 +28,13 @@
     "rules": {
       "preset": "recommended"
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["skills/frontend/design/ui-ux-pro-max/data/**"],
+      "formatter": {
+        "enabled": false
+      }
+    }
+  ]
 }

@@ -125,12 +125,12 @@ FROM node:22-alpine AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run build && npm prune --production
+RUN npm run build && npm prune --omit=dev
 
 # Stage: production (minimal image)
 FROM node:22-alpine AS production
 WORKDIR /app
-RUN addgroup -g 1001 -S appgroup && adduser -S appuser -u 1001
+RUN addgroup -g 1001 -S appgroup && adduser -S appuser -u 1001 -G appgroup
 USER appuser
 COPY --from=build --chown=appuser:appgroup /app/dist ./dist
 COPY --from=build --chown=appuser:appgroup /app/node_modules ./node_modules
@@ -256,7 +256,7 @@ services:
 FROM node:22.12-alpine3.20
 
 # 2. Run as non-root
-RUN addgroup -g 1001 -S app && adduser -S app -u 1001
+RUN addgroup -g 1001 -S app && adduser -S app -u 1001 -G app
 USER app
 
 # 3. Drop capabilities (in compose)

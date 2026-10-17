@@ -7,6 +7,20 @@ metadata:
 
 # Production Deployment
 
+## Contents
+
+- [Graceful Shutdown with close-with-grace](#graceful-shutdown-with-close-with-grace)
+- [Health Check Endpoints](#health-check-endpoints)
+- [Docker Configuration](#docker-configuration)
+- [Kubernetes Deployment](#kubernetes-deployment)
+- [Production Logger Configuration](#production-logger-configuration)
+- [Request Timeouts](#request-timeouts)
+- [Trust Proxy Settings](#trust-proxy-settings)
+- [Static File Serving](#static-file-serving)
+- [Compression](#compression)
+- [Metrics and Monitoring](#metrics-and-monitoring)
+- [Zero-Downtime Deployments](#zero-downtime-deployments)
+
 ## Graceful Shutdown with close-with-grace
 
 Use `close-with-grace` for proper shutdown handling:
@@ -106,6 +120,7 @@ app.get('/health/details', {
   };
 });
 ```
+
 ## Docker Configuration
 
 Create an optimized Dockerfile:
@@ -421,3 +436,4 @@ closeWithGrace({ delay: 30000 }, async ({ signal }) => {
   app.log.info('Server closed');
 });
 ```
+
