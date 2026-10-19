@@ -4,22 +4,22 @@
     "rtk": {
       "source": "github-release",
       "repository": "rtk-ai/rtk",
-      "tag": "v0.51.0",
+      "tag": "v0.52.0",
       "assets": {
         "rtk-aarch64-apple-darwin.tar.gz": {
-          "sha256": "8817d8b71afc02ac8bf06eb24bcc41c306592ab735b68e8fee9db1ba0de7cb59"
+          "sha256": "49ac56bc5edd58ce0c03bf7cc137f8cf2a6253e7707b8236e07321ad66cdc043"
         },
         "rtk-aarch64-unknown-linux-gnu.tar.gz": {
-          "sha256": "8d6d1aad9e69b42481eda7039507d1f7ee93698f87713cecd873d287c1931632"
+          "sha256": "b1de881a0381f1f059ce9dbb0cfb97e0f94f22460965f39aaff77b2956024fa9"
         },
         "rtk-x86_64-apple-darwin.tar.gz": {
-          "sha256": "bd39c8153f4147358360c7dc51665a8131cc9ee16f81f69a9402ffa500be3cc2"
+          "sha256": "81748ec5557b21965097531653fc5198bf734cdf240484816f6d9cfa9e816034"
         },
         "rtk-x86_64-pc-windows-msvc.zip": {
-          "sha256": "1623e9b45d28b15122d69e7314776e1123a804224885ce07e7182fb40080f05c"
+          "sha256": "76055258f531830e7ae25c9152c2428ed9932533df4ad07ad74e684e25e1b125"
         },
         "rtk-x86_64-unknown-linux-musl.tar.gz": {
-          "sha256": "5028d3b19a8f0990d30fec9fbb07e32782bc5698e618fb1861aad8a9ccba4eb5"
+          "sha256": "46765d4e570ccb3d759e95bcec11feb42fceed5ab2453eac8d787f81d4a0cdab"
         }
       }
     },
@@ -31,17 +31,17 @@
     "graphify": {
       "source": "pypi",
       "package": "graphifyy",
-      "version": "0.9.87"
+      "version": "0.9.92"
     },
     "gsd": {
       "source": "npm",
       "package": "@opengsd/gsd-core",
-      "version": "1.16.0"
+      "version": "1.18.0"
     },
     "agentBrowser": {
       "source": "npm",
       "package": "agent-browser",
-      "version": "0.39.0"
+      "version": "0.39.1"
     },
     "agentSkills": {
       "source": "skills-cli",
@@ -59,12 +59,12 @@
         "agentBrowser": {
           "source": "github",
           "repository": "vercel-labs/agent-browser",
-          "ref": "44af39842650f0bb9c1afb7354df9a82921d4f09"
+          "ref": "1165952d74ceed98fdc2dd97190ad41f44dd0e24"
         },
         "impeccable": {
           "source": "github",
           "repository": "pbakaus/impeccable",
-          "ref": "919dbeba520df760a157fe635be62faae88d58da"
+          "ref": "0665bd812ae0908fcab17b96fd4f840defb882d9"
         },
         "webDesignGuidelines": {
           "source": "github",
@@ -74,12 +74,12 @@
         "reactDoctor": {
           "source": "github",
           "repository": "millionco/react-doctor",
-          "ref": "e5824abe9a8ccaff326fdaecc11b21ce35ea7750"
+          "ref": "84ad0c8d0df7a3ab7d26946367fae3bc39c100d0"
         },
         "remotionBestPractices": {
           "source": "github",
           "repository": "remotion-dev/skills",
-          "ref": "7ba4dcf8ebe1626b00baa41e1f2478113719b60b"
+          "ref": "1441a11e95db35443bd76bb318386c0d3ca00053"
         },
         "mattPocockSkills": {
           "source": "github",
@@ -176,22 +176,22 @@
     "claude": {
       "source": "npm",
       "package": "@anthropic-ai/claude-code",
-      "version": "2.1.296"
+      "version": "2.1.303"
     },
     "codex": {
       "source": "npm",
       "package": "@openai/codex",
-      "version": "0.162.1"
+      "version": "0.163.0"
     },
     "opencode": {
       "source": "npm",
       "package": "opencode-ai",
-      "version": "1.19.0"
+      "version": "1.19.3"
     },
     "gemini": {
       "source": "npm",
       "package": "@google/gemini-cli",
-      "version": "0.63.0"
+      "version": "0.64.0"
     }
   }
 }
