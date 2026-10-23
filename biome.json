@@ -35,6 +35,18 @@
       "formatter": {
         "enabled": false
       }
+    },
+    {
+      "includes": ["skills/security/security-audit/**"],
+      "formatter": {
+        "enabled": false
+      },
+      "linter": {
+        "enabled": false
+      },
+      "assist": {
+        "enabled": false
+      }
     }
   ]
 }

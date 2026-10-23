@@ -1133,7 +1133,8 @@ for expected_security_skill in \
   "security/cicd-security-audit" \
   "security/cloud-misconfiguration-audit" \
   "security/llm-agent-security-audit" \
-  "security/js-secrets-audit"; do
+  "security/js-secrets-audit" \
+  "security/security-audit"; do
   if ! grep -Fq -- "$expected_security_skill" <<<"$REPO_SECURITY_SKILLS_OUTPUT"; then
     echo "Expected repository security package to include: $expected_security_skill" >&2
     exit 1
