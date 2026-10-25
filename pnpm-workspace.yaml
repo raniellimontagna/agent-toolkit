@@ -6,3 +6,5 @@ trustPolicyIgnoreAfter: 525600
 blockExoticSubdeps: true
 packages:
   - "packages/*"
+overrides:
+  vite: ^8.1.6
