@@ -213,6 +213,15 @@ export async function runInstaller(
     skip("Planning Skills");
   }
 
+  if (state.tools["research-skills"]) {
+    if (!installAgentSkillBundle("research-skills").ok) {
+      err("Research Skills install failed.");
+      hadError = true;
+    }
+  } else {
+    skip("Research Skills");
+  }
+
   if (state.tools.skills) {
     if (!installCustomSkills()) {
       err("Custom Skills install failed.");

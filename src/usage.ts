@@ -17,6 +17,7 @@ Tools:
   --agent-browser-only  Install only Agent Browser
   --frontend-skills-only Install only third-party frontend skills
   --planning-skills-only Install only third-party planning skills
+  --research-skills-only Install only third-party research and scraping skills
   --skills-only         Install only Custom Skills
   --no-rtk              Skip RTK
   --no-caveman          Skip Caveman
@@ -27,6 +28,7 @@ Tools:
   --no-agent-browser    Skip Agent Browser
   --no-frontend-skills  Skip third-party frontend skills
   --no-planning-skills  Skip third-party planning skills
+  --no-research-skills  Skip third-party research and scraping skills
   --no-skills           Skip Custom Skills
 
 Runtimes:

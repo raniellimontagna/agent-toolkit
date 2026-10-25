@@ -345,6 +345,9 @@ if [[ "\${1:-}" == "clone" ]]; then
   if [[ "\$*" == *"https://github.com/shadcn/improve.git"* ]]; then
     mkdir -p "\$destination/skills/improve"
   fi
+  if [[ "\$*" == *"https://github.com/gabrielgreco1/skills.git"* ]]; then
+    mkdir -p "\$destination/ui-humanizer" "\$destination/motion-designer" "\$destination/webscraping-expert"
+  fi
 fi
 if [[ "\${1:-}" == "-C" && "\${3:-}" == "fetch" ]]; then
   printf '%s\n' "\${@: -1}" > "\$2/.fake-fetch-head"
@@ -483,6 +486,7 @@ for expected in \
   "--agent-browser-only" \
   "--frontend-skills-only" \
   "--planning-skills-only" \
+  "--research-skills-only" \
   "--graphify-only" \
   "--skills-only" \
   "--superpowers-only" \
@@ -492,6 +496,7 @@ for expected in \
   "--no-agent-browser" \
   "--no-frontend-skills" \
   "--no-planning-skills" \
+  "--no-research-skills" \
   "--no-skills" \
   "--skills-dir" \
   "--skills-list" \
@@ -758,6 +763,14 @@ if [[ "$MATT_POCOCK_CLONES" -ne 1 ]]; then
   exit 1
 fi
 
+for gabriel_skill in ui-humanizer motion-designer webscraping-expert; do
+  if ! grep -Eq -- "-y skills@1\\.7\\.2 add .+/$gabriel_skill --skill $gabriel_skill --agent claude-code --agent codex --agent opencode --agent gemini-cli --agent antigravity --global -y --copy" "$NPM_LOG"; then
+    echo "Expected pinned gabrielgreco1/skills installer to install $gabriel_skill for selected runtimes" >&2
+    cat "$NPM_LOG" >&2
+    exit 1
+  fi
+done
+
 : > "$NPM_LOG"
 HOME="$HOME_DIR" \
 XDG_CONFIG_HOME="$HOME_DIR/.config" \
@@ -801,6 +814,13 @@ fi
 
 if ! grep -Fq -- "https://github.com/remotion-dev/skills.git" "$GIT_LOG"; then
   echo "Expected Remotion Best Practices source to be cloned before CLI installation" >&2
+  cat "$GIT_LOG" >&2
+  exit 1
+fi
+
+GABRIEL_CLONES="$(grep -Fc -- "clone --filter=blob:none --no-checkout https://github.com/gabrielgreco1/skills.git" "$GIT_LOG")"
+if [[ "$GABRIEL_CLONES" -ne 2 ]]; then
+  echo "Expected gabrielgreco1/skills to be cloned once per bundle (frontend and research)" >&2
   cat "$GIT_LOG" >&2
   exit 1
 fi

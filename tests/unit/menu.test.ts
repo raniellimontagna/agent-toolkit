@@ -139,6 +139,7 @@ describe("clack menu", () => {
       "agent-browser": false,
       "frontend-skills": false,
       "planning-skills": false,
+      "research-skills": false,
       skills: true,
     });
     expect(state.runtimes).toEqual({

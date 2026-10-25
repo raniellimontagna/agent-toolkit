@@ -42,6 +42,7 @@ Every option is long-form except the documented `-h` help alias.
 | `--agent-browser-only` | Select only Agent Browser. This is its explicit opt-in path. |
 | `--frontend-skills-only` | Select only the pinned third-party frontend skill bundle. |
 | `--planning-skills-only` | Select only the pinned third-party planning skill bundle. |
+| `--research-skills-only` | Select only the pinned third-party research and scraping skill bundle. |
 | `--skills-only` | Select only Custom Skills discovered below the configured skills source directory. |
 | `--no-rtk` | Exclude RTK from the current tool selection. |
 | `--no-caveman` | Exclude Caveman from the current tool selection. |
@@ -52,6 +53,7 @@ Every option is long-form except the documented `-h` help alias.
 | `--no-agent-browser` | Exclude Agent Browser. It is already excluded from the default and `--all` selections. |
 | `--no-frontend-skills` | Exclude the third-party frontend skill bundle. |
 | `--no-planning-skills` | Exclude the third-party planning skill bundle. |
+| `--no-research-skills` | Exclude the third-party research and scraping skill bundle. |
 | `--no-skills` | Exclude bundled or custom-directory Custom Skills. |
 
 ### Runtimes

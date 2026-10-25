@@ -85,6 +85,11 @@
           "source": "github",
           "repository": "mattpocock/skills",
           "ref": "49dd158d1076134a641b33efb035946536778336"
+        },
+        "gabrielGrecoSkills": {
+          "source": "github",
+          "repository": "gabrielgreco1/skills",
+          "ref": "4419d42365391677af719b58e84df7053309e6fc"
         }
       },
       "bundles": {
@@ -112,6 +117,16 @@
             {
               "repository": "remotionBestPractices",
               "skill": "remotion-best-practices"
+            },
+            {
+              "repository": "gabrielGrecoSkills",
+              "skill": "ui-humanizer",
+              "path": "ui-humanizer"
+            },
+            {
+              "repository": "gabrielGrecoSkills",
+              "skill": "motion-designer",
+              "path": "motion-designer"
             }
           ]
         },
@@ -136,6 +151,17 @@
             {
               "repository": "mattPocockSkills",
               "skill": "improve-codebase-architecture"
+            }
+          ]
+        },
+        "research-skills": {
+          "label": "Research Skills",
+          "description": "Third-party web scraping and data extraction skills installed via Agent Skills CLI",
+          "skills": [
+            {
+              "repository": "gabrielGrecoSkills",
+              "skill": "webscraping-expert",
+              "path": "webscraping-expert"
             }
           ]
         },

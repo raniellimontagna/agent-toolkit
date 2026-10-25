@@ -311,6 +311,14 @@ function toolOptions(status: InstallerStatus): ClackOption[] {
       ),
     },
     {
+      value: "research-skills",
+      label: "Research Skills",
+      hint: detectionHint(
+        status.tools["research-skills"],
+        "web scraping and data extraction",
+      ),
+    },
+    {
       value: "skills",
       label: "Custom Skills",
       hint: detectionHint(status.tools.skills, "bundled personal skills"),
@@ -499,7 +507,7 @@ async function showReadlineMenu(): Promise<void> {
     console.log("");
 
     const toolsAnswer = await rl.question(
-      "Tools to install [comma list: rtk,caveman,superpowers,graphify,gsd,improve,frontend-skills,planning-skills,skills, or all]: ",
+      "Tools to install [comma list: rtk,caveman,superpowers,graphify,gsd,improve,frontend-skills,planning-skills,research-skills,skills, or all]: ",
     );
     selectToolsFromAnswer(toolsAnswer);
 
