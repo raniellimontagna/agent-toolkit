@@ -498,6 +498,7 @@ for expected in \
   "--skills-package" \
   "--skills-scope" \
   "--skills-path" \
+  "--skills-exclude" \
   "--dry-run" \
   "--plan-only" \
   "--doctor" \
@@ -1077,6 +1078,29 @@ fi
 if [[ -f "$PATH_SKILLS_PROJECT/.codex/skills/fastify-patterns/SKILL.md" ]]; then
   echo "Expected --skills-path to exclude unselected backend skills" >&2
   find "$PATH_SKILLS_PROJECT" -maxdepth 6 -type f -print >&2 || true
+  exit 1
+fi
+
+EXCLUDE_SKILLS_PROJECT="$TMP_DIR/exclude-skills-project"
+mkdir -p "$EXCLUDE_SKILLS_PROJECT"
+
+(
+  cd "$EXCLUDE_SKILLS_PROJECT"
+  HOME="$TECH_SKILLS_HOME" \
+  PATH="$FAKE_BIN:/usr/bin:/bin" \
+  SKILLS_EXCLUDE="backend/go" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --skills-only --codex --local --skills-dir "$TECH_SOURCE" --skills-exclude frontend/react >/dev/null
+)
+
+if [[ ! -f "$EXCLUDE_SKILLS_PROJECT/.codex/skills/fastify-patterns/SKILL.md" ]]; then
+  echo "Expected --skills-exclude to keep skills outside the excluded scopes" >&2
+  find "$EXCLUDE_SKILLS_PROJECT" -maxdepth 6 -type f -print >&2 || true
+  exit 1
+fi
+
+if [[ -f "$EXCLUDE_SKILLS_PROJECT/.codex/skills/react-patterns/SKILL.md" || -f "$EXCLUDE_SKILLS_PROJECT/.codex/skills/go-patterns/SKILL.md" ]]; then
+  echo "Expected --skills-exclude and SKILLS_EXCLUDE to skip excluded skills" >&2
+  find "$EXCLUDE_SKILLS_PROJECT" -maxdepth 6 -type f -print >&2 || true
   exit 1
 fi
 
