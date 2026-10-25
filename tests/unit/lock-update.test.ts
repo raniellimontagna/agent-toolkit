@@ -74,6 +74,11 @@ const lock: ToolLock = {
           repository: "mattpocock/skills",
           ref: "391a2701dd948f94f56a39f7533f8eea9a859c87",
         },
+        gabrielGrecoSkills: {
+          source: "github",
+          repository: "gabrielgreco1/skills",
+          ref: "4419d42365391677af719b58e84df7053309e6fc",
+        },
       },
       bundles: {
         improve: {
@@ -118,6 +123,18 @@ const lock: ToolLock = {
             {
               repository: "mattPocockSkills",
               skill: "improve-codebase-architecture",
+            },
+          ],
+        },
+        "research-skills": {
+          label: "Research Skills",
+          description:
+            "Third-party web scraping and data extraction skills installed via Agent Skills CLI",
+          skills: [
+            {
+              repository: "gabrielGrecoSkills",
+              skill: "webscraping-expert",
+              path: "webscraping-expert",
             },
           ],
         },
@@ -208,7 +225,7 @@ describe("lock update report", () => {
     const repositoryItems = report.items.filter((item) =>
       item.name.startsWith("Agent Skill repository ("),
     );
-    expect(repositoryItems).toHaveLength(7);
+    expect(repositoryItems).toHaveLength(8);
     expect(
       repositoryItems.filter((item) =>
         item.name.startsWith("Agent Skill repository (mattpocock/skills)"),

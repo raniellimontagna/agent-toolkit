@@ -221,6 +221,18 @@ describe("external tool lock", () => {
         skill: "improve-codebase-architecture",
       },
     ]);
+    expect(lock.tools.agentSkills.repositories.gabrielGrecoSkills).toEqual({
+      source: "github",
+      repository: "gabrielgreco1/skills",
+      ref: "4419d42365391677af719b58e84df7053309e6fc",
+    });
+    expect(lock.tools.agentSkills.bundles["research-skills"].skills).toEqual([
+      {
+        repository: "gabrielGrecoSkills",
+        skill: "webscraping-expert",
+        path: "webscraping-expert",
+      },
+    ]);
     expect(lock.tools.ariadne).toEqual(expectedAriadneLock);
     expect(lock.runtimeClis.gemini.version).toBe("0.64.0");
   });

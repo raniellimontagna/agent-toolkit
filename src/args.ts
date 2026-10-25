@@ -81,6 +81,10 @@ export function parseArgs(argv: string[]): boolean {
         applyOnlyTool(arg, "planning-skills");
         state.nonInteractive = true;
         break;
+      case "--research-skills-only":
+        applyOnlyTool(arg, "research-skills");
+        state.nonInteractive = true;
+        break;
       case "--skills-only":
         applyOnlyTool(arg, "skills");
         state.nonInteractive = true;
@@ -119,6 +123,10 @@ export function parseArgs(argv: string[]): boolean {
         break;
       case "--no-planning-skills":
         state.tools["planning-skills"] = false;
+        state.nonInteractive = true;
+        break;
+      case "--no-research-skills":
+        state.tools["research-skills"] = false;
         state.nonInteractive = true;
         break;
       case "--no-skills":

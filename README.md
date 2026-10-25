@@ -75,11 +75,12 @@ The Agent Skills catalog exposes these locked bundle IDs and skill names:
 
 - `improve`: `improve`
 - `agent-browser`: `agent-browser`
-- `frontend-skills`: `impeccable`, `web-design-guidelines`, `react-doctor`, `remotion-best-practices`
+- `frontend-skills`: `impeccable`, `web-design-guidelines`, `react-doctor`, `remotion-best-practices`, `ui-humanizer`, `motion-designer`
 - `planning-skills`: `grill-me`, `grilling`, `grill-with-docs`, `domain-modeling`, `codebase-design`, `improve-codebase-architecture`
+- `research-skills`: `webscraping-expert`
 - `security`: `api-security-audit`, `source-leak-audit`, `cicd-security-audit`, `cloud-misconfiguration-audit`, `llm-agent-security-audit`, `js-secrets-audit`
 
-React Doctor is installed from [`millionco/react-doctor`](https://github.com/millionco/react-doctor) at a pinned commit and is documented upstream under a Modified MIT License. It is an agent skill integration, not automatic CI setup. Remotion Best Practices is installed from [`remotion-dev/skills`](https://github.com/remotion-dev/skills) at a pinned commit.
+React Doctor is installed from [`millionco/react-doctor`](https://github.com/millionco/react-doctor) at a pinned commit and is documented upstream under a Modified MIT License. It is an agent skill integration, not automatic CI setup. Remotion Best Practices is installed from [`remotion-dev/skills`](https://github.com/remotion-dev/skills) at a pinned commit. UI Humanizer, Motion Designer and Webscraping Expert are installed from [`gabrielgreco1/skills`](https://github.com/gabrielgreco1/skills) at a pinned commit; that repository has no license file, and its README grants permission to use and modify the skills. Motion Designer narration calls the ElevenLabs API and needs an API key in the environment. Webscraping Expert covers anti-bot and CAPTCHA techniques; check the target site terms of service before using them.
 
 Bundled third-party skills preserve upstream attribution and license files in their skill directories. The repository catalog and immutable source pins in [`tools.lock.json`](tools.lock.json) are the source of truth.
 

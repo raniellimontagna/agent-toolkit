@@ -19,6 +19,7 @@ export const toolNames = [
   "agent-browser",
   "frontend-skills",
   "planning-skills",
+  "research-skills",
   "skills",
 ] as const;
 
@@ -197,6 +198,7 @@ export const state: State = {
     "agent-browser": false,
     "frontend-skills": true,
     "planning-skills": true,
+    "research-skills": true,
     skills: true,
   },
   runtimes: {

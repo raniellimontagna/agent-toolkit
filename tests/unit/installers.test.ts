@@ -160,7 +160,7 @@ describe("third-party skill installers", () => {
     );
     expect(
       runMock.mock.calls.filter(([command]) => command === "npx"),
-    ).toHaveLength(3);
+    ).toHaveLength(5);
   });
 
   it("isolates skill-root resolution failures to their repository", () => {

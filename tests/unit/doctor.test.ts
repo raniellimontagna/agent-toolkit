@@ -13,6 +13,7 @@ const status: InstallerStatus = {
     "agent-browser": { state: "missing", summary: "missing from PATH" },
     "frontend-skills": { state: "external", summary: "2 pinned skills" },
     "planning-skills": { state: "external", summary: "4 pinned skills" },
+    "research-skills": { state: "external", summary: "1 pinned skill" },
     skills: { state: "available", summary: "3 source skill(s) found" },
   },
   runtimes: {

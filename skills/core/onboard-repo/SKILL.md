@@ -36,6 +36,7 @@ Agent Toolkit run using only the flags that apply:
 | Signal | Skills | Toolkit selector |
 |---|---|---|
 | Any repo | grilling interviews, domain modeling | `--planning-skills-only` |
+| Scraping or data extraction | web scraping playbook | `--research-skills-only` |
 | Frontend (React/Vue/Astro/CSS-heavy) | Impeccable, Web Design Guidelines, React Doctor | `--frontend-skills-only` |
 | Frontend | bundled `frontend` package (accessibility, design, gsap, react, react-native, astro — pick relevant) | `--skills-only` with `--skills-package frontend` |
 | Backend/API services | bundled `backend` package | `--skills-only` with `--skills-package backend` |

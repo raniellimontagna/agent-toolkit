@@ -8,6 +8,7 @@ export const agentSkillBundleIds = [
   "improve",
   "frontend-skills",
   "planning-skills",
+  "research-skills",
   "agent-browser",
 ] as const;
 
