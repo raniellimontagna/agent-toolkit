@@ -5,6 +5,7 @@ import { err, ok, step, warn } from "./logger.js";
 import { recordSkillInstall } from "./manifest.js";
 import { resolveSkillTargetDirs } from "./skill-targets.js";
 import {
+  normalizedSkillExcludes,
   normalizedSkillPackages,
   normalizedSkillPaths,
   normalizedSkillScopes,
@@ -174,9 +175,20 @@ function filterSkillDirsByPath(skillDirs: string[]): string[] {
   );
 }
 
+function filterSkillDirsByExclude(skillDirs: string[]): string[] {
+  const excludes = normalizedSkillExcludes();
+  if (excludes.length === 0) return skillDirs;
+  return skillDirs.filter(
+    (skillDir) =>
+      !excludes.some((exclude) => skillMatchesScope(skillDir, exclude)),
+  );
+}
+
 export function selectedSkillDirs(): string[] {
-  return filterSkillDirsByPath(
-    filterSkillDirsByScope(filterSkillDirsByPackage(discoverSkillDirs())),
+  return filterSkillDirsByExclude(
+    filterSkillDirsByPath(
+      filterSkillDirsByScope(filterSkillDirsByPackage(discoverSkillDirs())),
+    ),
   );
 }
 

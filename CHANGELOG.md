@@ -15,6 +15,7 @@ The release entries below are based on Git tag ranges and npm publication metada
 
 ## [Unreleased]
 
+- Added `--skills-exclude SCOPE` and the `SKILLS_EXCLUDE` environment variable to skip Custom Skills under a scope or at an exact path after the other selectors, so stacks you never use (for example `backend/go,backend/java,backend/kotlin`) stay out of reinstalls and `--repair`; dry-run and the summary list the exclusions.
 - Refreshed the pinned external tools: RTK `v0.52.0` (the last `0.x` release, Apache-2.0) with new archive checksums, Graphify `0.9.92`, GSD Core `1.18.0`, Agent Browser `0.39.1` with its matching `vercel-labs/agent-browser` tag commit, the `pbakaus/impeccable`, `millionco/react-doctor` and `remotion-dev/skills` sources, and the Claude Code `2.1.303`, Codex `0.163.0`, OpenCode `1.19.3` and Gemini `0.64.0` runtime CLIs, after re-checking the installer and Ariadne headless flags on each. RTK `1.x` and Caveman `4.x` stay out pending review.
 - Updated the development dependency `vitest` to `5.0.5`.
 - Added the bundled `security/security-audit` multi-agent audit skill, vendored unchanged from `cloudflare/security-audit-skill@c1c8a8c` with its MIT license, attribution notice and validator tests; Biome skips the directory to keep it byte-identical to upstream.

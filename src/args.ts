@@ -201,6 +201,16 @@ export function parseArgs(argv: string[]): boolean {
         }
         state.nonInteractive = true;
         break;
+      case "--skills-exclude":
+        i += 1;
+        {
+          const skillsExclude = argv[i];
+          if (!skillsExclude)
+            die("--skills-exclude requires a scope or skill path.");
+          state.skillExcludes.push(...splitList(skillsExclude));
+        }
+        state.nonInteractive = true;
+        break;
       case "--skills-package":
         i += 1;
         {

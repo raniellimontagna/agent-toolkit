@@ -9,7 +9,7 @@ Arguments are applied from left to right. Put the broad selector before its excl
 - The last bare `--*-only` tool selector wins. Replacing an earlier `-only` selector emits an override warning. Use `--all` followed by one or more `--no-<tool>` flags when you need several tools.
 - The last bare runtime selector (`--claude`, `--codex`, `--opencode`, `--gemini`, or `--antigravity`) wins. Replacing an earlier bare selector emits an override warning. Use `--all-runtimes` followed by one or more `--no-<runtime>` flags when you need several runtimes.
 - `GSD_SCOPE` initializes the install scope. An explicit `--global` or `--local` overrides it; if both CLI flags occur, the later one wins.
-- Repeated `--skills-package`, `--skills-scope`, and `--skills-path` selectors accumulate. Each argument may also be a comma-separated list. Values are trimmed and matched case-insensitively; scope and path separators are normalized to `/`.
+- Repeated `--skills-package`, `--skills-scope`, `--skills-path`, and `--skills-exclude` selectors accumulate. Each argument may also be a comma-separated list. Values are trimmed and matched case-insensitively; scope and path separators are normalized to `/`.
 - `--skills-dir` does not accumulate. Its required argument is resolved against the current working directory, and the last occurrence wins.
 - `--plan-only` is an alias for `--dry-run`. `--status` is an alias for `--doctor`.
 - `--json` only changes operations that implement machine-readable output. Currently those are `--doctor`/`--status` and `--update-lock`; it does not convert normal installation, dry-run, skill-list, audit, repair, or uninstall output to JSON.
@@ -80,6 +80,7 @@ Every option is long-form except the documented `-h` help alias.
 | `--skills-package NAME` | Restrict Custom Skills to a first-level package. `NAME` is required; the flag is repeatable and accepts comma-separated values. |
 | `--skills-scope SCOPE` | Restrict Custom Skills to a relative scope and its descendants. `SCOPE` is required; the flag is repeatable and accepts comma-separated values. |
 | `--skills-path PATH` | Restrict Custom Skills to an exact source-relative skill path. `PATH` is required; the flag is repeatable and accepts comma-separated values. |
+| `--skills-exclude SCOPE` | Skip Custom Skills under a relative scope or at an exact source-relative path. Applied after the package, scope, and path selectors. `SCOPE` is required; the flag is repeatable and accepts comma-separated values. |
 | `--skills-list` | List discovered Custom Skills after applying configured filters, then exit. |
 
 Package filtering runs first, scope filtering narrows that result, and exact paths narrow it again. Empty filters mean all discovered Custom Skills. Normalized package and path values named `all` are treated as no explicit package or path filter.
@@ -231,6 +232,7 @@ All variables are optional. "Source identity effect" distinguishes a value that 
 | `SKILLS_PACKAGE` | Comma-separated first-level package names | Empty, meaning no package filter | Initializes package filters before CLI selectors append more values. | No external identity change; selection only. |
 | `SKILLS_SCOPE` | Comma-separated relative scope paths | Empty, meaning no scope filter | Initializes scope filters before CLI selectors append more values. | No external identity change; selection only. |
 | `SKILLS_PATH` | Comma-separated exact source-relative skill paths | Empty, meaning no path filter | Initializes exact-path filters before CLI selectors append more values. | No external identity change; selection only. |
+| `SKILLS_EXCLUDE` | Comma-separated relative scope or exact skill paths | Empty, meaning nothing is skipped | Initializes exclusions before `--skills-exclude` appends more values. Set it in your shell profile to keep unwanted skills out of every reinstall and `--repair`. | No external identity change; selection only. |
 | `ANTIGRAVITY_INSTALL_SCRIPT` | HTTPS URL without embedded credentials | `https://antigravity.google/cli/install.sh` | Installer script used only when `--install-missing-clis` needs Antigravity. A different URL requires mutable-source permission; plain HTTP and credential-bearing URLs are rejected. | Yes; executable script identity. |
 | `ANTIGRAVITY_SKILLS_DIR` | Full directory path | `~/.gemini/antigravity-cli/skills` | Replaces the current global Antigravity skill target. | No; destination only. |
 | `ANTIGRAVITY_LEGACY_SKILLS_DIR` | Full directory path | `~/.agents/skills` | Replaces the legacy global Antigravity skill mirror. | No; destination only. |
@@ -303,6 +305,25 @@ npx -y @ranimontagna/agent-toolkit \
   --local \
   --skills-scope backend/java
 ```
+
+### Everything except some languages
+
+Install the full set but keep skills for stacks you never use out of the global targets. Exclusions match a scope and everything below it, or one exact skill path:
+
+```bash
+npx -y @ranimontagna/agent-toolkit \
+  --all \
+  --claude \
+  --skills-exclude backend/go,backend/java,backend/kotlin
+```
+
+To make the exclusion stick across reinstalls and `--repair`, export it once in your shell profile instead:
+
+```bash
+export SKILLS_EXCLUDE="backend/go,backend/java,backend/kotlin"
+```
+
+Pair it with `--local` from a project root to give a single project the skills you excluded globally, for example `--skills-only --claude --local --skills-scope frontend/gsap`.
 
 ### Multiple Custom Skill packages
 

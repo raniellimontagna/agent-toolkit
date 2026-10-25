@@ -58,6 +58,7 @@ type State = {
   skillPackages: string[];
   skillScopes: string[];
   skillPaths: string[];
+  skillExcludes: string[];
   listSkills: boolean;
   cliPackages: Partial<Record<RuntimeName, string>>;
   tools: Record<ToolName, boolean>;
@@ -158,6 +159,7 @@ export const state: State = {
   skillPaths: splitList(
     process.env.SKILLS_PATH || process.env.SKILLS_PATHS || "",
   ),
+  skillExcludes: splitList(process.env.SKILLS_EXCLUDE || ""),
   listSkills: false,
   cliPackages: {
     claude:
@@ -274,4 +276,11 @@ export function normalizedSkillPackages(): string[] {
     .map(normalizeScope)
     .filter((value) => value && value !== "all");
   return [...new Set(packages)];
+}
+
+export function normalizedSkillExcludes(): string[] {
+  const excludes = state.skillExcludes
+    .map(normalizeScope)
+    .filter((value) => value && value !== "all");
+  return [...new Set(excludes)];
 }

@@ -95,4 +95,26 @@ describe("argument parsing for operational commands", () => {
     expect(state.auditSkills).toBe(true);
     expect(state.nonInteractive).toBe(true);
   });
+
+  it("collects skill exclusions from repeated and comma-separated flags", () => {
+    const original = [...state.skillExcludes];
+    state.skillExcludes = [];
+    try {
+      expect(
+        parseArgs([
+          "--skills-exclude",
+          "backend/go,backend/java",
+          "--skills-exclude",
+          "backend/kotlin",
+        ]),
+      ).toBe(true);
+      expect(state.skillExcludes).toEqual([
+        "backend/go",
+        "backend/java",
+        "backend/kotlin",
+      ]);
+    } finally {
+      state.skillExcludes = original;
+    }
+  });
 });

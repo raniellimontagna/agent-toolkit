@@ -1,5 +1,6 @@
 import { color, step } from "./logger.js";
 import {
+  normalizedSkillExcludes,
   normalizedSkillPaths,
   normalizedSkillScopes,
   runtimeMeta,
@@ -49,6 +50,9 @@ export function printSummary(): void {
   if (scopes.length > 0) console.log(`   Skills scope: ${scopes.join(", ")}`);
   const paths = normalizedSkillPaths();
   if (paths.length > 0) console.log(`   Skills path: ${paths.join(", ")}`);
+  const excludes = normalizedSkillExcludes();
+  if (excludes.length > 0)
+    console.log(`   Skills excluded: ${excludes.join(", ")}`);
   console.log("");
   console.log(
     "   Restart open agent sessions after installing plugins or skills.",

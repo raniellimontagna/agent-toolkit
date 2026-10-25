@@ -7,6 +7,7 @@ import {
   skillsTargetDir,
 } from "./skills.js";
 import {
+  normalizedSkillExcludes,
   normalizedSkillPackages,
   normalizedSkillPaths,
   type RuntimeName,
@@ -228,9 +229,11 @@ function selectedSkillPlanLines(): string[] {
   const skillList = skillDirs.map(skillRelativePath).join(", ");
   const packages = normalizedSkillPackages();
   const paths = normalizedSkillPaths();
+  const excludes = normalizedSkillExcludes();
   const lines = [
     `- Selected packages: ${packages.length > 0 ? packages.join(", ") : "all"}`,
     `- Selected individual skills: ${paths.length > 0 ? paths.join(", ") : "all"}`,
+    `- Excluded skills: ${excludes.length > 0 ? excludes.join(", ") : "none"}`,
     `- Selected source skills: ${skillList}`,
   ];
 

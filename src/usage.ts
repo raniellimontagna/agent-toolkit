@@ -49,6 +49,7 @@ Install scope:
   --skills-package NAME Install Custom Skills from a first-level package, repeatable
   --skills-scope SCOPE  Install skills under a relative scope path, repeatable
   --skills-path PATH    Install exact Custom Skill path, repeatable
+  --skills-exclude SCOPE Skip skills under a scope or exact path, repeatable
   --skills-list         List discovered Custom Skills and exit
 
 Operations:
@@ -84,6 +85,7 @@ Environment:
   SKILLS_PACKAGE        Comma-separated first-level skill package filters
   SKILLS_SCOPE          Comma-separated skill scope filters
   SKILLS_PATH           Comma-separated exact skill path filters
+  SKILLS_EXCLUDE        Comma-separated skill scopes or paths to skip
   ANTIGRAVITY_INSTALL_SCRIPT Official Antigravity CLI install script URL
   ANTIGRAVITY_SKILLS_DIR Global Antigravity skills directory
   ANTIGRAVITY_LEGACY_SKILLS_DIR Legacy Antigravity skills mirror directory

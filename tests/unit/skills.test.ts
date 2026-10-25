@@ -17,6 +17,7 @@ let originalCustomSkillsDir: string;
 let originalSkillScopes: string[];
 let originalSkillPackages: string[];
 let originalSkillPaths: string[];
+let originalSkillExcludes: string[];
 
 function writeSkill(
   relativeDir: string,
@@ -49,10 +50,12 @@ beforeEach(() => {
   originalSkillScopes = [...state.skillScopes];
   originalSkillPackages = [...state.skillPackages];
   originalSkillPaths = [...state.skillPaths];
+  originalSkillExcludes = [...state.skillExcludes];
   state.customSkillsDir = tempDir;
   state.skillScopes = [];
   state.skillPackages = [];
   state.skillPaths = [];
+  state.skillExcludes = [];
 });
 
 afterEach(() => {
@@ -60,6 +63,7 @@ afterEach(() => {
   state.skillScopes = originalSkillScopes;
   state.skillPackages = originalSkillPackages;
   state.skillPaths = originalSkillPaths;
+  state.skillExcludes = originalSkillExcludes;
   fs.rmSync(tempDir, { recursive: true, force: true });
   vi.restoreAllMocks();
 });
@@ -143,6 +147,19 @@ describe("skill discovery", () => {
 
     expect(relativeSkillPaths(selectedSkillDirs())).toEqual([
       "backend/python/python-testing",
+    ]);
+  });
+
+  it("drops skills under excluded scopes or exact paths after the other filters", () => {
+    writeSkill("backend/go/golang-patterns");
+    writeSkill("backend/java/java-coding-standards");
+    writeSkill("backend/java/java-junit");
+    writeSkill("frontend/react/react-patterns");
+    state.skillExcludes = ["Backend/Go/", "backend/java/java-junit"];
+
+    expect(relativeSkillPaths(selectedSkillDirs())).toEqual([
+      "backend/java/java-coding-standards",
+      "frontend/react/react-patterns",
     ]);
   });
 
