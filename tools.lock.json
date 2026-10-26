@@ -31,7 +31,7 @@
     "graphify": {
       "source": "pypi",
       "package": "graphifyy",
-      "version": "0.9.92"
+      "version": "0.9.95"
     },
     "gsd": {
       "source": "npm",
@@ -41,14 +41,14 @@
     "agentBrowser": {
       "source": "npm",
       "package": "agent-browser",
-      "version": "0.39.1"
+      "version": "0.39.4"
     },
     "agentSkills": {
       "source": "skills-cli",
       "skillsCli": {
         "source": "npm",
         "package": "skills",
-        "version": "1.7.2"
+        "version": "1.7.4"
       },
       "repositories": {
         "shadcnImprove": {
@@ -59,12 +59,12 @@
         "agentBrowser": {
           "source": "github",
           "repository": "vercel-labs/agent-browser",
-          "ref": "1165952d74ceed98fdc2dd97190ad41f44dd0e24"
+          "ref": "04ba5264dade678062c3cdcce0f4f293e748249f"
         },
         "impeccable": {
           "source": "github",
           "repository": "pbakaus/impeccable",
-          "ref": "0665bd812ae0908fcab17b96fd4f840defb882d9"
+          "ref": "3671d50f0ac9a662ce0615e85a256110c9cd720b"
         },
         "webDesignGuidelines": {
           "source": "github",
@@ -79,12 +79,12 @@
         "remotionBestPractices": {
           "source": "github",
           "repository": "remotion-dev/skills",
-          "ref": "1441a11e95db35443bd76bb318386c0d3ca00053"
+          "ref": "6c67adcd9cdbe6eb84d76342da89b225f9161cb2"
         },
         "mattPocockSkills": {
           "source": "github",
           "repository": "mattpocock/skills",
-          "ref": "49dd158d1076134a641b33efb035946536778336"
+          "ref": "5beb35b040e3de97e54fa9e386d7e42d15c295c2"
         },
         "gabrielGrecoSkills": {
           "source": "github",
@@ -202,22 +202,22 @@
     "claude": {
       "source": "npm",
       "package": "@anthropic-ai/claude-code",
-      "version": "2.1.303"
+      "version": "2.1.310"
     },
     "codex": {
       "source": "npm",
       "package": "@openai/codex",
-      "version": "0.163.0"
+      "version": "0.164.0"
     },
     "opencode": {
       "source": "npm",
       "package": "opencode-ai",
-      "version": "1.19.3"
+      "version": "1.19.4"
     },
     "gemini": {
       "source": "npm",
       "package": "@google/gemini-cli",
-      "version": "0.64.0"
+      "version": "0.65.0"
     }
   }
 }

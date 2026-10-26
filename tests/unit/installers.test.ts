@@ -71,7 +71,7 @@ describe("third-party skill installers", () => {
 
     expect(calls).toEqual(
       expect.arrayContaining([
-        ["npm", ["install", "--global", "agent-browser@0.39.1"]],
+        ["npm", ["install", "--global", "agent-browser@0.39.4"]],
         ["agent-browser", ["install"]],
         [
           "git",
@@ -84,7 +84,7 @@ describe("third-party skill installers", () => {
           "git",
           expect.arrayContaining([
             "fetch",
-            "1165952d74ceed98fdc2dd97190ad41f44dd0e24",
+            "04ba5264dade678062c3cdcce0f4f293e748249f",
           ]),
         ],
         ["npx", expect.arrayContaining(["--skill", "agent-browser", "--copy"])],
