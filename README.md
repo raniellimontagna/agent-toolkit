@@ -38,6 +38,11 @@ A normal Ariadne run autonomously edits the project and creates successful-story
 
 Use the interactive installer to mix individual tools. For multiple runtimes, start with `--all-runtimes` and subtract targets with `--no-<runtime>`; bare runtime selectors target only one runtime.
 
+```bash
+# Claude Code and Codex CLI only: --claude --codex would keep just the last one
+npx -y @ranimontagna/agent-toolkit --all --all-runtimes --no-opencode --no-gemini --no-antigravity
+```
+
 ## Safe Lifecycle Operations
 
 Preview and inspect before changing an environment, then use the manifest-backed lifecycle commands when an installation needs maintenance.

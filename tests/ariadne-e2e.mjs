@@ -178,7 +178,7 @@ function parseJson(result, label) {
     return JSON.parse(result.stdout);
   } catch (error) {
     throw new Error(
-      `${label} did not emit JSON: ${error.message}\n${result.stdout}`,
+      `${label} did not emit JSON (exit ${result.status}): ${error.message}\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`,
     );
   }
 }
