@@ -66,6 +66,11 @@ Every option is long-form except the documented `-h` help alias.
 | `--opencode` | Select only OpenCode. |
 | `--gemini` | Select only Gemini CLI. |
 | `--antigravity` | Select only Antigravity. |
+
+Bare selectors do not stack: in `--claude --codex` the last one wins and the installer prints a warning. To target several runtimes, start from `--all-runtimes` and subtract with `--no-<runtime>`.
+
+| Flag | Effect |
+|---|---|
 | `--no-claude` | Exclude Claude Code from the current runtime selection. |
 | `--no-codex` | Exclude Codex CLI from the current runtime selection. |
 | `--no-opencode` | Exclude OpenCode from the current runtime selection. |
