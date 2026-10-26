@@ -15,7 +15,7 @@ describe("state helpers", () => {
   });
 
   it("exposes the validated Agent Skills catalog without mirrored arrays", () => {
-    expect(state.agentSkillsCliPackage).toBe("skills@1.7.2");
+    expect(state.agentSkillsCliPackage).toBe("skills@1.7.4");
     expect(Object.keys(state.agentSkillsCatalog.repositories)).toHaveLength(8);
     expect(
       state.agentSkillsCatalog.bundles["planning-skills"].skills.map(

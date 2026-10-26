@@ -185,10 +185,10 @@ the pre-runtime certified ref and `HEAD`.
 
 | Ariadne runtime | Version contract | Headless permission mode |
 |---|---|---|
-| Claude Code (`claude`) | exactly `2.1.303` | `--print --dangerously-skip-permissions` |
-| Codex CLI (`codex`) | exactly `0.163.0` | `exec --dangerously-bypass-approvals-and-sandbox --ephemeral` |
-| OpenCode (`opencode`) | exactly `1.19.3` | `run --auto` |
-| Gemini CLI (`gemini`) | exactly `0.64.0` | `--approval-mode yolo --skip-trust` |
+| Claude Code (`claude`) | exactly `2.1.310` | `--print --dangerously-skip-permissions` |
+| Codex CLI (`codex`) | exactly `0.164.0` | `exec --dangerously-bypass-approvals-and-sandbox --ephemeral` |
+| OpenCode (`opencode`) | exactly `1.19.4` | `run --auto` |
+| Gemini CLI (`gemini`) | exactly `0.65.0` | `--approval-mode yolo --skip-trust` |
 | Antigravity CLI (`agy`) | minimum `1.1.8` | `--print --dangerously-skip-permissions` |
 
 These modes intentionally grant autonomous project access. Run `ariadne doctor` and `ariadne run --dry-run`, review `.ariadne/prd.json` and configured checks, and preserve unrelated work before a normal run. Ariadne constrains Git ownership but cannot make an underspecified story or unsafe repository command safe.
