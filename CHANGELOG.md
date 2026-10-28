@@ -15,6 +15,7 @@ The release entries below are based on Git tag ranges and npm publication metada
 
 ## [Unreleased]
 
+- Removed the unused `docs/assets` installer screenshots, which showed old version numbers, from the repository and the npm package.
 - Refreshed the pinned external tools: Graphify `0.9.95`, Agent Skills CLI `1.7.4`, Agent Browser `0.39.4` with its matching `vercel-labs/agent-browser` tag commit, the `pbakaus/impeccable`, `remotion-dev/skills` and `mattpocock/skills` sources, and the Claude Code `2.1.310`, Codex `0.164.0`, OpenCode `1.19.4` and Gemini `0.65.0` runtime CLIs, after re-checking the installer and Ariadne headless flags on each. RTK `1.x` and Caveman `4.x` still stay out pending review.
 - Updated the development dependency `@biomejs/biome` to `2.6.3`.
 - Added `--skills-exclude SCOPE` and the `SKILLS_EXCLUDE` environment variable to skip Custom Skills under a scope or at an exact path after the other selectors, so stacks you never use (for example `backend/go,backend/java,backend/kotlin`) stay out of reinstalls and `--repair`; dry-run and the summary list the exclusions.
