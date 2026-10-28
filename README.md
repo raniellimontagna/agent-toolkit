@@ -2,6 +2,21 @@
 
 Agent Toolkit is a Node.js CLI for installing a pinned, reusable set of coding-agent tools and skills across Claude Code, Codex CLI, OpenCode, Gemini CLI, and Antigravity.
 
+[![npm version](https://img.shields.io/npm/v/@ranimontagna/agent-toolkit)](https://www.npmjs.com/package/@ranimontagna/agent-toolkit)
+[![CI](https://github.com/raniellimontagna/agent-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/raniellimontagna/agent-toolkit/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/github/license/raniellimontagna/agent-toolkit)](LICENSE)
+
+**npm:** [@ranimontagna/agent-toolkit](https://www.npmjs.com/package/@ranimontagna/agent-toolkit)
+
+## Features
+
+- One command installs the same tool set (RTK, Caveman, Superpowers, Graphify, GSD, third-party skill bundles and the bundled Custom Skills) into one or more agent runtimes.
+- Every external source is pinned in [`tools.lock.json`](tools.lock.json); mutable or re-identified sources are rejected unless you opt in.
+- Interactive menu or fully non-interactive flags, with global or project-local (`--local`) scope.
+- `--dry-run` prints the install plan first, `--doctor` reports what is installed, and `--repair` / `--uninstall` work from a manifest of the installed Custom Skills.
+- Bundled skills can be filtered by package, scope or exact path.
+- `ariadne` runs an autonomous, story-by-story coding loop inside a Git repository.
+
 ## Quick Start
 
 1. Install [Node.js 24 or newer](https://nodejs.org/) so `npm` and `npx` are available.
@@ -23,6 +38,27 @@ npx -y @ranimontagna/agent-toolkit ariadne status
 ```
 
 A normal Ariadne run autonomously edits the project and creates successful-story commits. It never pushes or uses destructive Git cleanup; use `ariadne run --dry-run` before granting the selected runtime's headless permission mode. See [Getting Started](docs/GETTING-STARTED.md#run-ariadne) for state, recovery, logs, and exit codes.
+
+## Usage Example
+
+A typical first session: preview, install, then add a few project skills.
+
+```bash
+# 1. Print the install plan for Claude Code without changing any file
+npx -y @ranimontagna/agent-toolkit --all --claude --dry-run
+
+# 2. Run the same selection for real
+npx -y @ranimontagna/agent-toolkit --all --claude
+
+# 3. Check what is installed (add --json for machine-readable output)
+npx -y @ranimontagna/agent-toolkit --doctor --claude
+
+# 4. List the bundled skills, then add only the backend ones to this project for Codex CLI
+npx -y @ranimontagna/agent-toolkit --skills-list
+npx -y @ranimontagna/agent-toolkit --skills-only --codex --local --skills-package backend
+```
+
+Run `npx -y @ranimontagna/agent-toolkit --help` for every flag and environment variable.
 
 ## Choose Tools and Runtimes
 
@@ -85,41 +121,29 @@ The Agent Skills catalog exposes these locked bundle IDs and skill names:
 - `research-skills`: `webscraping-expert`
 - `security`: `api-security-audit`, `source-leak-audit`, `cicd-security-audit`, `cloud-misconfiguration-audit`, `llm-agent-security-audit`, `js-secrets-audit`
 
-React Doctor is installed from [`millionco/react-doctor`](https://github.com/millionco/react-doctor) at a pinned commit and is documented upstream under a Modified MIT License. It is an agent skill integration, not automatic CI setup. Remotion Best Practices is installed from [`remotion-dev/skills`](https://github.com/remotion-dev/skills) at a pinned commit. UI Humanizer, Motion Designer and Webscraping Expert are installed from [`gabrielgreco1/skills`](https://github.com/gabrielgreco1/skills) at a pinned commit; that repository has no license file, and its README grants permission to use and modify the skills. Motion Designer narration calls the ElevenLabs API and needs an API key in the environment. Webscraping Expert covers anti-bot and CAPTCHA techniques; check the target site terms of service before using them.
-
 Bundled third-party skills preserve upstream attribution and license files in their skill directories. The repository catalog and immutable source pins in [`tools.lock.json`](tools.lock.json) are the source of truth.
+
+## Third-Party Skills and Licenses
+
+Agent Toolkit is MIT-licensed; skills that come from other projects keep their own licenses.
+
+- **Installed from upstream (not copied here):** React Doctor from [`millionco/react-doctor`](https://github.com/millionco/react-doctor), documented upstream under a Modified MIT License (an agent skill integration, not automatic CI setup); Remotion Best Practices from [`remotion-dev/skills`](https://github.com/remotion-dev/skills); UI Humanizer, Motion Designer and Webscraping Expert from [`gabrielgreco1/skills`](https://github.com/gabrielgreco1/skills), which has no license file but grants use and modification in its README.
+- **Bundled and copied or adapted:** each such skill keeps a `NOTICE.md` with its source, commit and license, plus the upstream license text. Examples: `security/security-audit` (vendored from `cloudflare/security-audit-skill`), `media/brag-slim` (from `latent-spaces/brag`), the `security` rewrites (informed by `uphiago/recon-skills`) and the Ariadne skills (adapted from `snarktank/ralph`).
+- **Not MIT:** `general/code-reviewer` (Apache-2.0) and `frontend/design/revenue-centric-design` (source-available terms; no gambling, betting or casino use).
+
+[Third-Party Sources and Licenses](docs/THIRD-PARTY.md) lists every source, upstream repository and license.
 
 ## Shared Skills Package
 
-The build generates [`skills.index.json`](skills.index.json), a deterministic
-catalog of every bundled skill. Each entry exposes a stable repository-relative
-`ref`, the full `SKILL.md` path, and an optional prompt-sized `BRIEF.md` path.
+The build writes `skills.index.json` to the repository root: a deterministic catalog of every bundled skill. The file is git-ignored and ships inside the npm package. Each entry exposes a stable repository-relative `ref`, the full `SKILL.md` path, and an optional prompt-sized `BRIEF.md` path.
 
-Nine skills shared with prompt-injection consumers are also assembled from that
-single root `skills/` source into the workspace package
-`@ranimontagna/agent-skills`. The generated index and copied package tree are
-created only in temporary staging and are not tracked by Git. The package has no Node.js
-runtime dependency or executable entrypoint: consumers can load the Markdown
-directly, preferring `BRIEF.md` when prompt space is limited and `SKILL.md` when
-progressive disclosure is available. Review its exact npm payload without
-publishing:
+Nine skills shared with prompt-injection consumers are also assembled from that single root `skills/` source into the workspace package [`@ranimontagna/agent-skills`](packages/agent-skills/), which is not published to npm yet. Its generated index and copied package tree are created only in temporary staging and are not tracked by Git. The package has no Node.js runtime dependency or executable entrypoint: consumers can load the Markdown directly, preferring `BRIEF.md` when prompt space is limited and `SKILL.md` when progressive disclosure is available. Review its exact npm payload without publishing:
 
 ```bash
 pnpm run pack:skills
 ```
 
-Publishing this package is intentionally independent from the Agent Toolkit
-release scripts. Tags in the `agent-skills-vX.Y.Z` namespace trigger the
-dedicated [`Release Agent Skills`](.github/workflows/release-agent-skills.yml)
-workflow; toolkit tags remain `vX.Y.Z`.
-
-The first-party `security` skills are defensive rewrites informed by [`uphiago/recon-skills`](https://github.com/uphiago/recon-skills), under its MIT License. They are intended for authorized, non-destructive reviews; upstream offensive infrastructure, agent instructions, scripts, and mass-scanning workflows are not included. See [`skills/security/NOTICE.md`](skills/security/NOTICE.md) for attribution.
-
-The bundled `security/security-audit` skill is vendored unchanged from [`cloudflare/security-audit-skill`](https://github.com/cloudflare/security-audit-skill) at commit `c1c8a8c1471069fb0e188eeaff69b8e8db6564a8` under the MIT License. It runs a six-phase, multi-agent source audit (reconnaissance, coverage-led hunting, adversarial validation, schema-checked `findings.json`, independent verification, report) and needs Node.js for its zero-dependency validators plus an OS-enforced sandbox before it executes any target code. See [`skills/security/security-audit/NOTICE.md`](skills/security/security-audit/NOTICE.md) for attribution.
-
-The bundled `media/brag-slim` skill is vendored from [`latent-spaces/brag`](https://github.com/latent-spaces/brag) at commit `069432cac935ed1895859df201c31436c07fb74e` under the MIT License. It turns a project directory or website URL into a short launch video with share copy, built with tools already on the machine; the full `/brag` skill, its render scripts, and bundled music are not included. See [`skills/media/brag-slim/NOTICE.md`](skills/media/brag-slim/NOTICE.md) for attribution.
-
-The first-party `ariadne` and `ariadne-prd` skills are Ariadne-specific adaptations of concepts from [`snarktank/ralph`](https://github.com/snarktank/ralph) under the MIT License. They install through the ordinary Custom Skills pipeline for all five runtimes; `tools.ariadne` records reviewed attribution only and is not fetched or executed during a normal Ariadne run. Each skill directory contains its source path, reviewed commit, and source hash in `NOTICE.md`.
+Publishing this package is intentionally independent from the Agent Toolkit release scripts. Tags in the `agent-skills-vX.Y.Z` namespace trigger the dedicated [`Release Agent Skills`](.github/workflows/release-agent-skills.yml) workflow; toolkit tags remain `vX.Y.Z`.
 
 ## Documentation
 
@@ -129,6 +153,7 @@ The first-party `ariadne` and `ariadne-prd` skills are Ariadne-specific adaptati
 - [Development](docs/DEVELOPMENT.md) — local setup, code style, and contribution workflow
 - [Testing](docs/TESTING.md) — unit, integration, and release-gate verification
 - [Deployment and Releases](docs/DEPLOYMENT.md) — tag-driven npm publishing and release recovery
+- [Third-Party Sources and Licenses](docs/THIRD-PARTY.md) — upstream source and license of every external or vendored skill
 - [Changelog](CHANGELOG.md) — complete version history
 - [Contributing](CONTRIBUTING.md) — contribution requirements
 - [Security](SECURITY.md) — vulnerability reporting and supply-chain policy
@@ -155,4 +180,6 @@ pnpm run release:patch -- --push
 
 The `Release` workflow runs from matching version tags in GitHub Actions and publishes the package to npm through trusted publishing. See [Deployment and Releases](docs/DEPLOYMENT.md) for the complete release and recovery procedures.
 
-Agent Toolkit is available under the [MIT License](LICENSE).
+## License
+
+Released under the [MIT License](LICENSE). Third-party skills keep their own licenses; see [Third-Party Sources and Licenses](docs/THIRD-PARTY.md).
