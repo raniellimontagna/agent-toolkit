@@ -86,6 +86,25 @@ function agentBrowserDetection(): Detection {
   };
 }
 
+// Codex serves Superpowers from the account's plugin catalog, so a logged-out
+// Codex fails the install even when the CLI itself is present.
+function superpowersDetection(): Detection {
+  const external: Detection = {
+    state: "external",
+    summary: "checked by runtime plugin commands",
+  };
+  if (!state.runtimes.codex) return external;
+
+  const codex = findCommand(runtimeMeta.codex.command);
+  if (!codex || capture(codex, ["login", "status"]).ok) return external;
+
+  return {
+    state: "missing",
+    summary:
+      "Codex CLI is not logged in, so its plugin catalog is unavailable (run `codex login`)",
+  };
+}
+
 function customSkillsDetection(): Detection {
   const skillDirs = discoverSkillDirs();
   if (skillDirs.length === 0) {
@@ -130,10 +149,7 @@ export function detectInstallerStatus(): InstallerStatus {
         summary: "checked by the Caveman installer",
         detail: state.cavemanPackage,
       },
-      superpowers: {
-        state: "external",
-        summary: "checked by runtime plugin commands",
-      },
+      superpowers: superpowersDetection(),
       graphify: commandDetection("graphify"),
       gsd: {
         state: "external",

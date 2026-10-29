@@ -1889,6 +1889,52 @@ if grep -Fq -- "marketplace openai-curated" <<<"$REMOTE_CATALOG_OUTPUT"; then
   exit 1
 fi
 
+LOGGED_OUT_BIN="$TMP_DIR/logged-out-bin"
+LOGGED_OUT_HOME="$TMP_DIR/logged-out-home"
+mkdir -p "$LOGGED_OUT_BIN" "$LOGGED_OUT_HOME"
+cp "$FAKE_BIN/node" "$LOGGED_OUT_BIN/node"
+cat > "$LOGGED_OUT_BIN/codex" <<'EOF'
+#!/usr/bin/env bash
+case "$*" in
+  --version) echo "codex 0.0.0-test" ;;
+  "login status")
+    echo "Not logged in"
+    exit 1 ;;
+  "plugin add "*)
+    echo "Error: failed to list remote marketplace plugins (401 Unauthorized)" >&2
+    exit 1 ;;
+esac
+exit 0
+EOF
+chmod +x "$LOGGED_OUT_BIN/codex"
+
+LOGGED_OUT_OUTPUT="$(
+  set +e
+  HOME="$LOGGED_OUT_HOME" \
+  PATH="$LOGGED_OUT_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --superpowers-only --codex 2>&1
+  printf 'status:%s\n' "$?"
+)"
+
+if grep -Fxq -- "status:0" <<<"$LOGGED_OUT_OUTPUT" ||
+  ! grep -Fq -- "Codex CLI is not logged in" <<<"$LOGGED_OUT_OUTPUT"; then
+  echo "Expected a failed Superpowers install to name the Codex login as the cause" >&2
+  printf '%s\n' "$LOGGED_OUT_OUTPUT" >&2
+  exit 1
+fi
+
+LOGGED_OUT_DOCTOR="$(
+  HOME="$LOGGED_OUT_HOME" \
+  PATH="$LOGGED_OUT_BIN:/usr/bin:/bin" \
+  bash "$ROOT_DIR/setup-agent-toolkit.sh" --doctor --superpowers-only --codex 2>&1
+)"
+
+if ! grep -Fq -- "Superpowers is selected but Codex CLI is not logged in" <<<"$LOGGED_OUT_DOCTOR"; then
+  echo "Expected --doctor to flag Superpowers when Codex CLI is logged out" >&2
+  printf '%s\n' "$LOGGED_OUT_DOCTOR" >&2
+  exit 1
+fi
+
 MUTABLE_OUTPUT="$(
   set +e
   HOME="$INSTALL_HOME" \
