@@ -19,6 +19,13 @@ function addCodexSuperpowers(codex: string): boolean {
     if (error) errors.push(error);
   }
   for (const error of errors) warn(error);
+  // Both catalogs come from the account, so a logged-out Codex fails every
+  // attempt with an auth error that does not say what to do next.
+  if (!capture(codex, ["login", "status"]).ok) {
+    warn(
+      "Codex CLI is not logged in, so its plugin catalog is unavailable. Run `codex login`, then rerun the installer.",
+    );
+  }
   return false;
 }
 
