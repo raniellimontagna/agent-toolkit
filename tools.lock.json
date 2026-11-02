@@ -31,17 +31,17 @@
     "graphify": {
       "source": "pypi",
       "package": "graphifyy",
-      "version": "0.9.95"
+      "version": "0.9.100"
     },
     "gsd": {
       "source": "npm",
       "package": "@opengsd/gsd-core",
-      "version": "1.18.0"
+      "version": "1.19.0"
     },
     "agentBrowser": {
       "source": "npm",
       "package": "agent-browser",
-      "version": "0.39.4"
+      "version": "0.41.1"
     },
     "agentSkills": {
       "source": "skills-cli",
@@ -59,37 +59,37 @@
         "agentBrowser": {
           "source": "github",
           "repository": "vercel-labs/agent-browser",
-          "ref": "04ba5264dade678062c3cdcce0f4f293e748249f"
+          "ref": "5868f7c05020e047c00e68e4abf9253cce864f41"
         },
         "impeccable": {
           "source": "github",
           "repository": "pbakaus/impeccable",
-          "ref": "3671d50f0ac9a662ce0615e85a256110c9cd720b"
+          "ref": "e89e3ada3e875a89ac2c5d33d11e65ebef6fe285"
         },
         "webDesignGuidelines": {
           "source": "github",
           "repository": "vercel-labs/agent-skills",
-          "ref": "063bee94c3f4df8453406c830b0a7df0f2860278"
+          "ref": "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62"
         },
         "reactDoctor": {
           "source": "github",
           "repository": "millionco/react-doctor",
-          "ref": "84ad0c8d0df7a3ab7d26946367fae3bc39c100d0"
+          "ref": "9791c32f61fb1477a4f8dd596ff80184ad26b2e3"
         },
         "remotionBestPractices": {
           "source": "github",
           "repository": "remotion-dev/skills",
-          "ref": "6c67adcd9cdbe6eb84d76342da89b225f9161cb2"
+          "ref": "c7cb2fdcacd134fb2ccb9b7a44f9ffa44e467271"
         },
         "mattPocockSkills": {
           "source": "github",
           "repository": "mattpocock/skills",
-          "ref": "5beb35b040e3de97e54fa9e386d7e42d15c295c2"
+          "ref": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d"
         },
         "gabrielGrecoSkills": {
           "source": "github",
           "repository": "gabrielgreco1/skills",
-          "ref": "4419d42365391677af719b58e84df7053309e6fc"
+          "ref": "9cf15be76c960c94edddcc78fc5fa237e0778c44"
         }
       },
       "bundles": {
@@ -202,22 +202,22 @@
     "claude": {
       "source": "npm",
       "package": "@anthropic-ai/claude-code",
-      "version": "2.1.310"
+      "version": "2.1.316"
     },
     "codex": {
       "source": "npm",
       "package": "@openai/codex",
-      "version": "0.164.0"
+      "version": "0.166.0"
     },
     "opencode": {
       "source": "npm",
       "package": "opencode-ai",
-      "version": "1.19.4"
+      "version": "1.19.5"
     },
     "gemini": {
       "source": "npm",
       "package": "@google/gemini-cli",
-      "version": "0.65.0"
+      "version": "0.66.0"
     }
   }
 }
