@@ -31,24 +31,24 @@
     "graphify": {
       "source": "pypi",
       "package": "graphifyy",
-      "version": "0.9.100"
+      "version": "0.9.106"
     },
     "gsd": {
       "source": "npm",
       "package": "@opengsd/gsd-core",
-      "version": "1.19.0"
+      "version": "1.20.1"
     },
     "agentBrowser": {
       "source": "npm",
       "package": "agent-browser",
-      "version": "0.41.1"
+      "version": "0.42.0"
     },
     "agentSkills": {
       "source": "skills-cli",
       "skillsCli": {
         "source": "npm",
         "package": "skills",
-        "version": "1.7.4"
+        "version": "1.8.1"
       },
       "repositories": {
         "shadcnImprove": {
@@ -59,12 +59,12 @@
         "agentBrowser": {
           "source": "github",
           "repository": "vercel-labs/agent-browser",
-          "ref": "5868f7c05020e047c00e68e4abf9253cce864f41"
+          "ref": "e7519957b9067c541825afa21a792fbe1f483047"
         },
         "impeccable": {
           "source": "github",
           "repository": "pbakaus/impeccable",
-          "ref": "e89e3ada3e875a89ac2c5d33d11e65ebef6fe285"
+          "ref": "c1e0e5492fbb524f5df84d635ecfae7dc438ec45"
         },
         "webDesignGuidelines": {
           "source": "github",
@@ -74,12 +74,12 @@
         "reactDoctor": {
           "source": "github",
           "repository": "millionco/react-doctor",
-          "ref": "9791c32f61fb1477a4f8dd596ff80184ad26b2e3"
+          "ref": "94a349b8a38c4e80f7600a74766b00ef3a76fa39"
         },
         "remotionBestPractices": {
           "source": "github",
           "repository": "remotion-dev/skills",
-          "ref": "c7cb2fdcacd134fb2ccb9b7a44f9ffa44e467271"
+          "ref": "1fc074b74b95cfecf7b1e419132f2cfe23dafebe"
         },
         "mattPocockSkills": {
           "source": "github",
@@ -89,7 +89,7 @@
         "gabrielGrecoSkills": {
           "source": "github",
           "repository": "gabrielgreco1/skills",
-          "ref": "9cf15be76c960c94edddcc78fc5fa237e0778c44"
+          "ref": "a3c2be7a844ffe8b0aa39c20f82dcbe776692757"
         }
       },
       "bundles": {
@@ -202,12 +202,12 @@
     "claude": {
       "source": "npm",
       "package": "@anthropic-ai/claude-code",
-      "version": "2.1.316"
+      "version": "2.1.322"
     },
     "codex": {
       "source": "npm",
       "package": "@openai/codex",
-      "version": "0.166.0"
+      "version": "0.167.1"
     },
     "opencode": {
       "source": "npm",
@@ -217,7 +217,7 @@
     "gemini": {
       "source": "npm",
       "package": "@google/gemini-cli",
-      "version": "0.66.0"
+      "version": "0.68.0"
     }
   }
 }

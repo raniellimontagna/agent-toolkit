@@ -15,6 +15,8 @@ The release entries below are based on Git tag ranges and npm publication metada
 
 ## [Unreleased]
 
+- Refreshed the pinned external tools: Graphify `0.9.106`, GSD Core `1.20.1`, Agent Skills CLI `1.8.1`, Agent Browser `0.42.0` with its matching `vercel-labs/agent-browser` tag commit, the `pbakaus/impeccable`, `millionco/react-doctor`, `remotion-dev/skills` and `gabrielgreco1/skills` sources, and the Claude Code `2.1.322`, Codex `0.167.1` and Gemini `0.68.0` runtime CLIs, after re-checking the installer and Ariadne headless flags on each. RTK `1.x` and Caveman `4.x` still stay out pending review.
+- Updated `@clack/prompts` to `1.9.0` and the development dependencies `@biomejs/biome` to `2.6.6` and `vitest` to `5.1.0`.
 - Refreshed the pinned external tools: Graphify `0.9.100`, GSD Core `1.19.0`, Agent Browser `0.41.1` with its matching `vercel-labs/agent-browser` tag commit, the `pbakaus/impeccable`, `vercel-labs/agent-skills`, `millionco/react-doctor`, `remotion-dev/skills`, `mattpocock/skills` and `gabrielgreco1/skills` sources, and the Claude Code `2.1.316`, Codex `0.166.0`, OpenCode `1.19.5` and Gemini `0.66.0` runtime CLIs, after re-checking the installer and Ariadne headless flags on each. RTK `1.x` and Caveman `4.x` still stay out pending review.
 - Updated the development dependencies `@biomejs/biome` to `2.6.4` and `@types/node` to `26.6.6`.
 - Superpowers now names a logged-out Codex CLI as the cause when its plugin install fails, and `--doctor` reports it before installing, instead of ending with only the catalog's authorization error.
