@@ -149,7 +149,7 @@ function createHarness(
     detect: () => ({
       name: "codex",
       state: "healthy",
-      version: "0.166.0",
+      version: "0.167.1",
       reason: "fake adapter",
     }),
     buildInvocation(context: IterationContext): AgentInvocation {
