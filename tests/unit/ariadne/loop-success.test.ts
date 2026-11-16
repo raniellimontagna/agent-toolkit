@@ -182,7 +182,7 @@ function createHarness(
       return {
         name: "codex",
         state: "healthy",
-        version: "0.167.1",
+        version: "0.169.0",
         reason: "deterministic test adapter",
       };
     },
@@ -443,7 +443,7 @@ describe("runAriadneLoop successful lifecycle", () => {
         ),
       ),
     ).toMatchObject({
-      runtimeVersion: "0.167.1",
+      runtimeVersion: "0.169.0",
       initialHead: "initial-head",
       invocation: {
         command: "fake-codex",
@@ -580,7 +580,7 @@ describe("runAriadneLoop successful lifecycle", () => {
           args: [path.join(harness.store.paths.runs, "dry-run", "prompt.md")],
           cwd: harness.root,
         },
-        runtime: { name: "codex", state: "healthy", version: "0.167.1" },
+        runtime: { name: "codex", state: "healthy", version: "0.169.0" },
         checks: ["pnpm test"],
         limits: {
           maxAttemptsPerStory: 3,

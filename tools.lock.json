@@ -31,17 +31,17 @@
     "graphify": {
       "source": "pypi",
       "package": "graphifyy",
-      "version": "0.9.106"
+      "version": "0.9.111"
     },
     "gsd": {
       "source": "npm",
       "package": "@opengsd/gsd-core",
-      "version": "1.20.1"
+      "version": "1.21.0"
     },
     "agentBrowser": {
       "source": "npm",
       "package": "agent-browser",
-      "version": "0.42.0"
+      "version": "0.43.0"
     },
     "agentSkills": {
       "source": "skills-cli",
@@ -59,12 +59,12 @@
         "agentBrowser": {
           "source": "github",
           "repository": "vercel-labs/agent-browser",
-          "ref": "e7519957b9067c541825afa21a792fbe1f483047"
+          "ref": "1cc19526f3641c8543d55aa6700e7c55b37ac356"
         },
         "impeccable": {
           "source": "github",
           "repository": "pbakaus/impeccable",
-          "ref": "c1e0e5492fbb524f5df84d635ecfae7dc438ec45"
+          "ref": "d41d9860b0094dcb68030657da63461212835aaa"
         },
         "webDesignGuidelines": {
           "source": "github",
@@ -74,17 +74,17 @@
         "reactDoctor": {
           "source": "github",
           "repository": "millionco/react-doctor",
-          "ref": "94a349b8a38c4e80f7600a74766b00ef3a76fa39"
+          "ref": "661cb187fbfe4e992acc89f76933e4f51244639f"
         },
         "remotionBestPractices": {
           "source": "github",
           "repository": "remotion-dev/skills",
-          "ref": "1fc074b74b95cfecf7b1e419132f2cfe23dafebe"
+          "ref": "3e20ac75161bc34468845df714701cc9bf6075f4"
         },
         "mattPocockSkills": {
           "source": "github",
           "repository": "mattpocock/skills",
-          "ref": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d"
+          "ref": "5863806dd4e15c63174bee4e7515a4256792ecfa"
         },
         "gabrielGrecoSkills": {
           "source": "github",
@@ -202,12 +202,12 @@
     "claude": {
       "source": "npm",
       "package": "@anthropic-ai/claude-code",
-      "version": "2.1.322"
+      "version": "2.1.325"
     },
     "codex": {
       "source": "npm",
       "package": "@openai/codex",
-      "version": "0.167.1"
+      "version": "0.169.0"
     },
     "opencode": {
       "source": "npm",
