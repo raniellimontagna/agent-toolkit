@@ -320,7 +320,7 @@ cat > "$FAKE_BIN/agent-browser" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$AGENT_BROWSER_LOG"
 case "\${1:-}" in
-  --version) echo "agent-browser 0.42.0" ;;
+  --version) echo "agent-browser 0.43.0" ;;
 esac
 exit 0
 EOF
@@ -363,7 +363,7 @@ cat > "$FAKE_BIN/uv" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$GRAPHIFY_LOG"
 case " \$* " in
-  *" tool install graphifyy==0.9.106 "*) cat > "$FAKE_BIN/graphify" <<'GRAPHIFY'
+  *" tool install graphifyy==0.9.111 "*) cat > "$FAKE_BIN/graphify" <<'GRAPHIFY'
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$GRAPHIFY_LOG"
 case "\${1:-}" in
@@ -381,7 +381,7 @@ cat > "$FAKE_BIN/pipx" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$GRAPHIFY_LOG"
 case " \$* " in
-  *" install graphifyy==0.9.106 "*) cat > "$FAKE_BIN/graphify" <<'GRAPHIFY'
+  *" install graphifyy==0.9.111 "*) cat > "$FAKE_BIN/graphify" <<'GRAPHIFY'
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$GRAPHIFY_LOG"
 case "\${1:-}" in
@@ -542,7 +542,7 @@ HOME="$HOME_DIR" \
 PATH="$FAKE_BIN:/usr/bin:/bin" \
 bash "$ROOT_DIR/setup-agent-toolkit.sh" --agent-browser-only --codex >/dev/null
 
-if ! grep -Fxq -- "install --global agent-browser@0.42.0" "$NPM_LOG"; then
+if ! grep -Fxq -- "install --global agent-browser@0.43.0" "$NPM_LOG"; then
   echo "Expected Agent Browser package install through npm" >&2
   cat "$NPM_LOG" >&2
   exit 1
@@ -694,7 +694,7 @@ if grep -Fq -- "--only antigravity" "$NPM_LOG"; then
   exit 1
 fi
 
-if ! grep -Fxq -- "-y @opengsd/gsd-core@1.20.1 --global --claude --codex --opencode --gemini" "$NPM_LOG"; then
+if ! grep -Fxq -- "-y @opengsd/gsd-core@1.21.0 --global --claude --codex --opencode --gemini" "$NPM_LOG"; then
   echo "Expected GSD installer to target Claude, Codex, OpenCode and Gemini globally" >&2
   cat "$NPM_LOG" >&2
   exit 1
@@ -831,7 +831,7 @@ if ! grep -Fq -- "https://github.com/shadcn/improve.git" "$GIT_LOG"; then
   exit 1
 fi
 
-if ! grep -Fxq -- "tool install graphifyy==0.9.106" "$GRAPHIFY_LOG"; then
+if ! grep -Fxq -- "tool install graphifyy==0.9.111" "$GRAPHIFY_LOG"; then
   echo "Expected Graphify package install through uv tool" >&2
   cat "$GRAPHIFY_LOG" >&2
   exit 1
@@ -1608,7 +1608,7 @@ cat > "$PIPX_BIN/pipx" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$PIPX_LOG"
 case " \$* " in
-  *" install graphifyy==0.9.106 "*) cat > "$PIPX_BIN/graphify" <<'GRAPHIFY'
+  *" install graphifyy==0.9.111 "*) cat > "$PIPX_BIN/graphify" <<'GRAPHIFY'
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$PIPX_LOG"
 case "\${1:-}" in
@@ -1627,7 +1627,7 @@ PATH="$PIPX_BIN:/usr/bin:/bin" \
 GRAPHIFY_INSTALLER="pipx" \
 bash "$ROOT_DIR/setup-agent-toolkit.sh" --graphify-only --gemini >/dev/null
 
-if ! grep -Fxq -- "install graphifyy==0.9.106" "$PIPX_LOG"; then
+if ! grep -Fxq -- "install graphifyy==0.9.111" "$PIPX_LOG"; then
   echo "Expected GRAPHIFY_INSTALLER=pipx to install graphifyy through pipx" >&2
   cat "$PIPX_LOG" >&2
   exit 1
@@ -1648,7 +1648,7 @@ cat > "$UV_FALLBACK_BIN/uv" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$UV_FALLBACK_LOG"
 case " \$* " in
-  *" tool install graphifyy==0.9.106 "*) mkdir -p "$UV_FALLBACK_HOME/.local/bin"; cat > "$UV_FALLBACK_HOME/.local/bin/graphify" <<'GRAPHIFY'
+  *" tool install graphifyy==0.9.111 "*) mkdir -p "$UV_FALLBACK_HOME/.local/bin"; cat > "$UV_FALLBACK_HOME/.local/bin/graphify" <<'GRAPHIFY'
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "UV_FALLBACK_LOG_PLACEHOLDER"
 case "\${1:-}" in
@@ -1667,7 +1667,7 @@ HOME="$UV_FALLBACK_HOME" \
 PATH="$UV_FALLBACK_BIN:/usr/bin:/bin" \
 bash "$ROOT_DIR/setup-agent-toolkit.sh" --graphify-only --codex >/dev/null
 
-if ! grep -Fxq -- "tool install graphifyy==0.9.106" "$UV_FALLBACK_LOG"; then
+if ! grep -Fxq -- "tool install graphifyy==0.9.111" "$UV_FALLBACK_LOG"; then
   echo "Expected Graphify uv install when graphify is absent from PATH" >&2
   cat "$UV_FALLBACK_LOG" >&2
   exit 1
@@ -1808,11 +1808,11 @@ cat > "$OUTDATED_BIN/npm" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$OUTDATED_NPM_LOG"
 case " \$* " in
-  *" @openai/codex@0.167.1 "*) cat > "$OUTDATED_BIN/codex" <<'CODEX'
+  *" @openai/codex@0.169.0 "*) cat > "$OUTDATED_BIN/codex" <<'CODEX'
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "OUTDATED_CODEX_LOG_PLACEHOLDER"
 case "\${1:-}" in
-  --version) echo "codex-cli 0.167.1" ;;
+  --version) echo "codex-cli 0.169.0" ;;
 esac
 exit 0
 CODEX
@@ -1837,7 +1837,7 @@ HOME="$OUTDATED_HOME" \
 PATH="$OUTDATED_BIN:/usr/bin:/bin" \
 bash "$ROOT_DIR/setup-agent-toolkit.sh" --superpowers-only --codex --install-missing-clis >/dev/null
 
-if ! grep -Fxq -- "install -g @openai/codex@0.167.1" "$OUTDATED_NPM_LOG"; then
+if ! grep -Fxq -- "install -g @openai/codex@0.169.0" "$OUTDATED_NPM_LOG"; then
   echo "Expected --install-missing-clis to update outdated Codex CLI package" >&2
   cat "$OUTDATED_NPM_LOG" >&2
   exit 1
@@ -2077,7 +2077,7 @@ HOME="$REPAIR_HOME" \
 PATH="$FAKE_BIN:/usr/bin:/bin" \
 bash "$ROOT_DIR/setup-agent-toolkit.sh" --repair --graphify-only --claude >/dev/null
 
-if ! grep -Fxq -- "tool install --force graphifyy==0.9.106" "$REPAIR_GRAPHIFY_LOG"; then
+if ! grep -Fxq -- "tool install --force graphifyy==0.9.111" "$REPAIR_GRAPHIFY_LOG"; then
   echo "Expected --repair to force-reinstall Graphify even when already on PATH" >&2
   cat "$REPAIR_GRAPHIFY_LOG" >&2
   exit 1
