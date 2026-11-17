@@ -8,3 +8,9 @@ packages:
   - "packages/*"
 overrides:
   vite: ^8.1.6
+auditConfig:
+  ignoreGhsas:
+    # picomatch <=4.0.7 ReDoS (high). Reaches only dev tooling (vitest > vite,
+    # tinyglobby, fdir); no patched release exists yet. Remove once picomatch
+    # 4.0.8 or later is published and resolvable.
+    - GHSA-fc5q-39xc-vjpf
