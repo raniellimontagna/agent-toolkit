@@ -15,6 +15,8 @@ The release entries below are based on Git tag ranges and npm publication metada
 
 ## [Unreleased]
 
+- Added the bundled `frontend/modern-web-guidance` skill, a modified copy of `GoogleChrome/modern-web-guidance@64a6d70` (v1.0.1, Apache-2.0) that has the agent search the web platform guides before writing web UI code. Its CLI commands are pinned to `modern-web-guidance@1.0.1` instead of `@latest` and run with `DISABLE_TELEMETRY=1`, and a unit test keeps both in place.
+- `pnpm audit` now ignores GHSA-fc5q-39xc-vjpf, a ReDoS in `picomatch` <=4.0.7 that reaches only the development tooling (Vitest and Vite) and has no patched release yet; the entry in `pnpm-workspace.yaml` comes out once `picomatch` 4.0.8 is published.
 - Refreshed the pinned external tools: Graphify `0.9.111`, GSD Core `1.21.0`, Agent Browser `0.43.0` with its matching `vercel-labs/agent-browser` tag commit, the `pbakaus/impeccable`, `millionco/react-doctor`, `remotion-dev/skills` and `mattpocock/skills` sources, and the Claude Code `2.1.325` and Codex `0.169.0` runtime CLIs, after re-checking the installer and Ariadne headless flags on each. RTK `1.x` and Caveman `4.x` still stay out pending review.
 - Updated the development dependency `@biomejs/biome` to `2.6.7`.
 - Refreshed the pinned external tools: Graphify `0.9.106`, GSD Core `1.20.1`, Agent Skills CLI `1.8.1`, Agent Browser `0.42.0` with its matching `vercel-labs/agent-browser` tag commit, the `pbakaus/impeccable`, `millionco/react-doctor`, `remotion-dev/skills` and `gabrielgreco1/skills` sources, and the Claude Code `2.1.322`, Codex `0.167.1` and Gemini `0.68.0` runtime CLIs, after re-checking the installer and Ariadne headless flags on each. RTK `1.x` and Caveman `4.x` still stay out pending review.

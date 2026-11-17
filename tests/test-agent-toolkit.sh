@@ -1310,6 +1310,7 @@ for expected_frontend_skill in \
   "frontend/gsap/gsap-scrolltrigger" \
   "frontend/gsap/gsap-timeline" \
   "frontend/gsap/gsap-utils" \
+  "frontend/modern-web-guidance" \
   "frontend/react-native/react-native-expert" \
   "frontend/react-native/react-native-unistyles-v3" \
   "frontend/react/react-patterns" \
