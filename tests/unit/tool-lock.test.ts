@@ -193,8 +193,8 @@ describe("external tool lock", () => {
     expect(lock.tools.caveman.ref).toBe(
       "2e08b9177c07bb7249a8a2d1a6758e5db281d002",
     );
-    expect(lock.tools.gsd.version).toBe("1.21.0");
-    expect(lock.tools.graphify.version).toBe("0.9.111");
+    expect(lock.tools.gsd.version).toBe("1.23.0");
+    expect(lock.tools.graphify.version).toBe("0.9.115");
     expect(lock.tools.agentBrowser).toEqual({
       source: "npm",
       package: "agent-browser",
@@ -203,12 +203,12 @@ describe("external tool lock", () => {
     expect(lock.tools.agentSkills.skillsCli).toEqual({
       source: "npm",
       package: "skills",
-      version: "1.8.1",
+      version: "1.9.0",
     });
     expect(lock.tools.agentSkills.repositories.mattPocockSkills).toEqual({
       source: "github",
       repository: "mattpocock/skills",
-      ref: "5863806dd4e15c63174bee4e7515a4256792ecfa",
+      ref: "abeeaf95660ba9e8b7c753eb38f441ca707a8823",
     });
     expect(lock.tools.agentSkills.bundles["planning-skills"].skills).toEqual([
       { repository: "mattPocockSkills", skill: "grill-me" },
@@ -234,7 +234,7 @@ describe("external tool lock", () => {
       },
     ]);
     expect(lock.tools.ariadne).toEqual(expectedAriadneLock);
-    expect(lock.runtimeClis.gemini.version).toBe("0.68.0");
+    expect(lock.runtimeClis.gemini.version).toBe("0.70.0");
   });
 
   it.each([
@@ -287,11 +287,11 @@ describe("external tool lock", () => {
     expect(formatNpmPackageSpec("@opengsd/gsd-core", "1.6.1")).toBe(
       "@opengsd/gsd-core@1.6.1",
     );
-    expect(formatNpmPackageSpec("@google/gemini-cli", "0.68.0")).toBe(
-      "@google/gemini-cli@0.68.0",
+    expect(formatNpmPackageSpec("@google/gemini-cli", "0.70.0")).toBe(
+      "@google/gemini-cli@0.70.0",
     );
-    expect(formatPythonPackageSpec("graphifyy", "0.9.111")).toBe(
-      "graphifyy==0.9.111",
+    expect(formatPythonPackageSpec("graphifyy", "0.9.115")).toBe(
+      "graphifyy==0.9.115",
     );
     expect(
       formatGithubPackageSpec(
@@ -316,7 +316,7 @@ describe("external tool lock", () => {
     expect(isMutableExternalSource("graphifyy")).toBe(true);
 
     expect(isMutableExternalSource("@opengsd/gsd-core@1.6.1")).toBe(false);
-    expect(isMutableExternalSource("graphifyy==0.9.111")).toBe(false);
+    expect(isMutableExternalSource("graphifyy==0.9.115")).toBe(false);
     expect(
       isMutableExternalSource(
         "github:JuliusBrussee/caveman#2e08b9177c07bb7249a8a2d1a6758e5db281d002",
@@ -331,8 +331,8 @@ describe("external tool lock", () => {
     expect(externalSourceIdentity("@opengsd/gsd-core@latest")).toBe(
       "@opengsd/gsd-core",
     );
-    expect(externalSourceIdentity("skills@1.8.1")).toBe("skills");
-    expect(externalSourceIdentity("graphifyy==0.9.111")).toBe("graphifyy");
+    expect(externalSourceIdentity("skills@1.9.0")).toBe("skills");
+    expect(externalSourceIdentity("graphifyy==0.9.115")).toBe("graphifyy");
     expect(
       externalSourceIdentity(
         "github:JuliusBrussee/caveman#2e08b9177c07bb7249a8a2d1a6758e5db281d002",

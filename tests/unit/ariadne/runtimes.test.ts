@@ -31,10 +31,10 @@ const commands: Record<AriadneRuntimeName, string> = {
 };
 
 const versions: Record<AriadneRuntimeName, string> = {
-  claude: "2.1.325",
-  codex: "0.169.0",
-  opencode: "1.19.5",
-  gemini: "0.68.0",
+  claude: "2.1.330",
+  codex: "0.171.0",
+  opencode: "1.19.6",
+  gemini: "0.70.0",
   antigravity: "1.1.8",
 };
 
@@ -245,7 +245,7 @@ describe("runtime detection", () => {
     });
     expect(registry.claude.detect()).toMatchObject({
       state: "healthy",
-      version: "2.1.325",
+      version: "2.1.330",
     });
   });
 
